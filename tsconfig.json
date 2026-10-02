@@ -1,0 +1,25 @@
+{
+  // module: NodeNext requires every relative import to carry its extension.
+  // Write `import { Storage } from './storage.js'` even though the source
+  // file is storage.ts — Vite and Vitest resolve the .js specifier to the
+  // .ts file, and NodeNext's own resolver requires the extension at all.
+  //
+  // No @types/node in node_modules (not brought in transitively by Vite 8 /
+  // Vitest 4 — verified via `ls node_modules/@types`), so Node built-in
+  // modules used under tools/ and test/ are typed by the minimal ambient
+  // shim at tools/node-shims.d.ts instead of "types": ["node"].
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022", "DOM"],
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts", "oracle/**/*.ts", "tools/**/*.ts"]
+}

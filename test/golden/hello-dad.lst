@@ -1,0 +1,24 @@
+1403 Model 2 · chain A · 66-line form
+
+                                              HELLO DAD - REENTRY TABLE                                                PAGE 1  HDAD1
+    1 01010 AUTOCODER  RUN                                                             00500
+    2 01020            JOB   HELLO DAD - REENTRY TABLE                                 00500
+    3 01030            CTL    1                                                        00500
+    4 01040   THIS MACHINE HAS 10K, ONE CHANNEL, A 1402 AND A 1403.
+    5 01050   THE ASSEMBLER THAT BUILT THIS DECK DID NOT RUN ON IT.
+    6 01060            LOAD                                                            00500
+    7 01070            ORG   00500                                                     00500
+    8 01080 LOOP       R1W   0,LINE,$                                               10 00500  L %10 00564 $       001
+    9 01090            BEF1  EOJ                                                     7 00510  R 00548 8           001
+   10 01100            BA1   *&1                                                     7 00517  R 00524             001
+   11 01110            W1    LINE                                                   10 00524  M %20 00564 W       001
+   12 01120            BA1   *&1                                                     7 00534  R 00541             001
+   13 01130            B     LOOP                                                    7 00541  J 00500             001
+   14 01140 EOJ        CC1   1                                                       2 00548  F 1                 001
+   15 01150            BA1   *&1                                                     7 00550  R 00557             001
+   16 01160            H                                                             1 00557  .                   002
+   17 01170 ID         DCW   @HELLO1@                                                6 00563  HELLO1              002
+   18 01180 LINE       DS    80                                                     80 00564
+   19 01190            END   LOOP                                                      00644
+NUMBER OF FLAGGED STATEMENTS NONE
+1410 AUTOCODER - IBM 1410 EMULATOR - CONSTRUCTED LISTING, NOT PERIOD OUTPUT

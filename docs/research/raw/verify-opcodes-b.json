@@ -1,0 +1,141 @@
+{
+  "topic": "opcodes-b",
+  "refuted": [
+    {
+      "claim": "J, R and X accept instruction lengths of 7 and 1 (master table row for R/X: 'R iiiii d / X iiiii d = 7; chained = 1').",
+      "why": "Only J has a chained 1-character form. Three independent primary sources give length 7 ONLY for the R and X branch-on-I/O-channel-status ops. A22-0526-3 p.37 gives no L values in the instruction description, but the manual's own Accelerator timing appendix spells it out, and the CE instruction reference and the Priority Feature interruptibility table agree. An emulator that accepts a 1-character chained R or X will silently execute instructions that the real 1411 would reject on the instruction-length-validity check.",
+      "correction": "1410: J = length 1 or 7. R and X = length 7 only (no chained form). B, W, V = 1, 6 or 12 (unchanged). A22-0526-3 p.96: 'BRANCH IF I/O CHANNEL STATUS INDICATOR ON page 37 ... L = 7.' (immediately above 'BRANCH UNCONDITIONALLY ... L = 1 or 7'). A22-0530-1 Figure 1 gives R and X interruptible length 7 and a dash (no value) in the non-interruptible column, while J shows 7 interruptible / 1 non-interruptible. 223-2589 p.53 'ACCEPTABLE LENGTHS' table: J = 1, 7; R = 7; X = 7.",
+      "source": "https://archive.org/download/bitsavers_ibm1410A22_14511698/A22-0526-3_1410_princOps_djvu.txt (IBM 1410 Principles of Operation A22-0526-3, p.96, '1410 Accelerator' instruction-timing appendix); https://archive.org/download/bitsavers_ibm1410A22a_813869/A22-0530-1_1410_priorityFea_djvu.txt (A22-0530-1 p.4, Figure 1); https://www.bitsavers.org/pdf/ibm/1410/223-2589_Instruction_Reference_1410_System_Fundamentals_Nov63.pdf (223-2589, p.53 op-code/length table)"
+    },
+    {
+      "claim": "7010: 'op code $ is Store/Restore Status, form $ aaaaa d. SimH decodes d = S, R, E/F/G/H (store channel 1/2/3/4 status), 1/2/3/4 (restore channel 1/2/3/4 status), P (set high address protection bound), ? (set low address bound).'",
+      "why": "The finder took the whole description from SimH source without checking the 7010 Principles of Operation, which was available. The manual gives a B-address form, not an A-address form, and documents only six d-modifiers. The G/H/3/4 channel modifiers and the P/? protection-bound modifiers do not appear anywhere in A22-6726; neither does storage protection or relocation as a concept (the only 'protection' in that manual is asterisk protection in edit, an unrelated printing feature).",
+      "correction": "7010, per A22-6726 p.33 'Store and Restore Status', instruction form $(B)d. d = S store internal machine status as one character (bit 1 Equal, 2 High, 4 Low, 8 Zero Balance, A Arithmetic Overflow, B Divide Overflow); d = R restore internal machine status; d = E store channel 1 status (bit 1 Not Ready, 2 Busy, 4 Data Check, 8 External Condition, A No Transfer, B Wrong Length Record, WM Channel Interlock); d = F store channel 2 status; d = 1 and d = 2 restore channel 1 and channel 2 status. Storing does not reset the indicators; word marks in the B-field are eliminated when machine status is stored. Storage protection / relocation and the $ P / $ ? bound-setting modifiers are NOT in A22-6726 - treat them as a SimH-only or later-feature construct (SimH gates them behind its own OPTION_PROT flag), not as documented 7010 base architecture.",
+      "source": "https://archive.org/download/bitsavers_ibm1410A22_11872961/A22-6726_7010_PrincOps_djvu.txt (IBM 7010 Principles of Operation A22-6726, p.33, 'Store and Restore Status'; index p.33/61); https://github.com/rcornwell/sims/blob/master/I7000/i7010_cpu.c (case OP_PRI / OP_STS, OPTION_PROT gating)"
+    },
+    {
+      "claim": "'The 1410 has NO storage-protection instructions ... Storage protection, relocation and store/restore CPU-and-channel-status are 7010 features (op codes $ and the Y protection d-characters).' (confidence: likely)",
+      "why": "Half right, half unsupported. The 1410 half is now verified. But the attribution of storage protection and relocation to the 7010 is not supported by the 7010 Principles of Operation, which contains no storage-protection instruction, no relocation, and no Y protection d-characters. A22-6726's Priority Test and Branch table (p.38) lists exactly the same fourteen d-modifiers as the 1410 Priority Feature (channel 1/2 attention, enter/exit priority alert, selected I/O unit, outquiry, inquiry, seek complete, overlap complete) - no ?, 9, P or H.",
+      "correction": "Split the claim. VERIFIED: the native 1410 instruction set contains no $ op, no = op, no storage-protection and no store/restore-status instruction (absent from A22-0526-3's alphabetic instruction appendix pp.101-104 and from A22-0530-1 Figure 1's complete op-code list; A22-0530-1 p.7 explicitly makes saving/restoring the arithmetic and logic indicators the programmer's job). VERIFIED: the 7010 adds $ (store/restore status) and = (floating point). NOT VERIFIED: 7010 storage protection / relocation / Y-op protection d-characters - not in A22-6726; source is SimH only.",
+      "source": "https://archive.org/download/bitsavers_ibm1410A22_11872961/A22-6726_7010_PrincOps_djvu.txt (A22-6726 pp.33, 38); https://archive.org/download/bitsavers_ibm1410A22a_813869/A22-0530-1_1410_priorityFea_djvu.txt (A22-0530-1 p.4 Figure 1, p.7)"
+    },
+    {
+      "claim": "'Instructions that read or write to end of core (d = $ or X) cannot be overlapped - if written for overlap they silently become normal read/write (marked x5).'",
+      "why": "The manual says the opposite of what the phrasing implies about the overlap itself. The processing overlap IS still performed; what is silently lost is the end-of-core termination rule. An emulator written from the finder's phrasing would drop the overlap and stall the CPU, which is the wrong observable behaviour.",
+      "correction": "A22-0526-3 p.92: 'Instructions that call for a read or write to end of core cannot be overlapped. If they are written for overlap, the processing overlap is performed, but the end-of-core instruction is automatically changed to a normal read or write; thus the end-of-core results expected are not obtained. (Indicated by x5.)' So: overlap happens; the d = $ / X transfer degrades to d = R / W and terminates on the group-mark-with-word-mark (or inter-record gap) instead of at the highest-numbered core position.",
+      "source": "https://archive.org/download/bitsavers_ibm1410A22_14511698/A22-0526-3_1410_princOps_djvu.txt (A22-0526-3, p.92, 'Overlap Versus Non-Overlap Operations')"
+    },
+    {
+      "claim": "Select Stacker and Feed (K / 4): 'Timing T = 13.5.'",
+      "why": "The instruction description gives an I/O term that the finder dropped. Carriage Control (F / 2) really is a flat T = 13.5; Select Stacker and Feed is not.",
+      "correction": "A22-0526-3 p.62: Select Stacker and Feed, 'Timing: T = 13.5 + I/O. (See Timing Considerations for 1402)'. Carriage Control, p.81: 'Timing: T = 13.5.' with a pointer to 'Timing Considerations for 1403' but no + I/O term in the formula.",
+      "source": "https://archive.org/download/bitsavers_ibm1410A22_14511698/A22-0526-3_1410_princOps_djvu.txt (A22-0526-3, p.62 Select Stacker and Feed; p.81 Carriage Control)"
+    },
+    {
+      "claim": "A22-0530-1 Figure 1 interruptible op list: '... C, /, apostrophe, lozenge (11) ...' - i.e. an apostrophe op code between Clear Storage and Branch and Clear Word Mark.",
+      "why": "There is no apostrophe op code in the 1410 instruction set. The op between / and the lozenge in Figure 1 is Set Word Mark, whose actual op code character is the comma. The finder read an OCR artifact as an apostrophe.",
+      "correction": "1410 Set Word Mark = comma (, ), mnemonic SW, forms ,(A)(B) = 11, ,(A) = 6, chained = 1. Clear Word Mark = the lozenge, mnemonic CW. A22-0530-1 Figure 1 lists them as 'Set Word Mark' and 'Clear Word Mark' with non-interruptible lengths 1,6 and interruptible 11.",
+      "source": "https://www.bitsavers.org/pdf/ibm/1410/223-2589_Instruction_Reference_1410_System_Fundamentals_Nov63.pdf (223-2589 p.53: ',(A)(B) Set Word Mark  I 6 11' and the lozenge form for Clear Word Mark); https://github.com/rcornwell/sims/blob/master/I7000/i7010_defs.h (OP_SWM = CHR_COM /* ,ab */, OP_CWM = CHR_LPARN)"
+    },
+    {
+      "claim": "'The 1410 has exactly five branch op codes: J, R, X, B, W, V.'",
+      "why": "The sentence names six, and even six is not the whole set. Y is a seventh branch op code with the Priority Feature (the finder documents it elsewhere but excludes it here), and the 1412/1419 Magnetic Character Reader feature adds further conditional branches on channel-1/channel-2 MICR indicators. 'Exactly five' is the kind of closed-world statement an emulator author will encode as a dispatch table and then be wrong about.",
+      "correction": "Native 1410 base machine: six conditional/one-address branch op codes - J (internal indicators), R (channel 1 I/O status), X (channel 2 I/O status), B (BCE), W (BBE), V (BWZ/BZN/BW) - plus / (Clear Storage and Branch) and . (Halt and Branch) as unconditional-branch forms. With the Priority Feature, Y. With the 1412/1419 MICR feature, further indicator branches (mnemonics BCLR/BCNR/BCRC/BCAF/BCPC/BCAN/BCTR, d = 1 through 7) per C28-0309-1.",
+      "source": "https://archive.org/download/bitsavers_ibm1410A22_14511698/A22-0526-3_1410_princOps_djvu.txt (A22-0526-3 pp.36-39, 23); https://archive.org/download/bitsavers_ibm1410A22a_813869/A22-0530-1_1410_priorityFea_djvu.txt (A22-0530-1 p.8); https://archive.org/download/bitsavers_ibm1410C28_4785472/C28-0309-1_1410_autocoder_text.pdf (C28-0309-1, 1412 Magnetic Character Reader mnemonic table)"
+    }
+  ],
+  "upgraded": [
+    {
+      "claim": "1410 native J-op d-character 'H' = Branch if Binary Card, channel 1 and '%' = channel 2 (the finder had these as an open question, worried the Autocoder OCR had interleaved columns).",
+      "source": "https://archive.org/download/bitsavers_ibm1410C28_4785472/C28-0309-1_1410_autocoder_text.pdf - layout-preserving OCR of C28-0309-1 p.46 mnemonic table reads cleanly: 'BB1  BRANCH IF BINARY CARD - CHANNEL 1   J 56789 H' and 'BB2  - CHANNEL 2   J 56789 %'. Same table on the same page renders BUPR1 = Y 56789 U, BSPR1 = Y 56789 S, BXPA = Y 56789 X, BEPA = Y 56789 E, BOPR1 = Y 56789 1, all matching A22-0530-1, so the column alignment on that page is sound for alphabetic d-characters."
+    },
+    {
+      "claim": "1410 native J-op d-character 'N' = Branch Outquiry, channel 1 (Autocoder BOQ / BOQ1). Note this d-character is NOT in A22-0526-3 Figure 35, which lists only 18 J d-characters.",
+      "source": "https://archive.org/download/bitsavers_ibm1410C28_4785472/C28-0309-1_1410_autocoder_text.pdf - C28-0309-1 p.46: 'BOQ  BRANCH OUTQUIRY - CHANNEL 1  J 56789 N', 'BOQ1 - CHANNEL 1  J 56789 N'. Distinct from BQPR1 = Y 56789 N (priority outquiry) two rows below. Cross-check: A22-0526-3 p.36 Figure 35 has no N entry, so this is a feature-dependent (1414 model 4/5 serial adapter) addition, not base-machine."
+    },
+    {
+      "claim": "1410 I/O x2 device-select character for the 1412/1419 Magnetic Character Reader is 'S' (the finder cited A22-0530-1 Figure 3, whose OCR renders it ambiguously as '5').",
+      "source": "https://archive.org/download/bitsavers_ibm1410C28_4785472/C28-0309-1_1410_autocoder_text.pdf - C28-0309-1 '1412 MAGNETIC CHARACTER READER' section: 'RCR 1,B  READ CHARACTER READER - CHANNEL 1   M %S1 34567 R'; channel 2 form 'M <lozenge>S2 34567 R'; overlapped forms 'M @S1' and 'M *S2'; load mode 'L %S1'."
+    },
+    {
+      "claim": "1410 disk (1405 and 1301 via 7631) uses the M/L I/O instruction with x2 = F, x3 selecting the disk sub-operation; SD (seek disk) assembles as M %F0 34567 R and SDO (seek disk overlapped) as M @F0 34567 R.",
+      "source": "https://archive.org/download/bitsavers_ibm1410C28_4785472/C28-0309-1_1410_autocoder_text.pdf - C28-0309-1 has two separate sections, '1405 DISK OPERATIONS' (SD 1,B = M %F0 34567 R; SDO = M @F0; single-record %F1; full-track %F2 e.g. RDT = M %F2 34567 R; write-check %F3 e.g. WDCW = L %F3 34567 W) and '1301 DISK OPERATIONS' (SD 1,B = M %F0 34567 R, SD 2,B = M <lozenge>F0 34567 R, SDO 1,B = M @F0 34567 R, plus RFT read full track, RCY read cylinder, RCYG to end of cylinder, PSC prevent seek complete)."
+    },
+    {
+      "claim": "The native 1410 instruction set contains no store/restore-status instruction and no storage-protection instruction; the programmer must save and restore the arithmetic and logic indicators around a priority routine by hand.",
+      "source": "https://archive.org/download/bitsavers_ibm1410A22a_813869/A22-0530-1_1410_priorityFea_djvu.txt - A22-0530-1 Figure 1 (p.4) enumerates the complete 1410 op-code set for interruptibility purposes: ? ! A S @ % E Z C / , <lozenge> W V D B T J R X Y N M L G . U F K. No $ and no =. A22-0530-1 p.7: 'If the status of arithmetic and logic indicators will be changed by operations in the priority routine, their status must be saved. If the status is saved, it must be restored before branching back to the main routine program.' Corroborated by A22-0526-3's alphabetic instruction appendix (pp.101-104), which lists no $ or = instruction."
+    },
+    {
+      "claim": "7010 op code $ is Store and Restore Status (with the corrections in the 'refuted' section above: form $(B)d, modifiers S/R/E/F/1/2).",
+      "source": "https://archive.org/download/bitsavers_ibm1410A22_11872961/A22-6726_7010_PrincOps_djvu.txt - IBM 7010 Principles of Operation A22-6726, p.33, 'Store and Restore Status'."
+    }
+  ],
+  "additions": [
+    {
+      "claim": "1410: with the 1412/1419 Magnetic Character Reader feature the machine gains two more short-form (2-character) I/O op codes that the finder's master table omits entirely: P for channel 1 and Q for channel 2. Autocoder forms: ECR1 = P E / ECR2 = Q E (engage magnetic character reader), DCR1 = P D / DCR2 = Q D (disengage), SS1 = P R / SS2 = Q 3 (MICR stacker select, pocket R / pocket 3). These sit alongside F/2 (carriage control) and K/4 (select stacker and feed) as the 1410's op-plus-d-only instructions.",
+      "source": "https://archive.org/download/bitsavers_ibm1410C28_4785472/C28-0309-1_1410_autocoder_text.pdf - IBM 1410 Autocoder C28-0309-1, '1412 MAGNETIC CHARACTER READER' mnemonic table (appears twice in the manual, once per Autocoder version; both renderings agree)",
+      "confidence": "likely"
+    },
+    {
+      "claim": "1410 open question resolved: the instruction length of op code U (Unit Control) is 5, not 2. A22-0530-1 Figure 1's '2' in the non-interruptible column for U is an error in that bulletin - two independent OCR passes of the same scan both read '2', so it is a printing error rather than a scanning artifact. The instruction form is U x1x2x3 d and the valid-length table admits O xxx d = 5 positions.",
+      "source": "https://archive.org/download/bitsavers_ibm1410A22_14511698/A22-0526-3_1410_princOps_djvu.txt (A22-0526-3 p.85 Unit Control instruction form 'U %x2x3 x'; p.11 Instruction Length Validity: 'O xxx d = 5 positions'); https://www.bitsavers.org/pdf/ibm/1410/223-2589_Instruction_Reference_1410_System_Fundamentals_Nov63.pdf (223-2589 p.53: 'U (X) d  Control Unit  5')",
+      "confidence": "verified"
+    },
+    {
+      "claim": "TRAP for anyone using A22-0526-3's alphabetic timing appendix (pp.96-98): that whole list is the 1410 ACCELERATOR timing set, not the base machine's. It uses a 4.0 microsecond memory cycle - T = 4(L+1+C) for conditional branches, T = 4(L+2.5+C) for BCE/BBE/BWZ, T = 44 + I/O for write-a-line / write console printer / write word marks as 1's - against the base machine's 4.5 microsecond figures of T = 4.5(L+1+C), 4.5(L+2.5+C) and 49.5 + I/O given in the instruction descriptions. Mixing the two sets is an easy and silent error.",
+      "source": "https://archive.org/download/bitsavers_ibm1410A22_14511698/A22-0526-3_1410_princOps_djvu.txt - A22-0526-3 p.96, '1410 Accelerator ... reducing the memory cycle from 4.5 microseconds to 4.0 microseconds ... the feature creates the new timing formulas and improved timings that follow', followed by the full alphabetic timing list",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The finder's Y(I) d-character for BQPR2 (channel 2 outquiry priority request) is printed in A22-0530-1 as a double-dagger glyph. In that same manual's typewriter face the group mark is also typed as a double dagger (the interlock-clearing instruction is written 'R(I)<double-dagger>' and 'X(I)<double-dagger>'), so the glyph alone does not distinguish record mark (A82, octal 032) from group mark (BA8421, octal 077). SimH's comment calls it 'rm' but the constant it uses is CHR_TRM = 017 (the 8421 tape-mark character), which is a third character again. Do not encode this d-character from any of the three without checking a 1414 model 4/5 feature bulletin.",
+      "source": "http://www.bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf p.8 (page image read directly: 'BQPR2  Y(I)<double-dagger>  *Branch if channel 2 outquiry priority request.' on the same page as 'removed by an R(I)<double-dagger> instruction'); https://github.com/rcornwell/sims/blob/master/I7000/i7010_cpu.c case OP_PRI, 'case CHR_TRM: /* rm branch if outquiry ch 2 */'; https://github.com/rcornwell/sims/blob/master/I7000/i7000_defs.h (CHR_TRM 017, CHR_RM 032, CHR_GM 077)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 Autocoder defines a pair of R/X branch mnemonics the finder's channel-status table does not cover: BRC1 / BRC2, 'Branch Read Back Check', channel 1 / channel 2, assembling as R iiiii <d> / X iiiii <d>. If real, this is a seventh channel status condition beyond Figure 36's six (not ready, busy, data check, condition, wrong length record, no transfer). The d-character does not OCR reliably. Worth chasing before finalising an R/X d-character decode table.",
+      "source": "https://archive.org/download/bitsavers_ibm1410C28_4785472/C28-0309-1_1410_autocoder_text.pdf - C28-0309-1 p.46 I/O status branch table, rows 'BRC1  BRANCH READ BACK CHECK - CHANNEL 1' and 'BRC2 - CHANNEL 2', immediately after BER1/BER2 (R iiiii 4 / X iiiii 4)",
+      "confidence": "unverified"
+    },
+    {
+      "claim": "1410 chaining detail with direct emulator impact that the finder omitted: 'if a two-address instruction does not require a d-character (11-position instruction), the op-modifier register is blanked; thus, any chained instructions then directly following will be automatically assigned a blank d-character.' This governs what a chained 1-character B / W / V sees as its d-character after an intervening 11-character op.",
+      "source": "https://archive.org/download/bitsavers_ibm1410A22_14511698/A22-0526-3_1410_princOps_djvu.txt - A22-0526-3 p.12, 'Chaining Instructions'",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 overlap constraint the finder omitted, and it is machine-wide state an emulator has to model: 'Both channels can operate in overlap mode, or both can operate in non-overlap mode, but one channel can not operate in overlap mode while the other is operating in non-overlap mode. If a non-overlap operation is initiated on one channel while the other channel is busy with an overlapped operation, the remainder of the overlapped operation is automatically converted to non-overlap mode. If an overlap operation is initiated while the other channel is busy with a non-overlapped operation, both operations are performed in non-overlap mode.'",
+      "source": "https://archive.org/download/bitsavers_ibm1410A22_14511698/A22-0526-3_1410_princOps_djvu.txt - A22-0526-3 p.95, 'Overlap Operational Considerations' point 8",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 Priority Feature edge case that changes interrupt behaviour: 'When an overlap priority request occurs too late to interrupt and the next instruction is a Branch if I/O Status Indicator On, the priority request indicator previously turned on is reset and no interrupt occurs.' A late request otherwise interrupts at read-out of the next interruptible instruction.",
+      "source": "https://archive.org/download/bitsavers_ibm1410A22a_813869/A22-0530-1_1410_priorityFea_djvu.txt - A22-0530-1 pp.6-7",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 Priority Feature: the console-vs-1414 inquiry disambiguation procedure, which is the documented use of the I-O NOP. 'An inquiry request interrupt caused by either the console or the 1414 TP buffer can be differentiated as follows: 1. An I-O NOP instruction is issued to the console. 2. If the inquiry request was not caused by the console, the no transfer indicator will be set. 3. If the inquiry was caused by the console, no indicator will be set.'",
+      "source": "https://archive.org/download/bitsavers_ibm1410A22a_813869/A22-0530-1_1410_priorityFea_djvu.txt - A22-0530-1 p.6",
+      "confidence": "verified"
+    },
+    {
+      "claim": "7010: A22-6726 p.38 documents the Priority Test and Branch instruction Y(I)d with the same fourteen branch conditions as the 1410 Priority Feature (channel 1/2 attention, branch-and-set priority alert mode, channel 1/2 selected I/O unit, channel 1/2 outquiry, channel 1/2 inquiry, channel 1/2 seek complete, branch-and-reset priority alert mode, channel 1/2 overlap complete), and states that when the branch occurs 'the address of the instruction immediately following the branch instruction is automatically transferred into the B-address register'. Priority is standard on the 7010, a special feature on the 1410.",
+      "source": "https://archive.org/download/bitsavers_ibm1410A22_11872961/A22-6726_7010_PrincOps_djvu.txt - A22-6726 p.38, 'Priority Test and Branch'",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Minor wording correction with an ordering consequence: the 1403 automatic single space happens 'at the end of a data transfer from core print buffer to printer', i.e. when the buffer is transferred to the printing mechanism - not, as the finder wrote, 'at the end of the data transfer from core to the print buffer'.",
+      "source": "https://archive.org/download/bitsavers_ibm1410A22_14511698/A22-0526-3_1410_princOps_djvu.txt - A22-0526-3 p.81",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Source-access note that materially changes what is checkable: bitsavers rejects bare curl with HTTP 403 (needs a browser User-Agent), and the A22-0526-3 / A22-0530-1 / C28-0309-1 / A22-6726 PDFs there have NO text layer at all (pdftotext yields ~100 bytes). Full OCR text of every one of them is on archive.org as <name>_djvu.txt, and a layout-preserving version can be had by downloading <name>_text.pdf and running pdftotext -layout on it. The layout version is what un-scrambles the Autocoder's two-column mnemonic tables that the finder flagged as untrustworthy. Item ids: A22-0526-3 = bitsavers_ibm1410A22_14511698, A22-0530-1 = bitsavers_ibm1410A22a_813869, C28-0309-1 = bitsavers_ibm1410C28_4785472, A22-6726 = bitsavers_ibm1410A22_11872961.",
+      "source": "https://archive.org/metadata/bitsavers_ibm1410A22_14511698 and direct download of the _djvu.txt / _text.pdf derivatives",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Additional primary source the finder missed, and it is the only 1410 PDF on bitsavers with a usable embedded text layer: IBM 223-2589, '1410 CE Instruction - System Fundamentals' (Nov 63). Its p.53 table 'OP CODE/INSTR / FUNCTION / ACCEPTABLE LENGTHS' is an independent cross-check on every instruction length, and is what independently confirms R/X = 7 only and U = 5.",
+      "source": "https://www.bitsavers.org/pdf/ibm/1410/223-2589_Instruction_Reference_1410_System_Fundamentals_Nov63.pdf, p.53",
+      "confidence": "verified"
+    }
+  ],
+  "notes": "Method: bitsavers 403s a bare curl, so all PDFs were pulled with a browser User-Agent; A22-0526-3, A22-0530-1, C28-0309-1 and A22-6726 have no embedded text, so I worked from archive.org's OCR derivatives (_djvu.txt, and _text.pdf + pdftotext -layout where column alignment mattered), plus one direct page-image read of A22-0530-1 p.8. Spot-checked well over the requested ten rows against the manual's own instruction descriptions: J unconditional (p.36), J conditional + the complete Figure 35 d-character list (p.36), R/X + Figure 36 (pp.36-37), BCE (p.37), BBE (pp.37-38), BWZ + Figure 37 (pp.38-39), Clear Storage and Clear Storage and Branch (p.23), Halt and Halt and Branch (p.23), NOP (p.24), Store Address Register (p.22), move vs load mode (pp.40-41), status-test-twice and interlock rules (pp.41-42), Read a Card and Select Stacker and Feed (pp.62-63), Punch a Card (p.63), Write a Line and Write Word Marks as 1's (p.80), Carriage Control + Figure 90 (pp.80-81), Unit Control (pp.85-86), Read/Write Tape and the tape-mark parity rule (pp.86-87), console printer + inquiry key sequence (pp.46-48), overlap x1/x4/x5 rules (p.92), 1401 compatibility (pp.98-100). All of those check out as the finder stated them except the items in 'refuted'. Figure 35, Figure 36, Figure 37, Figure 90 and the Priority Feature Y-modifier table were verified row by row and match the finder's tables exactly. 1401-vs-1410 hunt: I found no 1401 facts smuggled in as 1410 facts. The finder's 1401-mode material (sense switches A-G, the load-mode tape word-separator differences, the asterisk-for-bad-parity rule, the unsupported-feature list) is correctly labelled and all of it checks out against A22-0526-3 pp.98-100; the finder's caution about the mislabelled A24-3070-1 disk PDF is a genuinely useful catch. What I could NOT reach or settle: (1) the interruptible-column lengths for the arithmetic/logic ops in A22-0530-1 Figure 1 - the finder says 11, and 11 is the right instruction length for those ops, but that column is blank in both OCR passes, so it is unconfirmed; (2) the exact d-character for BQPR2 (see additions); (3) the Autocoder BRC1/BRC2 'branch read back check' d-characters; (4) the 1410 disk sub-operation digits and disk-control-field layout beyond what C28-0309-1's assembled examples show - A22-6704, A22-6670 and C28-0405-2 are all image-only on bitsavers and I did not OCR them; (5) whether A22-0526-3 editions -0/-1/-2 differ in the branch d-character assignments - not diffed. One structural caution for the emulator: the finder's confidence labels are systematically too high on anything sourced from SimH. Every SimH-derived claim I checked against a manual needed a correction or a caveat (the 7010 $ op, the protection modifiers, and SimH's own permissiveness - its op_args table marks R and X O_DBL, i.e. chainable, which the hardware is not)."
+}

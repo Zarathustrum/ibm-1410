@@ -1,0 +1,389 @@
+{
+  "topic": "opcodes-b",
+  "summary": "This covers the IBM 1410 branch, I/O, console, status and feature-dependent instruction set, as documented in IBM 1410 Principles of Operation, Form A22-0526-3 (pp. 22-24, 36-39, 40-41, 45-49, 62-63, 80-81, 85-87, 92-95, 98, 101-104), the IBM 1410 Priority Feature manual A22-0530-1 (pp. 4-9), and the IBM 1410 Autocoder manual C28-0309-1, cross-checked against the SimH i7010 CPU emulator (rcornwell/sims, I7000/i7010_cpu.c, i7010_defs.h, i7010_sys.c, i7000_defs.h), which emulates the 1410, the 7010 and the 1401 in one binary. The 1410 has exactly five branch op codes: J (one-address conditional/unconditional branch on an internal indicator), R and X (branch on I/O channel status for channel 1 and channel 2 respectively), B (branch if character equal), W (branch if bit equal) and V (branch if word mark and/or zone equal); plus / (clear storage and branch) and . (halt and branch) as unconditional-branch forms. There is NO branch-and-link instruction. Subroutine linkage is done by the fact that after ANY taken branch the B-address register is left holding NSIB - the address of the instruction that would have been executed next - and the first instruction of the subroutine stores it with G (C) B (Store B-Address Register, SBR) into the I-address of a trailing J (blank d) unconditional branch. This is the single most important 1410 idiom an emulator must get right.\n\nAddress-register conventions after branches are uniform and are load-bearing for chaining. If the branch is taken: IAR = NSIB, AAR = BI (the branch-to address, which is what the next instruction fetch actually reads from), BAR = NSIB. If a one-address branch (J, R, X) is not taken: IAR = NSI, AAR = BI, BAR = BI. If a two-address branch (B, W, V) is not taken: IAR = NSI, AAR = BI, BAR = B-1, which is what makes a chained series of one-character BCE/BBE/BWE instructions walk backwards through storage a character at a time. B, W and V accept instruction lengths of 12 (full), 6 (op + I-address only; B-address and d-character are both chained from the previous operation) and 1 (everything chained). J, R and X accept lengths of 7 and 1. Timing is in microseconds: J unconditional T = 4.5(L+2); J/R/X conditional T = 4.5(L+1+C); B/W/V T = 4.5(L+2.5+C), where L is the instruction length in characters and C is 1 if the branch is taken and 0 otherwise.\n\nI/O is done with two op codes, M (move mode) and L (load mode), which differ only in word-mark/word-separator handling, plus the short-form ops U (tape unit control, 5 characters), F/2 (carriage control channel 1/channel 2, 2 characters) and K/4 (select stacker and feed channel 1/channel 2, 2 characters). The M/L form is 10 characters: op code, a 3-character x-control field, a 5-character B-address, and a d-modifier. The x-control field is the whole addressing scheme: x1 selects channel and overlap (% = channel 1 non-overlap, @ = channel 1 overlap, lozenge = channel 2 non-overlap, * = channel 2 overlap), x2 selects the device class (1 reader, 2 printer, 4 punch, D 1009, F disk, K 7750, L teletype, P 1011 paper tape, Q 1014, S 1412/1419 MICR, T console printer, U tape even parity, B tape odd parity), and x3 is a unit number or an operation sub-code. The d-modifier is R (read), W (write), $ (read to inter-record gap or end of core, ignoring group-mark-word-marks), X (write to end of core, ignoring group-mark-word-marks), and - only with the Priority feature - Q (input status no-op) and V (output status no-op). Normal transfers terminate on a group-mark-with-word-mark in core storage (all devices) or on the inter-record gap (tape read); $ and X transfers terminate only at the highest-numbered core position and cannot be overlapped. After any M/L data transfer the B-address register is left at B + LB + 1, the IAR at NSI, and the A-address register undisturbed (Ap).\n\nEvery I/O instruction sets an interlock at read-out time; if a second I/O instruction on the same channel is read out while the interlock is still set the system stops. Only a branch-if-I/O-channel-status-indicator-on instruction on that channel clears it - either any R/X whose test results in an actual branch, or unconditionally an R (I) group-mark / X (I) group-mark, whose d-character (all six bits BA8421) tests all six status indicators. The six per-channel status indicators are bit-encoded in the d-character: 1 = not ready, 2 = busy, 4 = data check, 8 = condition, A-bit (the 'blank' character) = no transfer, B-bit ('-') = wrong length record. Any combination of bits may be given (Autocoder BEX1/BEX2, 'branch if any on in plural indicator test'). Interrogating the indicators does not reset them; they are reset as the NEXT I/O instruction is read out. The Priority feature (A22-0530-1) adds one op code, Y, whose d-character selects one of six per-channel priority request indicators (overlap, I/O unit, inquiry, outquiry, seek, attention) plus the two unconditional Y (I) E / Y (I) X 'branch and enter / branch and exit priority alert mode' instructions; an interrupt forces a branch to storage location 00101 and the priority routine returns by storing the B-address register (decremented by six) into a trailing Y (I) E. The 1410 has NO storage-protection instructions and no store/restore-status instruction; those exist only on the 7010, which adds the $ op (store/restore CPU and channel status, protection bounds) and the = op (floating point). The 1410's 1401 Compatibility feature does not add 1410 instructions - it runs the native 1401 instruction set in 1401 mode, which is where the sense-switch branches (1401 op B with d = A through G) live; native 1410 has no sense-switch branch.",
+  "facts": [
+    {
+      "claim": "1410: Branch Unconditionally is op code J with a BLANK d-character. Form is J iiiii b (7 characters) or 1 character chained. Timing T = 4.5(L+2), L = 1 or 7. After the operation: I-address register = NSIB, A-address register = BI, B-address register = NSIB. Word marks: no special considerations.",
+      "source": "IBM 1410 Principles of Operation, Form A22-0526-3, p. 36 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: Branch Conditionally (One Address) is op code J with a variable d-character, form J iiiii d (7 characters) or 1 character chained. Timing T = 4.5(L+1+C) where C = 1 if the branch is taken and 0 otherwise. Registers after: branch taken -> IAR = NSIB, AAR = BI, BAR = NSIB; branch not taken -> IAR = NSI, AAR = BI, BAR = BI (both A and B registers hold the branch-to address).",
+      "source": "A22-0526-3 pp. 36 and 12 (Figure 8, Address-Register Symbols) (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 address-register symbol definitions used in every instruction description: NSI = address of the next sequential instruction; BI = address of the next instruction if a branch is taken (the branch-to address); NSIB = address of the next instruction in storage following the branch (not executed because the branch was taken); LA/LB = number of characters in the A-/B-field; Ap/Bp = previous contents of the A-/B-address register.",
+      "source": "A22-0526-3 p. 12, Figure 8 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 subroutine linkage: there is no branch-and-store instruction. When a branch is taken, the address in the IAR (the NSIB) is transferred to the B-address register, and can then be stored with a G (C) B (Store B-Address Register) instruction. The documented idiom is: the first instruction of the subroutine stores the BAR contents into the I-address of a Branch Unconditionally written as the last step of the subroutine, so the program returns to the instruction after the call.",
+      "source": "A22-0526-3 pp. 12 (Chaining Instructions / Branch instructions have the following effects) and 22 (Store Address Register) (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: Store Address Register, op code G, form G ccccc d (7 characters), d = A (SAR), B (SBR), E (SER), F (SFR). The contents of the named register are stored in the C-field, C-address specifying the RIGHTMOST position of the field. Timing T = 69.75 us. Cannot be indexed. Registers after: IAR = NSI, AAR = Ap, BAR = Bp (using the C-address register means the A-address register is NOT changed). Word marks in the C-field have no effect; zones in the C-field are not disturbed. E and F registers hold tape addresses during overlap operation.",
+      "source": "A22-0526-3 p. 22 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: on a taken branch the next instruction is read from the A-address register: the op-code address is taken from AAR, that address is placed in STAR, then increased by one and placed in IAR for read-out of the rest of the branched-to instruction.",
+      "source": "A22-0526-3 p. 12 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: Branch if I/O Channel Status Indicator On uses op code R for channel 1 and op code X for channel 2, form R iiiii d / X iiiii d (7 characters, or 1 chained). Timing T = 4.5(L+1+C). Register effects are identical to the one-address J branch. The d-character's BIT CONFIGURATION determines which indicator(s) are tested; one to six may be tested by one instruction.",
+      "source": "A22-0526-3 pp. 36-37 (Figure 36) (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 I/O channel status indicator d-character bit assignment: 1 = Not Ready, 2 = Busy, 4 = Data Check, 8 = Condition, A-bit = No Transfer, B-bit = Wrong Length Record. A group-mark d-character (BA8421, all six bits) tests all six indicators. Example given in the manual: R (I) 3 (1 and 2 bits) tests not-ready and busy; R (I) 7 (1, 2, 4) tests not-ready, busy and data check.",
+      "source": "IBM 1410 Priority Feature, Form A22-0530-1, p. 8; corroborated by A22-0526-3 p. 37 Figure 36 (http://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 character codes are 6-bit BCD ordered B A 8 4 2 1 (octal 040 020 010 004 002 001). Group mark = 077 = all six bits; minus/hyphen '-' = 040 = B-bit only; the 'blank' special character = 020 = A-bit only. So the wrong-length-record d-character prints as '-' and the no-transfer d-character prints as the 1410 'blank' symbol.",
+      "source": "SimH i7000_defs.h CHR_* table and i7010_sys.c mem_to_ascii[64] (https://github.com/rcornwell/sims/blob/master/I7000/i7000_defs.h); character names list in A22-0526-3 p. 9",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: an interlock indicator is turned on during read-out of every I/O instruction (op codes M, L, U, F, 2, K, 4). If it is still on when the next I/O instruction on the same channel is read out, the SYSTEM STOPS. Only two things remove it: (1) any X- or R-type branch-on-status instruction that actually results in a branch, or (2) an R (I) group-mark or X (I) group-mark instruction, with no requirement that a branch occur.",
+      "source": "A22-0526-3 pp. 37 and 41 ('Results of Omitting the Status Test') (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: interrogating the I/O channel status indicators with an X- or R-type branch does NOT reset them; they are reset only as the next I/O instruction is read out.",
+      "source": "A22-0526-3 p. 41 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: status checking happens twice per I/O instruction. The first (pre-transfer) test covers not-ready, busy and condition; if any of the three sets, the instruction is IGNORED, NO data are transferred, and the system reads out the next sequential instruction without stopping. The second (post-transfer) test covers data check, wrong-length record and no transfer.",
+      "source": "A22-0526-3 pp. 41-42 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: Branch if Character Equal, op code B, form B iiiii bbbbb d (12 characters); length 6 chains the B-address and reuses the last previous operation modifier; length 1 chains everything. Timing T = 4.5(L+2.5+C). The BA8421 bit configuration of the character at the B-address is compared with the d-character; equal causes a branch. The instruction ALSO sets the high/low/equal compare indicators (high if the B-character is higher than the d-character in collating sequence). Word marks do not affect the operation - it is always a one-character test. Registers after: branch -> NSIB/BI/NSIB; no branch -> NSI/BI/B-1.",
+      "source": "A22-0526-3 p. 37 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: Branch if Bit Equal, op code W, form W iiiii bbbbb d (12 characters; 6 chains the B-address and reuses the previous modifier; 1 chains everything). Timing T = 4.5(L+2.5+C). Branches if ANY bit in the character at the B-address matches ANY bit in the d-character. Word-mark and C (parity) bits are not compared and word marks cannot be tested. Registers after: branch -> NSIB/BI/NSIB; no branch -> NSI/BI/B-1.",
+      "source": "A22-0526-3 pp. 37-38 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: Branch if Word Mark Present, or Zone Equal, op code V, form V iiiii bbbbb d (12 characters; 6 chains the B-address; 1 chains everything). Timing T = 4.5(L+2.5+C). A 1-bit in the d-character tests the B-address character for a word mark; a 2-bit compares the ZONE bits (B and A) of the B-address character against the zone bits of the d-character; both bits together branch on either condition. No word mark is required at the B-address to stop transmission because this is always a one-character operation. Registers after: branch -> NSIB/BI/NSIB; no branch -> NSI/BI/B-1.",
+      "source": "A22-0526-3 pp. 38-39 (Figure 37) (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "SimH implements the 1410 V op exactly as: branch if ((d & 01) && (B-char has WM)) || ((d & 02) && (B-char zone bits (060 mask) == d zone bits)). This confirms the manual's 1-bit/2-bit encoding and that only the B and A bits participate in the zone comparison.",
+      "source": "SimH i7010_cpu.c, case OP_BWE (https://github.com/rcornwell/sims/blob/master/I7000/i7010_cpu.c)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: the overflow indicators (arithmetic overflow, divide overflow) are turned off by the specific branch instruction that tests them, or by a computer reset. A computer reset also turns off the zero-result indicator and turns ON the low-compare and unequal-compare indicators. The compare indicators must be tested before the next compare, table lookup or branch-if-character-equal resets them. The carriage channel 9 and channel 12 indicators turn on when the corresponding carriage-tape hole is sensed and turn off when any other carriage-tape channel is sensed.",
+      "source": "A22-0526-3 pp. 36 and 36-37 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: Clear Storage, op code / (slash), form / bbbbb (6 characters) or 1 character chained. Clears data AND word marks right-to-left from the B-address to and including the nearest hundreds position. Timing T = 4.5(L+1+B). Registers after: IAR = NSI, AAR = B, BAR = bbb00-1. In the chained 1-character form the A-address register is not loaded and is undisturbed.",
+      "source": "A22-0526-3 p. 23 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: Clear Storage and Branch, op code / (slash), form / iiiii bbbbb (11 characters). Same clearing effect as Clear Storage, but the next instruction is taken from the I-address - it is an unconditional branch. Timing T = 4.5(L+2+B). Registers after: IAR = NSIB, AAR = BI, BAR = NSIB.",
+      "source": "A22-0526-3 p. 23 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: Halt, op code . (period), 1 character. Timing T = 4.5. Registers after: NSI/Ap/Bp. Halt and Branch, op code . (period), form . iiiii (6 characters): system stops, and pressing START resumes at the I-address - an unconditional branch. Timing T = 36. Registers after: IAR = NSIB, AAR = BI, BAR = NSIB.",
+      "source": "A22-0526-3 p. 23 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: No Operation, op code N, valid lengths 1, 2, 3 and no limit (the op code of any instruction can be replaced by N to skip it). Timing T = 4.5(L+1). Registers after: NSI/Ap/Bp.",
+      "source": "A22-0526-3 p. 24 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 I/O instruction general form: the maximum-form I/O instruction is 10 positions - op code (M or L), a 3-position x-control field, a 5-position B-address, and a d-character. The x-control field hundreds position (x1) is % (channel 1 non-overlap), @ (channel 1 overlap), lozenge (channel 2 non-overlap) or * (channel 2 overlap). The tens position (x2) names the device class. The units position (x3) is a unit number or further defines the operation.",
+      "source": "A22-0526-3 pp. 11 and 92 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 x2 (device select) characters: 1 = card reader 1402, 2 = printer 1403, 4 = card punch 1402, D = data transmission unit 1009, F = disk storage (1405/1301), K = programmed transmission control 7750, L = teletype, P = paper tape reader 1011, Q = remote inquiry unit 1014, S = magnetic character reader (1412/1419), T = console I/O printer, U = magnetic tape unit. The Principles of Operation additionally documents B in the x2 position for magnetic tape in ODD-parity (binary) mode, U being even parity (BCD).",
+      "source": "A22-0530-1 p. 9 (Figure 3, I-O NO-OP Instruction Format); tape U/B from A22-0526-3 p. 86 (http://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 move mode (op M) vs load mode (op L): move mode leaves word separators unchanged on input and output and transfers no core word marks to the output medium. Load mode on input converts a single incoming word separator into a word mark over the NEXT incoming character (so the record shortens by one position) and converts two consecutive word separators into a single stored word separator; on output it converts each core word mark into a word separator written one position AHEAD of its associated character, and converts a stored word separator into two output word separators.",
+      "source": "A22-0526-3 pp. 40-41 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 Read a Card: op M (or L for load mode), x-control %1x3 (channel 1) or lozenge-1x3 (channel 2), B-address, d-character R. x3 = 0, 1 or 2 selects stacker pocket NR, 1 or 8/2 and feeds the next card; x3 = 9 transfers the buffer to core storage WITHOUT stacker select and WITHOUT feeding, leaving the buffer contents intact. 80 characters transfer left to right starting at the B-address; the operation is stopped by the first group-mark-with-word-mark sensed in core storage. Timing T = 49.5 + I/O. Registers after: IAR = NSI, AAR = Ap, BAR = B + LB + 1. If the group-mark-word-mark is mispositioned the wrong-length-record indicator turns on.",
+      "source": "A22-0526-3 p. 62 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 Select Stacker and Feed: op code K for channel 1, op code 4 for channel 2, 2-character instruction (op + d), d = 0, 1 or 2. Used after a Read a Card that had 9 in x3; sends the already-read card to pocket NR, 1 or 8/2 and feeds the next card. Timing T = 13.5. Registers after: NSI/Ap/Bp. Word marks are not affected. Data check, condition and wrong-length record are never set by this instruction; no transfer IS set if two Select Stacker and Feed instructions are given without an intervening Read a Card with x3 = 9, or vice versa.",
+      "source": "A22-0526-3 pp. 62-63 (Figure 62) (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 Punch a Card: op M (or L), x-control %4x3 / lozenge-4x3, B-address, d-character W. x3 must be 0, 4 or 8 selecting the NP, 4 or 8/2 pocket. 80 characters transfer from core to the punch buffer left to right; the operation is stopped by the first group-mark-with-word-mark in core storage. Timing T = 49.5 + I/O. Registers after: NSI / Ap / B + LB + 1. In load mode the word separator is punched ahead of its associated character, increasing the resulting field length.",
+      "source": "A22-0526-3 p. 63 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 Write a Line: op M (or L), x-control %20 / lozenge-20, B-address, d-character W. 100 or 132 characters transfer to the print buffer left to right; stopped by the first group-mark-with-word-mark in core storage; then the printer is started. Timing T = 49.5 + I/O. Registers after: NSI / Ap / B + LB + 1. With op L, word marks become word separators; there is no word-separator glyph on the print chain so the printed result is a blank space preceding each word-marked character.",
+      "source": "A22-0526-3 p. 80 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 Write Word Marks As 1's: op M, x-control %21 / lozenge-21, B-address, d-character W (Autocoder WM / WM1 / WM2). The 1 in the x3 position makes word marks in the data field transfer to the print buffer as the digit 1 and all positions without word marks transfer as blanks. Using the L op code produces no printing. Timing T = 49.5 + I/O. Registers after: NSI / Ap / B + LB + 1.",
+      "source": "A22-0526-3 p. 80 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 Carriage Control: op code F for channel 1, op code 2 for channel 2, 2-character instruction (op + d). Timing T = 13.5. Registers after: NSI/Ap/Bp; word marks not affected. The NUMERIC portion of the d-character gives the number of spaces or the carriage-tape channel number; the ZONE portion selects the mode: no zone = immediate skip to channel, BA zone = skip after print to channel, B zone = immediate space, A zone = space after print. A skip to a channel at which the tape is already positioned moves to the NEXT punch of that same channel.",
+      "source": "A22-0526-3 pp. 80-81 (Figure 90) (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: after a line is printed the form must be moved before the next line prints. If no carriage control instruction (or manual carriage key) does it, an automatic single space occurs at the end of the data transfer from core to the print buffer.",
+      "source": "A22-0526-3 p. 81 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 Unit Control (tape): op code U, form U x1x2x3 d (5 characters), x2 = U or B, x3 = tape unit digit 0-9. d-characters: B = backspace tape (over one complete record; a tape mark counts as a record; the 1410 is NOT interlocked during the operation), A = move tape one record without reading (CE use), R = rewind, U = rewind and unload, E = skip and blank tape / erase forward (erases about 3.5 inches before the next tape write; a tape read or backspace cancels it), M = write tape mark (writes a single-character record; the 1410 IS interlocked during the operation). Timing T = .0045(L+1) + Tm ms. Registers after: NSI/Ap/Bp. Only write tape mark can be overlapped.",
+      "source": "A22-0526-3 pp. 85-86 (Figure 97) (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 Read/Write Tape: op M (move) or L (load, i.e. with word marks), x-control x1 + U (even parity/BCD) or B (odd parity/binary) + tape unit digit 0-9, B-address, d-character R (read), W (write), $ (read to inter-record gap or end of core) or X (write to end of core). A read with d = R stops at the first inter-record gap on tape OR the first group-mark-with-word-mark in core; if the group mark is sensed first, data transfer stops but TAPE MOVEMENT CONTINUES to the inter-record gap. A read with d = $ ignores group-mark-word-marks and stops at the inter-record gap or when the highest-numbered core position is filled. A write with d = W stops at the first group-mark-with-word-mark in core and then produces an inter-record gap. A write with d = X ignores group marks and stops only at the highest-numbered core position. R and W can be overlapped; $ and X cannot. Timing T = .0045(L+1) + Tm ms. Registers after: NSI / Ap / B + LB + 1.",
+      "source": "A22-0526-3 pp. 86-87 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 tape parity note: a tape mark is always written in EVEN parity. If a tape mark is encountered during an odd-parity (x2 = B) operation, both a data check and an end-of-file (condition) indication result, and the tape mark is stored as 8421 with no C bit (an invalid character) or converted to an asterisk depending on the console asterisk-insert switch. In even-parity mode (x2 = U) the tape mark enters storage as C8421 with no data check accompanying the end-of-file indication.",
+      "source": "A22-0526-3 p. 87 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 Console I/O Printer (1415): Read Console Printer is M (RCP) or L (RCPW) with x-control %T0 and d-character R; Write Console Printer is M (WCP) or L (WCPW) with x-control %T0 and d-character W. Timing T = 49.5 + I/O. Registers after: NSI / Ap / B + LB + 1. Console read/write can be overlapped but ONLY on channel 1 - channel 2 is inapplicable (indicated by x4 in the appendix listing). In move mode word marks in storage are undisturbed on read and not indicated on print; in load mode word marks are erased and entered on read and indicated on print. The group-mark-with-word-mark is not printed with the message.",
+      "source": "A22-0526-3 pp. 46-47 (Figure 44) and p. 92 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 console inquiry sequence: pressing the console INQUIRY REQUEST key sets the inquiry status latch, which the program discovers with a J iiiii Q (Branch if Inquiry Request, channel 1). The program then issues M/L %T0 bbbbb R; the machine prints the character I, spaces, and unlocks the keyboard. The operator ends entry with the RELEASE key; the next higher storage location after the entry field must contain a previously inserted group-mark-with-word-mark. Releasing early sets the wrong-length-record status indicator; the CANCEL key sets the condition status indicator. A console WRITE M/L %T0 bbbbb W prints the character R, a space, then the data up to the group-mark-with-word-mark, then a carrier return and vertical space.",
+      "source": "A22-0526-3 pp. 46-48 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 overlap: overlap is initiated by @ (channel 1) or * (channel 2) in the x1 position. Instructions that read or write to end of core (d = $ or X) cannot be overlapped - if written for overlap they silently become normal read/write (marked x5 in the appendix). Processing overlap does not apply to short-form I/O instructions (carriage control, select stacker) nor to tape unit control except write tape mark. Console printer operations can be overlapped but only on channel 1 (marked x4). If an R or X branch-on-status instruction is encountered while an overlap operation is in progress, processing is SUSPENDED until the transfer completes (the remainder of the operation is converted to non-overlap mode); the program should test J (I) 1 or J (I) 2 (Branch if Overlap in Process) first.",
+      "source": "A22-0526-3 pp. 92 and 37 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 Priority Feature (Special Feature; channel-2 I/O unit, inquiry and outquiry priority requests additionally require the I-O Adapter Special Feature 4660 and Priority Feature Extension Special Feature 5621) adds op code Y, 'priority test and branch', form Y iiiii d. Each channel can have six priority request indicators: overlap, I-O unit, inquiry, outquiry, seek and attention. A priority request indicator turning on turns OFF the priority alert mode indicator, removes the system from priority alert mode, and causes the system to branch to storage location 00101.",
+      "source": "IBM 1410 Priority Feature, Form A22-0530-1, pp. 4, 7-8 (http://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 priority routine return linkage: after an interrupt branch, the priority routine must store the address in the B-address register (BAR) and decrement it by six; the decremented B-address is the address placed in the I-address of the Y (I) E branch-unconditionally-and-enter instruction at the end of the priority routine. The status of arithmetic and logic indicators is NOT saved by hardware - if the priority routine changes them the programmer must save and restore them.",
+      "source": "A22-0530-1 p. 7 (http://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 Priority Feature also adds the I-O NOP instruction (available only with the Priority feature): form M/L x1x2x3 bbbbb d with d = Q (input status) or V (output status). It is identical to a normal read or write except that no data transfer occurs (file addresses in file address tests are still transferred). It is used after an interrupt to set the I/O channel status indicators so the causing device's status can be determined with R (I) d / X (I) d.",
+      "source": "A22-0530-1 pp. 8-9 (Figure 3) (http://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 Priority Feature interruptible/non-interruptible op codes (A22-0530-1 Figure 1): interruptible ops with their interruptible instruction length are ? and ! (11), A, S, @, %, E, Z, C, / , apostrophe, lozenge (11), W, V, D, B, T (12), J (7), R (7), X (7). Non-interruptible lengths given for the same ops are 1 or 6 (arith/logic), 1 (J), Y (1 or 7), N (any), M (10), L (10), G (7), period/Halt (1 or 6), U (2), F (2), K (2).",
+      "source": "A22-0530-1 p. 4, Figure 1 (http://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 Channel 1/2 Overlap Priority Request Indicator turns on at completion of any overlapped read, write or write-check on that channel, and also when a seek is performed in overlap mode on a 7631/1301 (it turns on at completion of the address transfer to the 7631 File Control, before the access mechanism actually moves). It is turned OFF by the R (I) d instruction for channel 1 or the X (I) d instruction for channel 2 - i.e. by the ordinary branch-on-channel-status instruction, not only by the Y instruction.",
+      "source": "A22-0530-1 pp. 5-6 (Figure 2 and text) (http://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 I-O Unit Priority Request Indicator is controlled by a 5-position priority select switch on the 1415 console (off, card reader, card punch, printer, paper tape reader) plus a priority select on-off key. It turns on when the selected device finishes an operation (card reader: card reading finished; card punch: card punching finished; printer: line of print printed; paper tape reader: full buffer or end of record), and also automatically whenever the priority select on-off key is turned on (used to enter the interrupt routine initially). It is tested and turned off by Y (I) U for channel 1 and Y (I) F for channel 2.",
+      "source": "A22-0530-1 pp. 5-6 (http://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 Seek Priority Request Indicator turns on when any access mechanism on that channel is in seek-complete status; it is tested by Y (I) S (channel 1) / Y (I) T (channel 2) and turns off automatically when the seek-complete status of ALL access mechanisms has been reset off. Seek complete status is reset off by directing a read, write or I-O NOP instruction to the causing unit. The Attention Priority Request Indicator turns on from an attention signal from the device attached to the channel control adapter and is turned off by Y (I) A / Y (I) B; it is temporarily reset by program or computer reset but turns on again at the next instruction read-out.",
+      "source": "A22-0530-1 pp. 5, 7 (http://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: there are NO storage-protection instructions and no store/restore-status instruction in the 1410 instruction set. The Priority Feature manual explicitly makes saving and restoring the arithmetic/logic indicator status the programmer's job. Storage protection, relocation and store/restore CPU-and-channel-status are 7010 features (op codes $ and the Y protection d-characters).",
+      "source": "A22-0530-1 p. 7; absence of $ and protection ops from the A22-0526-3 appendix instruction list, pp. 101-104; SimH i7010_cpu.c OPTION_PROT gating (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "likely"
+    },
+    {
+      "claim": "7010 (NOT 1410): op code $ is Store/Restore Status, form $ aaaaa d. SimH decodes d = S (store CPU status: compare high/low/equal, zero, overflow and divide-overflow indicators packed into one character at the A-address), R (restore CPU status), E/F/G/H (store channel 1/2/3/4 status), 1/2/3/4 (restore channel 1/2/3/4 status), P (set high address protection bound from two BCD digits), ? (set low address bound). Op code = is floating point (7010 optional Floating Point feature). Op code Y additionally carries the 7010 protection d-characters ? (enter protection mode), 9 (leave protection mode), P (check protection faults), H (test for program faults).",
+      "source": "SimH i7010_defs.h and i7010_cpu.c, cases OP_STS and OP_PRI (https://github.com/rcornwell/sims/blob/master/I7000/i7010_cpu.c)",
+      "confidence": "likely"
+    },
+    {
+      "claim": "7010 (NOT 1410): SimH decodes two extra J-op d-characters for the optional Floating Point feature - X (branch on exponent underflow indicator, reset by the test) and Y (branch on exponent overflow indicator, reset by the test) - and two extra overlap-in-process d-characters, 4 (channel 3) and ) (channel 4), matching the 7010's four data channels. The corresponding branch-on-channel-status op codes for channels 3 and 4 are 3 and 1.",
+      "source": "SimH i7010_defs.h (OP_IO3 = CHR_3, OP_IO4 = CHR_1) and i7010_cpu.c case OP_B (https://github.com/rcornwell/sims/blob/master/I7000/i7010_defs.h)",
+      "confidence": "likely"
+    },
+    {
+      "claim": "1410 1401 Compatibility feature does not add instructions to the 1410 instruction set; it makes the machine execute the native 1401 instruction set in '1401 mode'. A 10K 1410 runs as an 8K 1401; all larger 1410s run as a 16K 1401. 1401 special features fully supported in 1401 mode include Multiply-Divide, Expanded Print Edit, Advanced Programming (indexing, store address register, move record), Print Storage, High-Low-Equal Compare, Read-Punch Release, and Sense Switches. Not supported: Column Binary, Compressed Tape, Punch Feed Read, Serial I/O Adapter (1009/1011/1012/1412/1418/1419), Process Overlap, Selective Tape Listing, Space Suppression.",
+      "source": "A22-0526-3 p. 98 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Sense-switch branches exist only in 1401 mode on the 1410, not in the native 1410 instruction set. SimH implements 1401-mode branch d-characters A through G as sense switches A-G, ? as reader error, record-mark as printer error, I as punch error, and K as end-of-reel - all guarded by CPU_MODEL == 1, and raising STOP_UUO (undefined op) when the model is not the 1401.",
+      "source": "SimH i7010_cpu.c case OP_B (https://github.com/rcornwell/sims/blob/master/I7000/i7010_cpu.c); native 1410 d-character list in A22-0526-3 p. 36, Figure 35",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 vs 1401 difference relevant to emulation: on a 1401, load-mode tape WRITE of a stored word separator writes ONE word separator; on the 1410 it writes TWO. On a 1401, load-mode tape READ collapses any number of consecutive word separators and puts a word mark over the following character; on the 1410 a PAIR of adjacent tape word separators reads in as one stored word separator and NO word mark is set over the next character. Also, the 1401 forces invalid-parity input characters valid by adding/removing the C bit; the 1410 stores an asterisk in place of any input character with incorrect parity.",
+      "source": "A22-0526-3 p. 98 (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 timing formula symbols: T is in microseconds; L = instruction length in characters; C = 1 if the branch is taken, 0 otherwise; A and B = A-field and B-field lengths; I/O = time used by the I/O device plus 1414 synchronizer access time. All timing formulas change if the 1410 Accelerator special feature is installed (the faster set is listed separately in the manual).",
+      "source": "A22-0526-3 pp. 12-13 (Figure 7) (http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 disk (1405/1301 via 7631 File Control) uses the same M/L I/O instruction with x2 = F. The Autocoder listing shows assembled forms such as M %F0 34567 R (seek disk, channel 1 non-overlap), M @F0 34567 R (seek disk overlapped) and M %F1 34567 R (single-record sector operation), with the x3 digit selecting the disk operation and the B-address pointing at the disk-control field in core storage. For a disk I-O NOP the B-address must address the storage data used to address the desired disk module.",
+      "source": "IBM 1410 Autocoder, Form C28-0309-1, pp. 23 and the alphabetic instruction listing (http://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf); A22-0530-1 p. 9",
+      "confidence": "likely"
+    },
+    {
+      "claim": "CAUTION for anyone chasing the 1410 disk instruction set: bitsavers' A24-3070-1_1410_Disk_Storage_IO_Instructions.pdf is NOT a 1410 manual despite the filename. Its content is 1401/1440/1460 (3-digit B-addresses, timing constant N = .0115 for 1401, .0111 for 1440, .006 for 1460). Likewise A22-6788 (1301/1302 with 1410/7010) is a component description of the 1301/1302/7631 and contains no instruction set.",
+      "source": "Direct inspection of http://bitsavers.org/pdf/ibm/1410/A24-3070-1_1410_Disk_Storage_IO_Instructions.pdf pp. 5, 18 and http://bitsavers.org/pdf/ibm/1410/A22-6788_1301_1302_Disk_with_1410_7010.pdf pp. 8-15",
+      "confidence": "verified"
+    },
+    {
+      "claim": "SimH i7010 decodes the 1410/7010 x1 (channel/overlap) characters as: %/) = channel 1 non-overlap, lozenge = channel 2 non-overlap, ? = channel 3 non-overlap, ! = channel 4 non-overlap, @ = channel 1 overlap, * = channel 2 overlap, $ = channel 3 overlap, = = channel 4 overlap. Channels 3 and 4 are 7010 only. It decodes the M/L d-modifiers as R = read, $ = read ignoring word/group marks, W = write, X = write ignoring word/group marks, Q = NOP input status, V = NOP output status, S = sense, C = control.",
+      "source": "SimH i7010_cpu.c cases OP_RD/OP_RDW (https://github.com/rcornwell/sims/blob/master/I7000/i7010_cpu.c)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 op code characters (6-bit BCD octal) relevant to this instruction group, per SimH i7010_defs.h: J = 041 (branch), R = 051 (branch on channel 1 status), X = 027 (branch on channel 2 status), B = 062 (BCE), W = 026 (BBE), V = 025 (BWZ/BZN/BW), M = 044 (move-mode I/O), L = 043 (load-mode I/O), U = 024 (unit control), F = 066 (carriage control ch 1), 2 = 002 (carriage control ch 2), K = 042 (select stacker and feed ch 1), 4 = 004 (select stacker and feed ch 2), Y = 030 (priority test and branch), G = 067 (store address register), / = 021 (clear storage / clear storage and branch), . = 073 (halt / halt and branch), N = 045 (no operation), $ = 053 (7010 store/restore status), = = 013 (7010 floating point).",
+      "source": "SimH i7010_defs.h and i7000_defs.h (https://github.com/rcornwell/sims/blob/master/I7000/i7010_defs.h)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "SimH's operand-form table op_args[] confirms the 1410 instruction shapes: J, R, X and (7010) $ take an I/A-address plus a modifier; B, W and V take two addresses plus a modifier; M and L take an x-control field, a B-address and a modifier; U takes an x-control field and a modifier; F, 2, K and 4 take a modifier only; G takes a C-address and a modifier; Y takes an I-address and a modifier; the halt op takes an address only.",
+      "source": "SimH i7010_cpu.c, uint8 op_args[64] (https://github.com/rcornwell/sims/blob/master/I7000/i7010_cpu.c)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "SimH implements BCE (op B) as: set compare indicator to equal, then compare cmp_order[B-char without WM] against cmp_order[d]; greater sets high, less sets low; equal causes the jump; then DownReg(BAR) - i.e. the B register is decremented by one whether or not the branch is taken. BBE (op W) is simply 'if (ReadP(BAR) & op_mod) jump = 1;' followed by DownReg(BAR).",
+      "source": "SimH i7010_cpu.c cases OP_BCE and OP_BBE (https://github.com/rcornwell/sims/blob/master/I7000/i7010_cpu.c)",
+      "confidence": "verified"
+    }
+  ],
+  "tables": [
+    {
+      "title": "Master table: IBM 1410 branch, I/O, console, status and feature-dependent instructions",
+      "source": "IBM 1410 Principles of Operation A22-0526-3 pp. 22-24, 36-39, 46-48, 62-63, 80-81, 85-87, 101-104; IBM 1410 Priority Feature A22-0530-1 pp. 4-9; SimH i7010_cpu.c / i7010_defs.h",
+      "markdown": "| Op char | Autocoder mnemonic(s) | Instruction formats (exact char counts) | d-modifiers | Semantics summary | Indicators | Terminates on | Registers after (IAR / AAR / BAR) | Timing (us) | Source page |\n|---|---|---|---|---|---|---|---|---|---|\n| `J` | `B` | `J iiiii b` = 7; chained = 1 | blank only | Unconditional branch to I-address | none | n/a (1 instruction) | NSIB / BI / NSIB | T = 4.5(L+2), L = 1 or 7 | A22-0526-3 p.36 |\n| `J` | `BAV BZ BE BH BL BU BDV BNQ# BC9# BCV# BPCB# BOL1 BOL2` | `J iiiii d` = 7; chained = 1 | see d-character table for J | Test one internal indicator; branch to I-address if on, else fall through | overflow / divide-overflow indicators are RESET by the test that reads them | n/a | branch: NSIB / BI / NSIB; no branch: NSI / BI / BI | T = 4.5(L+1+C), L = 1 or 7 | A22-0526-3 p.36, Fig 35 |\n| `R` (ch 1), `X` (ch 2) | `BNR# BCB# BER# BEF# BWL# BNT# BA# BEX#` | `R iiiii d` / `X iiiii d` = 7; chained = 1 | bit-coded, see channel status table | Branch if any tested I/O channel status indicator is on; ALSO releases the channel I/O interlock (unconditionally if d = group mark, otherwise only if the branch is actually taken) | does NOT reset the status indicators; they reset at the next I/O read-out | n/a | branch: NSIB / BI / NSIB; no branch: NSI / BI / BI | T = 4.5(L+1+C) | A22-0526-3 pp.36-37, Fig 36 |\n| `B` | `BCE` | `B iiiii bbbbb d` = 12; `B iiiii` = 6 (B-address and d chained); `B` = 1 | any character | Compare BA8421 bits of the B-address character with d; branch if exactly equal | sets high / low / equal compare indicators (high if B-char > d in collating sequence) | one character only; word marks do not affect it | branch: NSIB / BI / NSIB; no branch: NSI / BI / B-1 | T = 4.5(L+2.5+C), L = 1, 6 or 12 | A22-0526-3 p.37 |\n| `W` | `BBE` | `W iiiii bbbbb d` = 12; 6; 1 | bit mask | Branch if ANY bit of the B-address character matches ANY bit of d (word-mark and C bits not compared) | none | one character | branch: NSIB / BI / NSIB; no branch: NSI / BI / B-1 | T = 4.5(L+2.5+C), L = 1, 6 or 12 | A22-0526-3 pp.37-38 |\n| `V` | `BW BZN BWZ` | `V iiiii bbbbb d` = 12; 6; 1 | `1 2 3 B K S C L T` (see word-mark/zone table) | d bit 1 = test word mark; d bit 2 = compare zone (B,A) bits against d's zone bits; both = branch on either | none | one character; no B-field word mark needed | branch: NSIB / BI / NSIB; no branch: NSI / BI / B-1 | T = 4.5(L+2.5+C), L = 1, 6 or 12 | A22-0526-3 pp.38-39, Fig 37 |\n| `/` | `CS` (Clear Storage) | `/ bbbbb` = 6; `/` = 1 | none | Clear data and word marks right-to-left from B-address to and including the nearest hundreds position | none | hundreds boundary | NSI / B / bbb00-1 | T = 4.5(L+1+B) | A22-0526-3 p.23 |\n| `/` | `CS` (Clear Storage and Branch) | `/ iiiii bbbbb` = 11 | none | As Clear Storage, then unconditional branch to I-address | none | hundreds boundary | NSIB / BI / NSIB | T = 4.5(L+2+B) | A22-0526-3 p.23 |\n| `.` | `H` (Halt) | `.` = 1 | none | System stops; START resumes at next sequential instruction | none | n/a | NSI / Ap / Bp | T = 4.5 | A22-0526-3 p.23 |\n| `.` | `H` (Halt and Branch) | `. iiiii` = 6 | none | System stops; START resumes at I-address (unconditional branch) | none | n/a | NSIB / BI / NSIB | T = 36 | A22-0526-3 p.23 |\n| `G` | `SAR SBR SER SFR` | `G ccccc d` = 7 | `A B E F` | Store the named address register into the C-field; C-address is the RIGHTMOST position. This is the 1410's subroutine-return mechanism (`G ccccc B` after a branch stores NSIB) | none | 5-character store; word marks in C-field ignored, zones undisturbed | NSI / Ap / Bp (A-register deliberately untouched) | T = 69.75; cannot be indexed | A22-0526-3 p.22 |\n| `N` | `NOP` | 1, 2, 3, or any length (substitutes for any instruction's op code) | ignored | Do nothing; skip the whole instruction | none | word mark at next instruction | NSI / Ap / Bp | T = 4.5(L+1) | A22-0526-3 p.24 |\n| `M` | `R# RW# P# W# WM# RT RTB WT WTB RCP WCP SD ...` | `M x1x2x3 bbbbb d` = 10; short forms per device | `R W $ X` (+ `Q V` with Priority feature) | Move-mode I/O: word separators pass through unchanged, core word marks are NOT sent to the medium | 6 channel status indicators (not ready, busy, data check, condition, wrong length record, no transfer) | group-mark-with-word-mark in core; tape read also on inter-record gap; `$`/`X` only at end of core | NSI / Ap / B + LB + 1 | card/print/console T = 49.5 + I/O; tape T = .0045(L+1) + Tm ms | A22-0526-3 pp.40-41, 62-63, 80, 86-87, 46-47 |\n| `L` | `RW# PW# WW# RTW WTW RCPW WCPW ...` | `L x1x2x3 bbbbb d` = 10 | `R W $ X` (+ `Q V`) | Load-mode I/O: input word separator becomes a word mark over the NEXT character (record shortens by one); output word mark becomes a word separator written one position AHEAD of its character; a stored word separator becomes two on output | same six | same as M | NSI / Ap / B + LB + 1 | same as M | A22-0526-3 pp.40-41 |\n| `U` | `BSP SKP RWD RWU WTM` | `U x1x2x3 d` = 5 | `B A R U E M` | Tape unit control: backspace / move one record (CE) / rewind / rewind-unload / erase forward / write tape mark | channel status; write tape mark interlocks the 1410, backspace does not | one record (backspace); tape mark = 1-char record | NSI / Ap / Bp | T = .0045(L+1) + Tm ms | A22-0526-3 pp.85-86, Fig 97 |\n| `F` (ch 1), `2` (ch 2) | `CC CC1 CC2` | `F d` / `2 d` = 2 | see carriage control table | Skip to carriage-tape channel or space 1-3 lines, immediately or after the next print | not-ready and busy only; data check, condition, WLR and no-transfer never set | n/a | NSI / Ap / Bp | T = 13.5 | A22-0526-3 pp.80-81, Figs 90, 91 |\n| `K` (ch 1), `4` (ch 2) | `SSF SSF1 SSF2` | `K d` / `4 d` = 2 | `0 1 2` | Select stacker (pocket NR, 1, 8/2) and feed, after a Read a Card that had 9 in x3 | not-ready, busy, and no-transfer; data check / condition / WLR never set | n/a | NSI / Ap / Bp | T = 13.5 | A22-0526-3 pp.62-63, Fig 62 |\n| `Y` | `BUPR1 BUPR2 BOPR1 BOPR2 BIPR1 BIPR2 BQPR1 BQPR2 BSPR1 BSPR2 BXPR1 BXPR2 BEPA BXPA` | `Y iiiii d` = 7 (non-interruptible length 1 or 7) | `U F 1 2 Q * N (record mark) S T A B E X` | PRIORITY FEATURE ONLY. Priority test and branch: test (and usually reset) one priority request indicator; `E`/`X` are unconditional branch-and-enter / branch-and-exit priority alert mode | priority request indicators; an interrupt forces a branch to 00101 and drops priority alert mode | n/a | branch: NSIB / BI / NSIB (return address must be taken from BAR and decremented by 6) | not stated in A22-0530-1 | A22-0530-1 pp.4-8 |\n| `$` | (7010 only) | `$ aaaaa d` | `S R E F G H 1 2 3 4 P ?` | 7010 ONLY. Store / restore CPU status word; store / restore channel status; set protection high/low bounds. NOT a 1410 instruction | arithmetic and compare indicators packed into one character | 1 character at A-address | AAR copied to BAR, then decremented per character | n/a | SimH i7010_cpu.c |\n| `=` | (7010 only) | `= aaaaa d` | `R` etc | 7010 ONLY, Floating Point optional feature. Floating point ops against the FP register at 280-299 | exponent overflow / underflow indicators (tested by `J iiiii Y` / `J iiiii X`) | n/a | BAR forced to 299 | n/a | SimH i7010_cpu.c |"
+    },
+    {
+      "title": "COMPLETE d-character table for Branch on Indicator, op code J (1410 native)",
+      "source": "IBM 1410 Principles of Operation A22-0526-3 p. 36, Figure 35, and appendix p. 101; cross-checked against SimH i7010_cpu.c case OP_B",
+      "markdown": "| d-char | Autocoder mnemonic | Indicator tested | Notes |\n|---|---|---|---|\n| blank | `B` | (none - unconditional) | Branch Unconditionally. The blank d-character position must be present: L = 7 or chained L = 1 |\n| `Z` | `BAV` | Arithmetic overflow | Indicator is turned OFF by this test (or by computer reset) |\n| `W` | `BDV` | Divide overflow | Turned OFF by this test (or by computer reset) |\n| `V` | `BZ` | Zero balance | Turned off by computer reset |\n| `S` | `BE` | Compare equal (B = A) | Compare indicators are reset by the next compare, table lookup or BCE |\n| `U` | `BH` | Compare high (B > A) | |\n| `T` | `BL` | Compare low (B < A) | Computer reset turns the low-compare indicator ON |\n| `/` | `BU` | Compare unequal (B > or < A) | Computer reset turns the unequal-compare indicator ON |\n| `9` | `BC9` / `BC91` | Carriage channel 9, channel 1 (1403) | On when the channel-9 hole is sensed; off when any other carriage-tape channel is sensed |\n| `!` | `BC92` | Carriage channel 9, channel 2 | |\n| `@` | `BCV` / `BCV1` | Carriage overflow, channel 12, channel 1 | Same on/off rule as channel 9 |\n| lozenge | `BCV2` | Carriage overflow, channel 12, channel 2 | The 1410 'lozenge' special character |\n| `R` | `BPCB` / `BPCB1` | Printer carriage busy, channel 1 | |\n| `L` | `BPCB2` | Printer carriage busy, channel 2 | |\n| `Q` | `BNQ` / `BNQ1` | Inquiry request, channel 1 (1415 console inquiry status latch) | Set by the console INQUIRY REQUEST key |\n| `*` | `BNQ2` | Inquiry request, channel 2 | |\n| `1` | `BOL1` | Overlap in process, channel 1 | Must be tested before any R/X status branch if the Processing Overlap feature is installed, or the overlapped operation reverts to non-overlap |\n| `2` | `BOL2` | Overlap in process, channel 2 | |\n| `K` | (none) | Tape indicator | Documented as 'for CE use' in A22-0526-3 |\n| `N` | `BOQ1` (Autocoder 'branch outquiry, channel 1') | Outquiry, channel 1 | From C28-0309-1 mnemonic listing; serial (1414 model 4/5) output buffer |\n| `H` / `%` | Autocoder 'branch if binary card' ch 1 / ch 2 | Binary card | From C28-0309-1 mnemonic listing; requires the column-binary card feature |\n| `4` | (7010) | Overlap in process, channel 3 | 7010 only |\n| `)` | (7010) | Overlap in process, channel 4 | 7010 only |\n| `X` | (7010) | Floating point exponent underflow | 7010 optional Floating Point feature; reset by the test |\n| `Y` | (7010) | Floating point exponent overflow | 7010 optional Floating Point feature; reset by the test |\n| `A` `B` `C` `D` `E` `F` `G` | 1401 `BSS A`..`BSS G` | Sense switches A-G | 1401 MODE ONLY (1401 Compatibility feature). Not valid in native 1410 mode |\n| `?` | 1401 | Reader error | 1401 mode only |\n| record mark | 1401 | Printer error | 1401 mode only |\n| `I` | 1401 | Punch error | 1401 mode only |\n| `K` | 1401 | End of reel | 1401 mode only (different meaning from the 1410 tape indicator) |"
+    },
+    {
+      "title": "d-character bit table for Branch if I/O Channel Status Indicator On (op R = channel 1, op X = channel 2)",
+      "source": "IBM 1410 Priority Feature A22-0530-1 p. 8; IBM 1410 Principles of Operation A22-0526-3 p. 37, Figure 36",
+      "markdown": "| Bit in d | d-character alone | Autocoder mnemonic | Indicator | When it is set |\n|---|---|---|---|---|\n| 1 | `1` | `BNR1` / `BNR2` | Not Ready | Set BEFORE any data transfer if the device or its buffer is not ready. Operation is terminated, no data transferred, machine does NOT stop |\n| 2 | `2` | `BCB1` / `BCB2` | Busy | Set BEFORE any data transfer if the device or its buffer is busy. Operation terminated, no data transferred |\n| 4 | `4` | `BER1` / `BER2` | Data Check | Set AFTER the data transfer if a parity error was detected in the device, its buffer, or the processing unit |\n| 8 | `8` | `BEF1` / `BEF2` | Condition | Normally set BEFORE any data transfer (e.g. card reader end-of-file). Operation terminated, no data transferred |\n| B | `-` (minus/hyphen; B bit only, octal 40) | `BWL1` / `BWL2` | Wrong Length Record | Set if the record written from or into storage is not the correct length (group-mark-with-word-mark mispositioned) |\n| A | the 1410 'blank' character (A bit only, octal 20) | `BNT1` / `BNT2` | No Transfer | Normally set BEFORE any transfer; means no data was available to transfer |\n| BA8421 | group mark (all six bits, octal 77) | `BA1` / `BA2` | ALL six | 'Branch if any I/O channel status indicator on'. Also the only form that releases the channel interlock without requiring an actual branch |\n| any combination | e.g. `3` = bits 1+2, `7` = bits 1+2+4 | `BEX1` / `BEX2` | Plural indicator test | 'Branch if any on in plural indicator test'. One to six indicators in a single instruction |"
+    },
+    {
+      "title": "d-character table for Branch if Word Mark Present, or Zone Equal (op code V)",
+      "source": "IBM 1410 Principles of Operation A22-0526-3 p. 39, Figure 37",
+      "markdown": "| Instruction | Actual d-char | Autocoder form | Condition that causes the branch |\n|---|---|---|---|\n| Branch if Word Mark Present | `1` | `BW (I)(B)` | B-address character has a word-mark bit |\n| Branch if Zone Bits Absent | `2` | `BZN (I)(B)` | B-address character has neither a B nor an A bit |\n| Branch if Zone Equal AB | `B` | `BZN (I)(B) AB` or `BZN (I)(B) +` | B-address character has BOTH B and A bits (plus test) |\n| Branch if Zone Equal B | `K` | `BZN (I)(B) B` or `BZN (I)(B) -` | B-address character has a B bit but no A bit (minus test) |\n| Branch if Zone Equal A | `S` | `BZN (I)(B) A` or `BZN (I)(B) b` | B-address character has an A bit but no B bit |\n| Branch if Word Mark Present, or Zone Bits Absent | `3` | `BWZ (I)(B)` | word mark, OR no B and no A bit |\n| Branch if Word Mark Present, or Zone Equal AB | `C` | `BWZ (I)(B) AB` or `BWZ (I)(B) +` | word mark, OR both B and A bits |\n| Branch if Word Mark Present, or Zone Equal B | `L` | `BWZ (I)(B) B` or `BWZ (I)(B) -` | word mark, OR a B bit but no A bit |\n| Branch if Word Mark Present, or Zone Equal A | `T` | `BWZ (I)(B) A` or `BWZ (I)(B) b` | word mark, OR an A bit but no B bit |\n\nEncoding rule an emulator can implement directly: d bit 1 enables the word-mark test; d bit 2 enables the zone test; the zone test compares the B and A bits of the B-address character against the B and A bits of the d-character itself. (1 = 001, 2 = 002, 3 = 003, S = 022, T = 023, K = 042, L = 043, B = 062, C = 063 in octal BA8421.)"
+    },
+    {
+      "title": "d-character table for Carriage Control (op code F = channel 1, op code 2 = channel 2)",
+      "source": "IBM 1410 Principles of Operation A22-0526-3 p. 81, Figure 90",
+      "markdown": "| d | Immediate skip to | d | Skip after print to | d | Immediate space | d | Space after print |\n|---|---|---|---|---|---|---|---|\n| `1` | Channel 1 | `A` | Channel 1 | `J` | 1 space | `/` | 1 space |\n| `2` | Channel 2 | `B` | Channel 2 | `K` | 2 spaces | `S` | 2 spaces |\n| `3` | Channel 3 | `C` | Channel 3 | `L` | 3 spaces | `T` | 3 spaces |\n| `4` | Channel 4 | `D` | Channel 4 | | | | |\n| `5` | Channel 5 | `E` | Channel 5 | | | | |\n| `6` | Channel 6 | `F` | Channel 6 | | | | |\n| `7` | Channel 7 | `G` | Channel 7 | | | | |\n| `8` | Channel 8 | `H` | Channel 8 | | | | |\n| `9` | Channel 9 | `I` | Channel 9 | | | | |\n| `0` | Channel 10 | `?` | Channel 10 | | | | |\n| `#` | Channel 11 | `.` | Channel 11 | | | | |\n| `@` | Channel 12 | lozenge | Channel 12 | | | | |\n\nEncoding rule: the NUMERIC (8421) portion of d is the channel number or space count; the ZONE portion selects the mode - no zone = immediate skip, BA zone = skip after print, B zone = immediate space, A zone = space after print. The manual states this explicitly: d-characters 3, C, L and T all have numeric value 3 and cause four different 3-factor operations."
+    },
+    {
+      "title": "I/O x-control field: channel/overlap (x1), device (x2), unit or sub-operation (x3)",
+      "source": "IBM 1410 Priority Feature A22-0530-1 p. 9, Figure 3; IBM 1410 Principles of Operation A22-0526-3 pp. 11, 62-63, 80, 86, 92",
+      "markdown": "| Field | Character | Meaning |\n|---|---|---|\n| x1 | `%` | Channel 1, non-overlap |\n| x1 | `@` | Channel 1, overlap |\n| x1 | lozenge | Channel 2, non-overlap |\n| x1 | `*` | Channel 2, overlap |\n| x1 | `?` / `!` / `$` / `=` | Channels 3 and 4 non-overlap / overlap - 7010 only (SimH) |\n| x2 | `1` | Card reader, IBM 1402 |\n| x2 | `2` | Printer, IBM 1403 |\n| x2 | `4` | Card punch, IBM 1402 |\n| x2 | `D` | Data transmission unit, IBM 1009 |\n| x2 | `F` | Disk storage, IBM 1405 / 1301 (via 7631 File Control) |\n| x2 | `K` | Programmed transmission control, IBM 7750 |\n| x2 | `L` | Teletype |\n| x2 | `P` | Paper tape reader, IBM 1011 |\n| x2 | `Q` | Remote inquiry unit, IBM 1014 |\n| x2 | `S` | Magnetic character reader, IBM 1412 / 1419 |\n| x2 | `T` | Console I/O printer (1415) |\n| x2 | `U` | Magnetic tape unit, EVEN parity (BCD) |\n| x2 | `B` | Magnetic tape unit, ODD parity (binary) |\n| x3 | `0`/`1`/`2` with x2 = 1 | Read a card and stack in pocket NR / 1 / 8-2, feeding the next card |\n| x3 | `9` with x2 = 1 | Read a card with NO stacker select and NO feed (buffer retains the image) |\n| x3 | `0`/`4`/`8` with x2 = 4 | Punch a card and stack in pocket NP / 4 / 8-2 |\n| x3 | `0` with x2 = 2 | Write a line |\n| x3 | `1` with x2 = 2 | Write word marks as 1's (word marks print as digit 1, everything else blank) |\n| x3 | `0` with x2 = T | Console I/O printer (channel 1 only; overlap allowed, channel 2 inapplicable) |\n| x3 | `0`-`9` with x2 = U or B | Magnetic tape unit number |\n| x3 | `0` with x2 = F | Seek disk (Autocoder SD / SDO); `1` = single-record sector operation (likely; see open questions) |\n| d-modifier | `R` | Read into core storage |\n| d-modifier | `W` | Write from core storage |\n| d-modifier | `$` | Read to inter-record gap or end of core, ignoring group-mark-with-word-mark. Cannot be overlapped |\n| d-modifier | `X` | Write to end of core, ignoring group-mark-with-word-mark. Cannot be overlapped |\n| d-modifier | `Q` | I-O NOP, input status (PRIORITY FEATURE ONLY) |\n| d-modifier | `V` | I-O NOP, output status (PRIORITY FEATURE ONLY) |"
+    },
+    {
+      "title": "Priority Feature (Special Feature) - op code Y d-characters",
+      "source": "IBM 1410 Priority Feature, Form A22-0530-1, pp. 5, 7-8 (Figure 2 and the Priority Test and Branch Instructions list)",
+      "markdown": "| Actual | Mnemonic | Meaning | Set by | Reset by |\n|---|---|---|---|---|\n| `Y (I) U` | `BUPR1` | Branch if channel 1 I-O unit priority request | Selected unit (card reader/punch/printer/paper tape reader per the 1415 priority select switch) finishing an operation; also when the priority select on-off key is turned on | The `Y (I) U` test itself |\n| `Y (I) F` | `BUPR2` | Branch if channel 2 I-O unit priority request * | as above, channel 2 | The `Y (I) F` test itself |\n| `Y (I) 1` | `BOPR1` | Branch if channel 1 overlap priority request | Completion of any overlapped read, write or write-check on that channel; also a 1301 seek issued in overlap mode (at completion of the address transfer to the 7631) | The `R (I) d` branch-on-channel-status instruction (NOT the Y instruction) |\n| `Y (I) 2` | `BOPR2` | Branch if channel 2 overlap priority request | as above, channel 2 | The `X (I) d` instruction |\n| `Y (I) Q` | `BIPR1` | Branch if channel 1 inquiry priority request | Console inquiry request key (channel 1 only); completion of a data transfer to a 1414 model 4/5 serial input buffer from an unsolicited device (Teletype, 1009, 1014); EOR-1009 and misread message | Automatically when all inquiry requests are serviced by a read instruction directed to the causing unit; the 1415 RELEASE key resets console-generated inquiry request status |\n| `Y (I) *` | `BIPR2` | Branch if channel 2 inquiry priority request * | as above, channel 2 | as above |\n| `Y (I) N` | `BQPR1` | Branch if channel 1 outquiry priority request | Completion of a data transfer FROM a 1414 model 4/5 serial output buffer | The `Y (I) N` test itself |\n| `Y (I)` record mark | `BQPR2` | Branch if channel 2 outquiry priority request * | as above, channel 2 | The `Y (I)` record-mark test |\n| `Y (I) S` | `BSPR1` | Branch if channel 1 seek priority request | Any access mechanism on that channel entering seek-complete status | Automatically when seek-complete status of ALL access mechanisms is reset off; seek-complete is reset by a read, write or I-O NOP directed to the causing unit |\n| `Y (I) T` | `BSPR2` | Branch if channel 2 seek priority request | as above, channel 2 | as above |\n| `Y (I) A` | `BXPR1` | Branch if channel 1 attention (called 'simplex priority request' in C28-0309-1) | Attention signal from the device attached to the channel control adapter | The `Y (I) A` test; also temporarily by program or computer reset, but it turns on again at the next instruction read-out |\n| `Y (I) B` | `BXPR2` | Branch if channel 2 attention | as above, channel 2 | The `Y (I) B` test |\n| `Y (I) E` | `BEPA` | Branch unconditionally and ENTER priority alert mode | - | Priority alert mode indicator is turned off by `Y (I) X` and by any interrupt signal |\n| `Y (I) X` | `BXPA` | Branch unconditionally and EXIT from priority alert mode | - | - |\n\n`*` Available only with the I-O Adapter (Special Feature 4660) and Priority Feature Extension (Special Feature 5621) for channel 2.\n\nInterrupt mechanics: a priority request indicator turning on turns off the priority alert mode indicator, removes the system from priority alert mode, and causes a branch to storage location **00101**. The return address is recovered by storing the B-address register and decrementing it by **six**; that value goes into the I-address of the trailing `Y (I) E`. No hardware saving of arithmetic/logic indicators is performed."
+    },
+    {
+      "title": "I/O channel status indicator conditions by device (1410)",
+      "source": "IBM 1410 Principles of Operation A22-0526-3, Figures 62 (card read/select stacker, p.63), 63 (card punch, p.63), 89 (write a line, p.80), 91 (carriage control, p.80), 45/46 (console printer, pp.47,49), 99 (tape, p.87)",
+      "markdown": "| Indicator (d bit) | Card reader (M/L %1x3 R) | Card punch (M/L %4x3 W) | Printer (M/L %20 W) | Carriage control (F/2) | Console printer | Magnetic tape |\n|---|---|---|---|---|---|---|\n| Not Ready (1) | card jam, out of cards (not EOF), not on line, power off, stacker full, cover interlock open, feed clutch failure, joggle switch open, synchronizer off line or power off | card jam, out of cards, stacker full, power off, not on line, chip basket full/absent, cover interlock open | printer not ready, not on line, power off, out of forms | printer not ready, not on line, power off, out of forms | - | tape unit not ready, no such tape unit selected, tape adapter unit not on line, tape adapter power off |\n| Busy (2) | read buffer being filled; card being stacked | previous card still being punched | previous line still being printed | forms in motion, forms instruction waiting to execute | - | tape unit rewinding; tape adapter unit busy (backspace or read/write not finished) |\n| Data Check (4) | hole count check, synchronizer parity error, synchronizer timing error, processing unit parity error. NEVER set on Select Stacker and Feed | synchronizer parity error (card not punched) | print buffer parity error (line not printed) | never set | - | wrong-parity character received/sent; tape mark read in odd-parity mode; RBC parity error; write tape mark in odd parity |\n| Condition (8) | EOF - last card stacked (EOF latch turns off as this turns on). NEVER set on Select Stacker and Feed | parity or hole-count error detected during punching; error card goes to a pocket | print buffer timing error or hammer fire check (line after the error line is not printed) | never set | set by the CANCEL key during inquiry-request message printing | read: first character of record was a tape mark, or foil strip detected. Write: never set unless a tape mark is read |\n| Wrong Length Record (B bit, `-`) | group-mark-with-word-mark not correctly located in core. NEVER set on Select Stacker and Feed | (per Figure 63) | wrong length record (line not printed) | never set | RELEASE key pressed with fewer characters than the prescribed inquiry form; also when more characters than the form are entered | read: usually set when d-character is `$`. Write/unit-control: never set unless the record is zero length |\n| No Transfer (A bit, blank) | card image already transferred and transferred again; or two successive cards entered the buffer without a read command (first card's data lost). Also set by two consecutive Select Stacker and Feed instructions without an intervening Read a Card with x3 = 9, or two such Read a Card instructions without an intervening Select Stacker and Feed | (per Figure 63) | never set | never set | no message request - CANCEL key operated before the inquiry | - |"
+    }
+  ],
+  "open_questions": [
+    "The exact 1410 disk instruction set (1405, 1311, 1301/1302 via 7631 File Control): the x3 sub-operation digits, d-modifiers, disk-control-field layout, and the disk-specific 'Branch if Indicator On' d-characters. bitsavers' A24-3070-1_1410_Disk_Storage_IO_Instructions.pdf is mislabelled - its content is 1401/1440/1460, and A22-6788 is a 1301/1302/7631 component description with no instruction set. The right primary sources to chase are A22-6704 (IBM 1311 Disk Storage Drive for 1410/7010, plus its three TNLs N22-0074, N22-0077, N22-0154), A22-6670 (1410 with 1301 disk), and C28-0405-2 (1410 Disk File System). All are image-only scans on bitsavers and need page-by-page reading or OCR.",
+    "Whether the 1410 Autocoder d-characters 'H' and '%' for 'branch if binary card, channel 1 / channel 2' (from C28-0309-1's mnemonic table) are correct - that table's OCR interleaves the mnemonic and actual-instruction columns, and the column-binary card feature is listed in A22-0526-3 as one of the features NOT supported in 1401 compatibility mode, so its native-1410 status is unclear.",
+    "The exact instruction length that A22-0530-1 Figure 1 gives for op code U (unit control): it prints 2, but the Principles of Operation instruction form is U x1x2x3 d = 5 characters. One of the two is wrong; A22-0526-3 p. 85 is the more likely correct figure.",
+    "Whether native 1410 (as opposed to 7010) has any J d-character for channel 3/4 overlap or floating-point exponent conditions. SimH implements 4, ), X and Y but A22-0526-3 Figure 35 lists none of them, so they are almost certainly 7010-only. Confirm in A22-6726 (7010 Principles of Operation).",
+    "Exact 7010 semantics of op code $ (store/restore status) and the Y protection d-characters (?, 9, P, H): the description here is derived from SimH source only. Verify against A22-6726_7010_PrincOps.pdf on bitsavers.",
+    "The timing formula for the Priority Feature Y instruction - A22-0530-1 gives interruptible/non-interruptible lengths but no T formula in the pages examined (4-9).",
+    "Whether the earlier editions A22-0526 (-0/-1/-2) differ from -3 in the branch d-character assignments. Editions -0 through -2 are also on bitsavers and were not diffed."
+  ],
+  "sources": [
+    {
+      "title": "IBM 1410 Principles of Operation, Form A22-0526-3",
+      "url": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "note": "PRIMARY SOURCE for everything in the main table. Branch Operations pp. 36-39 (Figures 35, 36, 37); Input and Output Operations pp. 40-44; IBM 1415 Console pp. 45-57 (Figures 44, 45, 46); card reader/punch pp. 62-63 (Figures 61, 62, 63); 1403 printer pp. 80-81 (Figures 88, 89, 90, 91); magnetic tape pp. 85-87 (Figures 97, 98, 99); overlap pp. 92-95; 1401-1410 Compatibility p. 98; alphabetic instruction appendix pp. 101-104 (Figure 107 footnotes). Processing control ops (Store Address Register, Clear Storage, Halt, NOP) pp. 22-24. Address-register symbols and timing symbols pp. 12-13 (Figures 7, 8). Scan is image-only; I worked from an OCR text layer of the same scan."
+    },
+    {
+      "title": "IBM 1410 Priority Feature, Form A22-0530-1",
+      "url": "http://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf",
+      "note": "PRIMARY SOURCE for the Y op code, the six priority request indicators per channel, the interrupt branch to 00101, the priority routine return convention, the I-O NOP instruction (d = Q/V), the complete x2 device-select character table (Figure 3, p. 9), the I/O channel status d-character BIT assignment (p. 8), and the interruptible/non-interruptible op-code table (Figure 1, p. 4). 16 pages, image-only scan - read by page rendering, not text extraction."
+    },
+    {
+      "title": "IBM 1410 Autocoder, Form C28-0309-1",
+      "url": "http://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "note": "Autocoder mnemonic-to-actual-instruction listing including the priority branches (BXPA, BEPA, BOPR1/2, BUPR1/2, BIPR1/2, BQPR1/2, BSPR1/2, and 'branch if simplex priority request' = the attention branches), the disk mnemonics (SD, SDO, WD/WDW/WDO/WDE, read/write full track, write disk check) and their assembled forms such as M %F0 34567 R. Also documents the assembler operand syntax for BZN/BWZ/BCE/BBE (ch operand = A, B, AB or b). CAUTION: the two-column mnemonic table OCRs with the mnemonic and instruction columns badly interleaved - individual pairings from that table should be re-read from the page image before being trusted."
+    },
+    {
+      "title": "SimH IBM 7010/1410/1401 CPU emulator - i7010_cpu.c",
+      "url": "https://github.com/rcornwell/sims/blob/master/I7000/i7010_cpu.c",
+      "note": "Cross-check for every d-character decode. case OP_B is the complete J d-character dispatch (including the 1401-mode sense switches, guarded by CPU_MODEL == 1); case OP_BCE / OP_BBE / OP_BWE give the exact bit semantics and the DownReg(BAR) B-1 behaviour; case OP_RD/OP_RDW gives the x1 channel/overlap and x2 device decode and the M/L d-modifiers; case OP_UC gives the tape unit-control d-characters (B = BSR, A = SKR, R = REW, > = RUN, E = ERG, M = WEF); case OP_PRI gives the priority and 7010 protection d-characters; case OP_STS gives the 7010 store/restore status decode; op_args[64] gives the operand shape of every op code. MODEL(1) = 1401, MODEL(2) = 7010, model 0 = 1410."
+    },
+    {
+      "title": "SimH i7010_defs.h - 1410/7010 op code character constants",
+      "url": "https://github.com/rcornwell/sims/blob/master/I7000/i7010_defs.h",
+      "note": "Maps every mnemonic to its BCD op-code character: OP_B = CHR_J, OP_IO1 = CHR_R, OP_IO2 = CHR_X, OP_IO3 = CHR_3, OP_IO4 = CHR_1 (7010), OP_BCE = CHR_B, OP_BBE = CHR_W, OP_BWE = CHR_V, OP_RD = CHR_M, OP_RDW = CHR_L, OP_CC1 = CHR_F, OP_CC2 = CHR_2, OP_SSF1 = CHR_K, OP_SSF2 = CHR_4, OP_UC = CHR_U, OP_PRI = CHR_Y, OP_STS = CHR_DOL, OP_FP = CHR_EQ, OP_SAR = CHR_G, OP_CS = CHR_SLSH, OP_H = CHR_DOT, OP_NOP = CHR_N. Also carries the register-effect comments (NSIB/BI/NSIB etc) that match the manual."
+    },
+    {
+      "title": "SimH i7000_defs.h - 6-bit BCD character code table",
+      "url": "https://github.com/rcornwell/sims/blob/master/I7000/i7000_defs.h",
+      "note": "CHR_* octal constants for the whole 64-character set, ordered B A 8 4 2 1. Establishes that minus = 040 (B bit only), 'blank' = 020 (A bit only), group mark = 077 (all six bits), which is what makes the I/O channel status d-character bit encoding legible. i7010_sys.c mem_to_ascii[64] gives SimH's ASCII rendering of the same set."
+    },
+    {
+      "title": "IBM 1410/7010 Disk Storage I/O Instructions, Form A24-3070-1 (MISLABELLED on bitsavers)",
+      "url": "http://bitsavers.org/pdf/ibm/1410/A24-3070-1_1410_Disk_Storage_IO_Instructions.pdf",
+      "note": "Despite the bitsavers filename this document's content is for the IBM 1401/1440/1460, not the 1410: B-addresses are 3 characters and the seek timing constant is given as N = .0115 for 1401, .0111 for 1440, .006 for 1460 (p. 18). Still useful as the closest published description of the 1405/1311/1301 x-position sub-operation scheme (%F0 = seek, %F1 = single record, %F2 = full track, %F3 = write check on the 1405, p. 5), which the 1410 appears to share, but do not cite it as a 1410 fact."
+    },
+    {
+      "title": "IBM 1301 and 1302 Disk Storage with IBM 1410 and 7010, Form A22-6788",
+      "url": "http://bitsavers.org/pdf/ibm/1410/A22-6788_1301_1302_Disk_with_1410_7010.pdf",
+      "note": "Component description of the 1301/1302 and the 7631 File Control (7631 Model 1 is the single-system 1410/7010 model; Models 3, 4, 5 are shared-disk configurations involving the 1410/7010). Covers track addressing, home address 1/2, record addresses, and the six-bit (move) vs eight-bit (load) disk recording modes. Contains NO 1410 instruction set."
+    },
+    {
+      "title": "bitsavers IBM 1410 document directory",
+      "url": "http://bitsavers.org/pdf/ibm/1410/",
+      "note": "Directory listing used to locate form numbers. Other 1410 Principles of Operation editions present: A22-0526 (-0), A22-0526_1410_princOpsMay63, A22-0526-2. Disk sources not yet mined: A22-6704 (1311 for 1410/7010) plus TNLs N22-0074/N22-0077/N22-0154, A22-6670 (1410 with 1301). 7010 reference: A22-6726_7010_PrincOps.pdf."
+    }
+  ]
+}

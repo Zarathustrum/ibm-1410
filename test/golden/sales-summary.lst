@@ -1,0 +1,77 @@
+1403 Model 2 · chain A · 66-line form
+
+CONSTRUCTED RPG SPECIFICATION LISTING                                                                                 SOURCE PAGE 02
+00001 RG     02010  RG                                                                         02010
+
+CONSTRUCTED RPG SPECIFICATION LISTING                                                                                 SOURCE PAGE 03
+00002 INPUT  03010  CAA  001 CS                              010060300302                      03010
+END INPUT SPECS
+
+CONSTRUCTED RPG SPECIFICATION LISTING                                                                                 SOURCE PAGE 04
+00003 DATA   04010  DDEPT  003         CAA 006                                                 04010
+00004 DATA   04020  DPART  008         CAA 014                                                 04020
+00005 DATA   04030  DQTY   005         CAAN019                                                 04030
+00006 DATA   04040  DAMT   008         CAAN027                                                 04040
+00007 DATA   04050  DPAGENO003         PAG                                                     04050
+END DATA SPECS
+
+CONSTRUCTED RPG SPECIFICATION LISTING                                                                                 SOURCE PAGE 05
+00008 CALC   05010  ACOMM  014         AMT   008X00005 005&         D0202                      05010
+00009 CALC   05020  ADTOT  010                   AMT   008A         D                          05020
+00010 CALC   05030  ADCOM  010                   COMM  014A         D                          05030
+00011 CALC   05040  ARTOT  010                   DTOT  010A F1      T                          05040
+00012 CALC   05050  ARCOM  010                   DCOM  010A F1      T                          05050
+00013 CALC   05060  AGTOT  012                   RTOT  010A F2      T                          05060
+00014 CALC   05070  AGCOM  012                   RCOM  010A F2      T                          05070
+END CALC SPECS
+
+CONSTRUCTED RPG SPECIFICATION LISTING                                                                                 SOURCE PAGE 06
+00015 FORMAT 06010  LHA1X  HA2    01    1P                                                     06010
+00016 FORMAT 06020  K                                 021          021MONTHLY SALES SUMMARY    06020
+00017 FORMAT 06030  K                                 033          011BY DISTRICT              06030
+00018 FORMAT 06040  K                                 063          004PAGE                     06040
+00019 FORMAT 06050  F                           PAGENO067         Z                            06050
+00020 FORMAT 06060  LHA2X       02                                                             06060
+00021 FORMAT 06070  K                                 004          004DEPT                     06070
+00022 FORMAT 06080  K                                 016          004PART                     06080
+00023 FORMAT 06090  K                                 026          003QTY                      06090
+00024 FORMAT 06100  K                                 042          006AMOUNT                   06100
+00025 FORMAT 06110  K                                 057          010COMMISSION               06110
+00026 FORMAT 06120  LHB1X  HB2    01    OF                                                     06120
+00027 FORMAT 06130  K                                 021          021MONTHLY SALES SUMMARY    06130
+00028 FORMAT 06140  K                                 033          011BY DISTRICT              06140
+00029 FORMAT 06150  K                                 063          004PAGE                     06150
+00030 FORMAT 06160  F                           PAGENO067         Z                            06160
+00031 FORMAT 06170  LHB2X       02                                                             06170
+00032 FORMAT 06180  K                                 004          004DEPT                     06180
+00033 FORMAT 06190  K                                 016          004PART                     06190
+00034 FORMAT 06200  K                                 026          003QTY                      06200
+00035 FORMAT 06210  K                                 042          006AMOUNT                   06210
+00036 FORMAT 06220  K                                 057          010COMMISSION               06220
+00037 FORMAT 06230  LD11X       01      01                                                     06230
+00038 FORMAT 06240  F                           DEPT  004                                      06240
+00039 FORMAT 06250  F                           PART  016                                      06250
+00040 FORMAT 06260  F                           QTY   026         Z                            06260
+
+CONSTRUCTED RPG SPECIFICATION LISTING                                                                                 SOURCE PAGE 07
+00041 FORMAT 07010  F                           AMT   042             WORD01                   07010
+00042 FORMAT 07020  B                           COMM  057             WORD03                   07020
+00043 FORMAT 07030  LT11X       02      F1                                                     07030
+00044 FORMAT 07040  K                                 015          010DEPT TOTAL               07040
+00045 FORMAT 07050  B                           DTOT  042             WORD02                   07050
+00046 FORMAT 07060  B                           DCOM  057             WORD02                   07060
+00047 FORMAT 07070  K                                 060          001*                        07070
+00048 FORMAT 07080  LT21X       02      F2                                                     07080
+00049 FORMAT 07090  K                                 015          014DISTRICT TOTAL           07090
+00050 FORMAT 07100  B                           RTOT  042             WORD02                   07100
+00051 FORMAT 07110  B                           RCOM  057             WORD02                   07110
+00052 FORMAT 07120  K                                 061          002**                       07120
+00053 FORMAT 07130  LT31X       02      LC                                                     07130
+00054 FORMAT 07140  K                                 015          011GRAND TOTAL              07140
+00055 FORMAT 07150  B                           GTOT  042             WORD03                   07150
+00056 FORMAT 07160  B                           GCOM  057             WORD03                   07160
+00057 FORMAT 07170  K                                 062          003***                      07170
+00058 FORMAT 07180  W                           WORD01             010   ,   .                 07180
+00059 FORMAT 07190  W                           WORD02             013  ,   ,   .              07190
+00060 FORMAT 07200  W                           WORD03             015    ,   ,   .            07200
+END OF RPG.BEGIN AUTOCODER

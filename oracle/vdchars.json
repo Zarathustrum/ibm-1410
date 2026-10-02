@@ -1,0 +1,70 @@
+{
+  "source": "opcodes.md §6.3 / A22-0526-3 p.39 Figure 37",
+  "rule": "d bit 1 enables the word-mark test; d bit 2 enables the zone test, comparing the B and A bits of the B-address character against the B and A bits of d. Both bits set = branch on either condition. Always a one-character test; no B-field word mark needed.",
+  "simh": "SimH implements exactly ((d & 01) && char has WM) || ((d & 02) && (char & 060) == (d & 060)).",
+  "rows": [
+    {
+      "instruction": "Branch if Word Mark Present",
+      "d": "1",
+      "octal": 1,
+      "autocoder": "BW (I)(B)",
+      "condition": "B-address character has a word-mark bit"
+    },
+    {
+      "instruction": "Branch if Zone Bits Absent",
+      "d": "2",
+      "octal": 2,
+      "autocoder": "BZN (I)(B)",
+      "condition": "B character has neither a B nor an A bit"
+    },
+    {
+      "instruction": "Branch if Zone Equal AB",
+      "d": "B",
+      "octal": 50,
+      "autocoder": "BZN (I)(B) AB",
+      "condition": "B character has both B and A bits (plus test)"
+    },
+    {
+      "instruction": "Branch if Zone Equal B",
+      "d": "K",
+      "octal": 34,
+      "autocoder": "BZN (I)(B) B",
+      "condition": "B character has a B bit but no A bit (minus test)"
+    },
+    {
+      "instruction": "Branch if Zone Equal A",
+      "d": "S",
+      "octal": 18,
+      "autocoder": "BZN (I)(B) A",
+      "condition": "B character has an A bit but no B bit"
+    },
+    {
+      "instruction": "Branch if WM, or Zone Bits Absent",
+      "d": "3",
+      "octal": 3,
+      "autocoder": "BWZ (I)(B)",
+      "condition": "word mark or no B and no A"
+    },
+    {
+      "instruction": "Branch if WM, or Zone Equal AB",
+      "d": "C",
+      "octal": 51,
+      "autocoder": "BWZ (I)(B) AB",
+      "condition": "word mark or both B and A"
+    },
+    {
+      "instruction": "Branch if WM, or Zone Equal B",
+      "d": "L",
+      "octal": 35,
+      "autocoder": "BWZ (I)(B) B",
+      "condition": "word mark or B but no A"
+    },
+    {
+      "instruction": "Branch if WM, or Zone Equal A",
+      "d": "T",
+      "octal": 19,
+      "autocoder": "BWZ (I)(B) A",
+      "condition": "word mark or A but no B"
+    }
+  ]
+}

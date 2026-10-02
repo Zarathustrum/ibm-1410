@@ -1,0 +1,5 @@
+BALLISTIC REENTRY TRAJECTORY - RECONSTRUCTED SAMPLE - NOT FLIGHT DATA         {0-5-8}{12-7-8}
+TIME SEC   ALTITUDE FT   VELOCITY FPS   DECEL G   HEAT RATE BTU/FT2-SEC       {0-5-8}{12-7-8}
+0.0        400000        23100          0.1       0.0                         {0-5-8}{12-7-8}
+20.0       248500        22850          2.4       45.0                        {0-5-8}{12-7-8}
+40.0       152300        19640          28.7      610.0                       {0-5-8}{12-7-8}

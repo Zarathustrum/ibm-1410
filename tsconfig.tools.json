@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "build",
+    "rootDir": "."
+  },
+  "include": [
+    "src/core/**/*.ts",
+    "src/formats/**/*.ts",
+    "src/asm/**/*.ts",
+    "src/rpg/**/*.ts",
+    "tools/**/*.ts",
+    "oracle/**/*.ts"
+  ]
+}

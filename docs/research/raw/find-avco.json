@@ -1,0 +1,337 @@
+{
+ "topic": "Historical context: AVCO reentry-vehicle work, computers at Avco RAD (Wilmington MA), the IBM 1410, and 1960-era ballistic reentry trajectory analysis",
+ "summary": "AVCO's reentry work was split between two Massachusetts sites. Avco Everett Research Laboratory (AERL, Everett MA) was founded by Arthur Kantrowitz in 1955 out of a 1954 \"crash program\" on the ICBM nose-cone heating problem; it did the shock-tube physics and produced the Detra–Kemp–Riddell (1957) stagnation-heating correlation still used today. Avco Research and Advanced Development Division (RAD) was the engineering/production arm at 201 Lowell St., Wilmington MA; construction of the Wilmington plant began 18 Feb 1957 and it was dedicated 14 May 1959. NASA's SP-4201 records Avco \"trying to develop serviceable nose cones for the Thor and Atlas missiles\" by November 1956. Verified Avco RVs: Mark 4 (ablative; Titan I and Atlas E/F, deployed early 1960s, W38 warhead); Mark 5 (Minuteman I, W59; RV/fuzing assigned to Avco May 1961, warheads delivered from June 1962); Mark 11 (Minuteman I/II, W56; RV development assigned to Avco August 1959). The first-generation heat-sink RV (Mark 2, copper, first flown 10 Jan 1958) was General Electric's, not Avco's. Avco also produced AVCOAT 5026-39, selected April 1962 as the Apollo command-module ablator. The family statement (a family member analyzed reentry-trajectory output at AVCO) fits Avco RAD Wilmington in roughly 1958–1965.\n\nOn computers: the 1961 BRL survey (a primary source) lists Avco RAD, 201 Lowell St., Wilmington, running an IBM 704 with 32,768 words of core and tapes, installed August 1958, used \"for the solution of engineering problems by numerical methods; specifically, systems of ordinary and partial differential equations\" — i.e. exactly trajectory/heating integration — and states it was to be replaced within six months (i.e. ~1961) by a Philco Transac (S-2000). By 1965 Avco ran a service bureau in Wilmington with an IBM 7090, with results printed on an IBM 1401 (Operation Match; Harvard Crimson 3 Nov 1965 / Wikipedia). No document surfaced tying an IBM 1410 specifically to Avco RAD: searches of the 1961 and 1964 BRL surveys, the Computers and Automation census, and the web found nothing. The only Avco entries in BRL61 for 1400-class machines are the Crosley Division (Cincinnati) with a proposed 1401 and 7070. So \"1410 at Avco Wilmington\" is unverified; the plausible picture is that heavy integration ran on the 704/Philco/7090 and a 1400-series machine handled data reduction, listing and printing — consistent with the family member analyzing printouts rather than programming.\n\nThe IBM 1410 (announced 12 Sept 1960, withdrawn 30 Mar 1970) was IBM's \"intermediate\" data-processing system: a 1401-style variable-word-length decimal character machine with 5-character addresses, 10/20/40K (later up to 80K) characters of core, 15 index registers, independent I/O synchronizers, and a hardware switch for 1401 compatibility mode. Computers and Automation's Jan-1963 census gives first installation 11/61, average rental $10,000/month (raised to $12,000 by the Oct-1964 census), 140 installed and 400 on order in Jan 1963; the Diebold end-of-1961 count was 3 delivered / 475 on order. The 1410 had no floating-point hardware (the Principles of Operation index has no floating-point entry), but IBM shipped 1410 FORTRAN (1962; 20K and 40K versions, requiring 1402, 1403 and four tapes) and later 1410/7010 OS FORTRAN (1410-FO-970); both implement decimal floating point in software with user-selectable precision (default 8 mantissa digits + 2 exponent digits, up to 18 in the OS version, up to 45 in the 1962 version) — which is precisely why a decimal business machine could run engineering work: numeric precision was a control-card parameter, at the cost of speed. RPG originated in 1959 on the 1401 (RPG II on System/3, 1969), matching the business RPG world of the period.\n\nReentry analysis of the period rests on Allen & Eggers (NACA Report 1381, 1953, declassified/published 1958): point-mass, constant C_D, exponential atmosphere ρ = ρ0 e^(−βy) with ρ0 = 0.0034 slug/ft³, β = 1/22,000 ft⁻¹, gravity neglected during the drag pulse, straight-line path at entry angle θ_E. Closed forms: V = V_E exp[−(C_D ρ0 A)/(2βm sinθ_E) e^(−βy)]; peak deceleration (dV/dt)/g = β V_E² sinθ_E/(2ge) at altitude y1 = (1/β) ln[C_D ρ0 A/(βm sinθ_E)] and V1 ≈ 0.61 V_E; peak deceleration is independent of mass/size/C_D. Numerical trajectory programs of the era integrated the planar point-mass ODEs (given in the tables below) with 4th-order Runge–Kutta or Adams predictor-corrector methods and printed, at fixed time steps, time, altitude, velocity, flight-path angle, range, deceleration in g, dynamic pressure, and stagnation heating rate (DKR: q = 17,600 √(ρ/ρ_SL) (V/26,000)^3.15 / √R_N BTU/ft²·s, R_N in ft) plus integrated heat load. All of this is fixed-point-friendly: the only transcendental is the exponential atmosphere (tabulate it or use a table lookup — the 1410 had a hardware table-lookup instruction), and the Allen–Eggers closed forms give sanity checks for the numerical integration.",
+ "facts": [
+  {
+   "claim": "Avco RAD (Research and Advanced Development Division) was located at 201 Lowell St., Wilmington, Mass., and in 1960-61 operated an IBM 704 with 32,768 words of core and magnetic tape, used 'for the solution of engineering problems by numerical methods; specifically, systems of ordinary and partial differential equations'.",
+   "source": "https://ed-thelen.org/comp-hist/BRL61-ibm0704.html (BRL Report 1115, 'A Third Survey of Domestic Electronic Digital Computing Systems', March 1961)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Avco's 704 passed customer acceptance August 1958; reliability figures given for Jan 1960 to survey date (110 good hrs/wk of 120 attempted, ratio 0.92); time was available for rent to outside organizations.",
+   "source": "https://ed-thelen.org/comp-hist/BRL61-ibm0704.html",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Avco RAD stated in the 1961 BRL survey that the 704 'is being replaced in the next six months by a PHILCO Transac System' (i.e. a Philco S-2000, ~1961).",
+   "source": "https://ed-thelen.org/comp-hist/BRL61-ibm0704.html",
+   "confidence": "verified"
+  },
+  {
+   "claim": "In 1965 Operation Match (first US computer dating service) processed punched-card questionnaires on an IBM 7090 at the Avco service bureau in Wilmington, Massachusetts, and mailed IBM 1401 printouts to participants. The contemporaneous Harvard Crimson article renders the machine as 'Avco 1790 computer ... on a quiet street in Wilmington' (apparent typo for 7090).",
+   "source": "https://en.wikipedia.org/wiki/Operation_Match ; https://www.thecrimson.com/article/1965/11/3/operation-match-pif-you-stop-to/",
+   "confidence": "likely"
+  },
+  {
+   "claim": "No document was found tying an IBM 1410 specifically to Avco RAD/Wilmington. The 1961 BRL survey lists Avco only under IBM 704 (RAD, Wilmington) and under IBM 1401 and IBM 7070 as '(Proposed)' for the Crosley Division, 1329 Arlington St., Cincinnati. The 1964 BRL survey sub-pages and the Computers and Automation census contain no Avco site listings.",
+   "source": "https://ed-thelen.org/comp-hist/BRL61-ibm1401.html ; https://ed-thelen.org/comp-hist/BRL61-ibm7070.html ; https://ed-thelen.org/comp-hist/BRL64.html",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Construction of Avco's Wilmington MA research-and-development plant began 18 Feb 1957 ('the largest earthmoving operation ever undertaken in Wilmington'); it was dedicated 14 May 1959 with Gov. Foster Furcolo and Rep. Edith Nourse Rogers speaking; Avco was purchased by Textron in 1984.",
+   "source": "https://homenewshere.com/wilmington_town_crier/news/article_caef142a-cbfc-11ec-8ae1-1317a8e0b183.html",
+   "confidence": "likely"
+  },
+  {
+   "claim": "Arthur Kantrowitz founded the Avco-Everett Research Laboratory (AERL) in Everett, Massachusetts in 1955 (NAE memorial says established 1956 after a 'crash program' begun in 1954); he was an Avco vice president 1956-1978. AERL's shock-tube work addressed the ICBM nose-cone reentry heating problem and led to ablative heat shields.",
+   "source": "https://en.wikipedia.org/wiki/Arthur_Kantrowitz ; https://www.nationalacademies.org/read/13338/chapter/26",
+   "confidence": "likely"
+  },
+  {
+   "claim": "By November 1956 Avco was 'trying to develop serviceable nose cones for the Thor and Atlas missiles' and submitted a ballistic manned-capsule study to ARDC; on 20 Nov 1957 it submitted 'Minimum Manned Satellite'.",
+   "source": "https://www.nasa.gov/wp-content/uploads/2023/02/sp-4201.pdf (NASA SP-4201, This New Ocean, ch. 3)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "The Mark 2 heat-sink reentry vehicle (copper nose, stainless body) was built by General Electric, first flown on Atlas 10 Jan 1958, ~35 flights; it was the only operational US heat-sink RV. It was not an Avco product.",
+   "source": "https://ccspacemuseum.org/artifacts/heatsink-nose-cone/",
+   "confidence": "verified"
+  },
+  {
+   "claim": "The Mark 4 reentry vehicle, made by Avco Corporation, flew on USAF Titan I and Atlas E/F ICBMs deployed in the early 1960s, carried the W-38 warhead (~3.75 Mt), had an aluminum inner frame covered by ablative material; NASM example is 10 ft 8 in x 4 ft, 3,465 lb.",
+   "source": "https://airandspace.si.edu/collection-objects/missile-reentry-vehicle-mark-4/nasm_A19660029000",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Titan I's warhead was 'an AVCO Mk 4 re-entry vehicle containing a W38 thermonuclear warhead'; first successful Titan I launch 5 Feb 1959; operational 1962-1965, retired 1965.",
+   "source": "https://en.wikipedia.org/wiki/HGM-25A_Titan_I",
+   "confidence": "likely"
+  },
+  {
+   "claim": "Minuteman I W59 warhead: 'In May 1961 it was noted that the weapon's RV and fuzing system would be developed by Avco' (Mark 5 RV); warheads produced June 1962-July 1963, retired 1969.",
+   "source": "https://en.wikipedia.org/wiki/W59",
+   "confidence": "likely"
+  },
+  {
+   "claim": "Minuteman W56 warhead / Mark 11 RV: 'AVCO Manufacturing were assigned development of the reentry vehicle' in August 1959; Mod 1 production began March 1963; used on Minuteman I and II 1963-1993.",
+   "source": "https://en.wikipedia.org/wiki/W56",
+   "confidence": "likely"
+  },
+  {
+   "claim": "David K. Stumpf, 'Reentry Vehicle Development Leading to the Minuteman Avco Mark 5 and 11', Air Power History, Fall 2017, pp. 13-32, covers the heat-sink to ablative transition and Avco's Mark 5/11; a 5 Feb 1958 letter to Avco requested an advanced RV design study (competitive, not sole-source).",
+   "source": "https://go.gale.com/ps/i.do?id=GALE%7CA519403680 ; https://www.thefreelibrary.com/Reentry+Vehicle+Development+Leading+to+the+Minuteman+Avco+Mark+5+and...-a0519403680",
+   "confidence": "likely"
+  },
+  {
+   "claim": "AVCOAT 5026-39, an Avco epoxy-novolac/silica-fiber ablator in fiberglass honeycomb, was selected in April 1962 as the Apollo command-module heat shield material.",
+   "source": "https://en.wikipedia.org/wiki/AVCOAT",
+   "confidence": "likely"
+  },
+  {
+   "claim": "Detra, Kemp and Riddell (Avco Research Laboratory, Everett) published 'Addendum to Heat Transfer to Satellite Vehicles Re-entering the Atmosphere', Jet Propulsion 27(12), 1957, pp. 1256-1257; the DKR stagnation-point correlation is q = 1.99876e8 * sqrt(0.3048/r_n) * sqrt(rho/rho_SL) * (V/7924.8)^3.15 * (h_s-h_w)/(h_s-h_w300) W/m^2, equivalent to q = 17,600 sqrt(rho/rho_SL) (V/26,000)^3.15 / sqrt(R_N) BTU/ft^2-s with R_N in ft.",
+   "source": "https://arxiv.org/pdf/1910.06397 (eq. 19 and ref. 25); https://arc.aiaa.org/doi/10.2514/8.12603",
+   "confidence": "verified"
+  },
+  {
+   "claim": "IBM 1410 announced 12 September 1960, withdrawn 30 March 1970; 5-character addresses, max 80,000 characters; hardware '1401 compatibility mode' switch; the IBM 7010 (1962) is the same architecture in 7000-series technology, up to 100K characters, about twice as fast.",
+   "source": "https://en.wikipedia.org/wiki/IBM_1410 ; https://en.wikipedia.org/wiki/IBM_1400_series",
+   "confidence": "likely"
+  },
+  {
+   "claim": "IBM's own Nov 1961 1410 Reference Manual (A22-1407-2) describes the 1410 as serving 'the intermediate data-processing area', with standard features: independent I/O synchronizer areas; 10, 20 or 40 thousand storage positions; table lookup; fifteen index registers; and 1401 compatibility allowing 'many 1401 programs on the 1410 without altering the 1401 program'. Peripherals: 1402 reader/punch (800 cpm read, 250 cpm punch), 1403 printer (100 or 132 positions), 729/7330 tapes, 1405 disk, 1415 console.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/A22-1407-2_1410ref_Nov61.pdf (pp. 5-8)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "The IBM 1410 had no floating-point hardware: the index of IBM 1410 Principles of Operation (A22-0526-3) contains no floating-point entry (only 'Floating Dollar Sign' under editing); arithmetic instructions are decimal add/subtract/multiply/divide on variable-length fields.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (index pp. 106-108)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "IBM 1410 FORTRAN (J24-1468-1, (c)1962, rev. May 1963) came in a 20K version (compiles via Autocoder) and a 40K version (direct to machine language); required 1402, 1403 Model 2 and 4 tape units. Floating-point precision f is set by control card, default 8 decimal digits, max 45; fixed-point k default 5, max 99; floating values stored as f+2 digits (mantissa plus 2-digit characteristic), range 1e-100 to (1-10^-f)e99.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/J24-1468-1_1410fortran.pdf (pp. 1-7)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "IBM 1410/7010 Operating System (1410-PR-155) FORTRAN, processor 1410-FO-970 (C28-0328-3, Dec 1965): integer word size k from 3 to 20 digits (default 5), real precision f from 3 to 18 digits plus 2 exponent digits (default 8); real constant +3.14159 with f=8 stored as 3141590001 (decimal, software float).",
+   "source": "https://bitsavers.org/pdf/ibm/1410/C28-0328-3_1410_Fortran.pdf (pp. 1, 5, 7-8)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Diebold ADP Service News Letter census as of end of 1961: IBM 1410 — 3 delivered, 475 on order (reprinted in Computers and Automation, April 1962).",
+   "source": "https://archive.org/details/bitsavers_computersArCensus196274_16451676 (Computers and Automation, Computer Census 1962-74)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Computers and Automation Monthly Computer Census as of 20 Jan 1963: IBM 1410 — average monthly rental $10,000, first installation 11/61, 140 installed, 400 on order (for comparison 1401: $2,500, 9/60, 4,390 installed, 4,200 on order).",
+   "source": "https://archive.org/details/bitsavers_computersArCensus196274_16451676",
+   "confidence": "verified"
+  },
+  {
+   "claim": "By the October 1964 Computers and Automation census the 1410 average monthly rental was listed as $12,000 (1401 $4,500, 1401-G $1,900, 1440 $1,800).",
+   "source": "https://archive.org/details/bitsavers_computersArCensus196274_16451676",
+   "confidence": "verified"
+  },
+  {
+   "claim": "RPG (Report Program Generator) was introduced by IBM in 1959 for the IBM 1401, intended to ease the transition of tabulating-machine technicians; RPG II arrived ~1969 with System/3.",
+   "source": "https://en.wikipedia.org/wiki/IBM_RPG",
+   "confidence": "likely"
+  },
+  {
+   "claim": "Allen & Eggers, NACA Report 1381 (work dated 1953, superseding TN 4047, 1957): assumes gravity negligible versus drag during the pulse (straight-line path), constant C_D, exponential density rho = rho0 e^(-beta y) with rho0 = 0.0034 slug/ft^3 and beta = 1/22,000 ft^-1; peak deceleration is independent of mass, size and C_D, depending only on entry speed and angle.",
+   "source": "http://hpp.education/Lessons/MecaSpace/Files/AllenEggers.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Allen-Eggers closed forms: y1 = (1/beta) ln[C_D rho0 A/(beta m sin theta_E)] (eq. 15); V1 = V_E e^(-1/2) ≈ 0.61 V_E (eq. 16); max deceleration (dV/dt)/g = beta V_E^2 sin theta_E/(2 g e) (eq. 17); and V = V_E exp[-(C_D rho0 A/(2 beta m sin theta_E)) e^(-beta y)] (from eq. 12-13).",
+   "source": "http://hpp.education/Lessons/MecaSpace/Files/AllenEggers.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Early trajectory programs (1950s-60s, IBM 704/7090 class) integrated point-mass ODEs with 4th-order Runge-Kutta or Adams-type predictor-corrector methods; RK4 was the standard self-starting method and Adams-Moulton the standard multistep method.",
+   "source": "https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods",
+   "confidence": "unverified"
+  },
+  {
+   "claim": "1400-family installations were nearly half of ~26,000 computers worldwide by 1965 and peaked at 14,600 in 1967 (all models, not 1410 alone).",
+   "source": "https://ethw.org/Early_Popular_Computers,_1950_-_1970",
+   "confidence": "likely"
+  }
+ ],
+ "tables": [
+  {
+   "title": "Avco reentry-vehicle programs (verified/likely)",
+   "markdown": "| Vehicle | Missile | Maker | Type | Key dates | Source |\n|---|---|---|---|---|---|\n| Mark 2 | Thor, early Atlas | General Electric (not Avco) | Copper heat sink | First flight 10 Jan 1958 | ccspacemuseum.org |\n| RVX-1/RVX-2 | Thor-Able / Atlas tests | GE (RVX-1); GE + Avco ablative coatings on RVX-2 | Ablative test | 1959 | search summary, likely |\n| Mark 4 | Titan I, Atlas E/F | Avco | Ablative over aluminum frame | Late 1950s dev, deployed early 1960s; Titan I ops 1962-65 | NASM A19660029000; Wikipedia Titan I |\n| Mark 5 | Minuteman I (W59) | Avco | Ablative | RV assigned May 1961; warheads June 1962-July 1963 | Wikipedia W59 |\n| Mark 11/11A | Minuteman I/II (W56) | Avco | Ablative | RV assigned Aug 1959; production from Mar 1963 | Wikipedia W56 |\n| AVCOAT 5026-39 | Apollo CM heat shield | Avco | Ablator in honeycomb | Selected April 1962 | Wikipedia AVCOAT |",
+   "source": "see per-row"
+  },
+  {
+   "title": "Computers documented at Avco (all sites)",
+   "markdown": "| Site | Machine | Date | Use | Source | Confidence |\n|---|---|---|---|---|---|\n| Avco RAD, 201 Lowell St., Wilmington MA | IBM 704, 32K words, tapes | Accepted Aug 1958; in service 1960-61 | ODE/PDE numerical solution (engineering) | BRL61 IBM 704 page | verified |\n| Avco RAD, Wilmington | Philco Transac (S-2000) | Planned ~1961 to replace 704 | Scientific | BRL61 IBM 704 page | verified (as plan) |\n| Avco service bureau, Wilmington | IBM 7090 + IBM 1401 (printing) | 1965 | Service bureau / Operation Match | Wikipedia Operation Match; Harvard Crimson 1965 | likely |\n| Avco Crosley Division, Cincinnati | IBM 1401, IBM 7070 | Proposed, 1961 | Commercial | BRL61 1401/7070 pages | verified |\n| Avco (any) | IBM 1410 | — | — | not found in any source searched | unverified |",
+   "source": "https://ed-thelen.org/comp-hist/BRL61-ibm0704.html and others as listed"
+  },
+  {
+   "title": "IBM 1410 vs neighbors (Computers and Automation census, 20 Jan 1963)",
+   "markdown": "| Machine | Avg monthly rental | First installation | Installed (Jan 1963) | On order |\n|---|---|---|---|---|\n| IBM 1401 | $2,500 | 9/60 | 4,390 | 4,200 |\n| IBM 1410 | $10,000 | 11/61 | 140 | 400 |\n| IBM 1410 (Diebold, end 1961) | — | — | 3 delivered | 475 |\n| IBM 1410 (C&A, Oct 1964) | $12,000 | — | (not extracted) | — |",
+   "source": "https://archive.org/details/bitsavers_computersArCensus196274_16451676"
+  },
+  {
+   "title": "IBM 1410 FORTRAN numeric formats (software decimal floating point)",
+   "markdown": "| Item | 1410 FORTRAN (J24-1468-1, 1962/63) | 1410/7010 OS FORTRAN 1410-FO-970 (C28-0328-3, 1965) |\n|---|---|---|\n| Fixed-point digits k | default 5, max 99 | 3-20, default 5 |\n| Floating mantissa digits f | default 8, max 45 | 3-18, default 8 |\n| Storage | f+2 digits (2-digit characteristic) | f+2 digits; +3.14159 with f=8 stored as 3141590001 |\n| Range | 1e-100 to (1-10^-f)e99 | 1e-100 to (1-10^-f)e99 |\n| Hardware float | none (decimal fixed-point CPU) | none |\n| Min config | 20K (via Autocoder) or 40K; 1402, 1403 Mod 2, 4 tapes | per OS sysgen manual C28-0352 |",
+   "source": "https://bitsavers.org/pdf/ibm/1410/J24-1468-1_1410fortran.pdf ; https://bitsavers.org/pdf/ibm/1410/C28-0328-3_1410_Fortran.pdf"
+  },
+  {
+   "title": "2-D point-mass ballistic reentry equations (programmable in fixed-point decimal)",
+   "markdown": "| Quantity | Equation | Notes |\n|---|---|---|\n| State | h (altitude), V (speed), gamma (flight-path angle, +up), s (downrange), t | planar, non-rotating spherical Earth |\n| Density | rho = rho0 * exp(-h/H), H = 22,000 ft, rho0 = 0.0034 slug/ft^3 | Allen-Eggers constants; tabulate exp() or use 1410 table lookup |\n| Gravity | g = g0 * (R_E/(R_E+h))^2 | g0 = 32.174 ft/s^2, R_E = 20.9e6 ft; or constant g |\n| Ballistic coefficient | beta_B = m/(C_D A) [slug/ft^2] (or W/(C_D A) lb/ft^2) | dominant design parameter |\n| Drag accel | a_D = rho V^2 / (2 beta_B) | = C_D rho V^2 A/(2m) |\n| dV/dt | -a_D - g sin(gamma) | |\n| dgamma/dt | (V/(R_E+h) - g/V) cos(gamma) | add L/(mV) if lifting; ballistic L=0 |\n| dh/dt | V sin(gamma) | gamma negative on descent |\n| ds/dt | V cos(gamma) * R_E/(R_E+h) | ground range |\n| Deceleration (g) | n = a_D / g0 | printed column |\n| Dynamic pressure | q_bar = rho V^2 / 2 [lb/ft^2] | printed column |\n| Stagnation heating (DKR 1957) | q_s = 17,600 sqrt(rho/rho_SL) (V/26,000)^3.15 / sqrt(R_N) [BTU/ft^2 s], R_N ft | rho_SL = 0.002378 slug/ft^3 |\n| Heat load | Q = integral q_s dt | printed running total |\n| Allen-Eggers check: V(h) | V = V_E exp[-(rho0 H/(2 beta_B sin theta_E)) e^(-h/H)] | gravity neglected; theta_E = entry angle magnitude |\n| Allen-Eggers check: peak decel | n_max = V_E^2 sin theta_E /(2 g e H) at h1 = H ln[rho0 H/(beta_B sin theta_E)], V1 = 0.61 V_E | eqs. 15-17 of NACA 1381 |\n| Integrator | RK4: k1=f(t,y); k2=f(t+dt/2, y+dt k1/2); k3=f(t+dt/2, y+dt k2/2); k4=f(t+dt, y+dt k3); y += dt(k1+2k2+2k3+k4)/6 | dt ~0.1-1 s; Adams-Moulton as alternative |",
+   "source": "Allen & Eggers NACA 1381 (http://hpp.education/Lessons/MecaSpace/Files/AllenEggers.pdf); DKR via https://arxiv.org/pdf/1910.06397 eq. 19; ODE set is standard flight mechanics (unverified against a period source)"
+  },
+  {
+   "title": "Typical reentry printout columns (period-plausible)",
+   "markdown": "| Column | Units | Derived from |\n|---|---|---|\n| TIME | s | integration step |\n| ALT | ft | h |\n| VEL | ft/s | V |\n| GAMMA | deg | flight-path angle |\n| RANGE | n.mi. | s/6076.1 |\n| MACH | - | V/a(h) (needs speed-of-sound table) |\n| DECEL | g | rho V^2/(2 beta_B g0) |\n| Q (dyn press) | lb/ft^2 | rho V^2/2 |\n| QDOT (stag) | BTU/ft^2 s | DKR |\n| Q TOTAL | BTU/ft^2 | integral of QDOT |\n| RHO | slug/ft^3 | atmosphere table |",
+   "source": "Synthesized from Allen-Eggers quantities and DKR; column layout itself is unverified (no period Avco listing found)"
+  }
+ ],
+ "open_questions": [
+  "Did Avco RAD (Wilmington) ever install an IBM 1410? Nothing found in BRL 1961/1964 surveys, the Computers and Automation census, or the web. Family recollection could refer to a 1401 (the 7090's usual print/tape satellite, and documented at the Avco Wilmington service bureau in 1965), or a 1410 acquired 1962-65 after the surveys. Avco corporate archives (Textron) or a Datamation/C&A 'new installations' column would settle it.",
+  "Which machine replaced the 704 at Wilmington — did the Philco Transac S-2000 plan actually go through, and when did the IBM 7090 arrive (documented only by 1965)?",
+  "Exact contents of Avco's trajectory printouts and the integration method used in-house are not documented in any accessible source; the equations given are standard for the period but not verified against an Avco program listing.",
+  "Founding date of Avco RAD as a division: sources vary (Marchetti joined the Wilmington 'RAD' in fall 1954; plant construction began Feb 1957; AERL founded 1955/56). A primary Avco annual report would fix this.",
+  "Total IBM 1410 units shipped over its life: only 1961-63 census points were extracted (3 → 140 installed, ~400-475 on order); a later C&A census (1966-68) would give the peak installed base."
+ ],
+ "sources": [
+  {
+   "title": "BRL Report 1115 (1961) — IBM 704 installations, incl. Avco RAD Wilmington",
+   "url": "https://ed-thelen.org/comp-hist/BRL61-ibm0704.html",
+   "note": "Primary. Avco RAD 201 Lowell St.; 704 32K; Aug 1958; ODE/PDE use; Philco replacement planned."
+  },
+  {
+   "title": "BRL Report 1115 (1961) — IBM 1401 page",
+   "url": "https://ed-thelen.org/comp-hist/BRL61-ibm1401.html",
+   "note": "Avco appears only as Crosley Division, Cincinnati (proposed)."
+  },
+  {
+   "title": "BRL Report 1115 (1961) — IBM 7070 page",
+   "url": "https://ed-thelen.org/comp-hist/BRL61-ibm7070.html",
+   "note": "Avco Crosley Division (proposed)."
+  },
+  {
+   "title": "Computers and Automation — Computer Census 1962-74 (bitsavers scan on archive.org)",
+   "url": "https://archive.org/details/bitsavers_computersArCensus196274_16451676",
+   "note": "Primary. 1410 rental, first install date, installed/on-order counts."
+  },
+  {
+   "title": "IBM 1410 Data Processing System Reference Manual A22-1407-2 (Nov 1961)",
+   "url": "https://bitsavers.org/pdf/ibm/1410/A22-1407-2_1410ref_Nov61.pdf",
+   "note": "Primary. System description, storage sizes, features, 1401 compatibility."
+  },
+  {
+   "title": "IBM 1410 Principles of Operation A22-0526-3",
+   "url": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "note": "Primary. Index shows no floating-point hardware."
+  },
+  {
+   "title": "IBM 1410 FORTRAN J24-1468-1 (1962, rev. May 1963)",
+   "url": "https://bitsavers.org/pdf/ibm/1410/J24-1468-1_1410fortran.pdf",
+   "note": "Primary. 20K/40K processors, precision control cards."
+  },
+  {
+   "title": "IBM 1410/7010 Operating System FORTRAN C28-0328-3 (Dec 1965)",
+   "url": "https://bitsavers.org/pdf/ibm/1410/C28-0328-3_1410_Fortran.pdf",
+   "note": "Primary. Software decimal floating point, k/f word sizes."
+  },
+  {
+   "title": "bitsavers IBM 1410 directory listing",
+   "url": "https://bitsavers.org/pdf/ibm/1410/",
+   "note": "Manual inventory: Autocoder, COBOL, FORTRAN, IOCS, OS, 1301/1311 disk."
+  },
+  {
+   "title": "Allen & Eggers, NACA Report 1381",
+   "url": "http://hpp.education/Lessons/MecaSpace/Files/AllenEggers.pdf",
+   "note": "Primary. Equations 1-17, atmosphere constants, stagnation heating analysis."
+  },
+  {
+   "title": "Trisolini et al., arXiv 1910.06397 (Demisability sensitivity) — DKR formula eq. 19",
+   "url": "https://arxiv.org/pdf/1910.06397",
+   "note": "Secondary; gives DKR in SI with reference to Detra/Kemp/Riddell 1957."
+  },
+  {
+   "title": "Kemp & Riddell, 'Heat Transfer to Satellite Vehicles Re-entering the Atmosphere', Jet Propulsion 1957",
+   "url": "https://arc.aiaa.org/doi/10.2514/8.12603",
+   "note": "Avco Research Laboratory authors (Everett)."
+  },
+  {
+   "title": "NASA SP-4201 This New Ocean (PDF)",
+   "url": "https://www.nasa.gov/wp-content/uploads/2023/02/sp-4201.pdf",
+   "note": "Primary history. Avco nose cones for Thor/Atlas 1956; manned capsule studies 1956-57."
+  },
+  {
+   "title": "NASM — Mark 4 reentry vehicle A19660029000",
+   "url": "https://airandspace.si.edu/collection-objects/missile-reentry-vehicle-mark-4/nasm_A19660029000",
+   "note": "Avco Mark 4, Titan I / Atlas E/F, W-38, ablative."
+  },
+  {
+   "title": "Cape Canaveral Space Force Museum — Heatsink (Mark 2) nose cone",
+   "url": "https://ccspacemuseum.org/artifacts/heatsink-nose-cone/",
+   "note": "GE Mark 2, first flight 10 Jan 1958."
+  },
+  {
+   "title": "Wikipedia — HGM-25A Titan I",
+   "url": "https://en.wikipedia.org/wiki/HGM-25A_Titan_I",
+   "note": "Avco Mk 4 RV; dates."
+  },
+  {
+   "title": "Wikipedia — W59",
+   "url": "https://en.wikipedia.org/wiki/W59",
+   "note": "Mark 5 RV assigned to Avco May 1961."
+  },
+  {
+   "title": "Wikipedia — W56",
+   "url": "https://en.wikipedia.org/wiki/W56",
+   "note": "Mark 11 RV assigned to Avco Aug 1959."
+  },
+  {
+   "title": "Wikipedia — AVCOAT",
+   "url": "https://en.wikipedia.org/wiki/AVCOAT",
+   "note": "Apollo heat shield material selected April 1962."
+  },
+  {
+   "title": "Wikipedia — Arthur Kantrowitz",
+   "url": "https://en.wikipedia.org/wiki/Arthur_Kantrowitz",
+   "note": "AERL founded 1955 in Everett MA."
+  },
+  {
+   "title": "NAE Memorial Tributes vol. 16 — Arthur R. Kantrowitz",
+   "url": "https://www.nationalacademies.org/read/13338/chapter/26",
+   "note": "AERL established 1956 after 1954 crash program; reentry heating."
+  },
+  {
+   "title": "Wilmington Town Crier — 'Original Avco buildings retired at 65'",
+   "url": "https://homenewshere.com/wilmington_town_crier/news/article_caef142a-cbfc-11ec-8ae1-1317a8e0b183.html",
+   "note": "Plant construction Feb 1957; dedication May 1959; Textron 1984."
+  },
+  {
+   "title": "Wikipedia — Operation Match",
+   "url": "https://en.wikipedia.org/wiki/Operation_Match",
+   "note": "IBM 7090 at Avco service bureau, Wilmington; 1401 printouts (1965)."
+  },
+  {
+   "title": "Harvard Crimson, 3 Nov 1965 — Operation Match",
+   "url": "https://www.thecrimson.com/article/1965/11/3/operation-match-pif-you-stop-to/",
+   "note": "Contemporaneous; 'Avco 1790 computer' in Wilmington."
+  },
+  {
+   "title": "Stumpf, 'Reentry Vehicle Development Leading to the Minuteman Avco Mark 5 and 11', Air Power History Fall 2017 (Gale record)",
+   "url": "https://go.gale.com/ps/i.do?id=GALE%7CA519403680&sid=googleScholar&v=2.1&it=r&linkaccess=abs&issn=1044016X&p=AONE&sw=w",
+   "note": "Full text blocked (403); bibliographic record verified."
+  },
+  {
+   "title": "Wikipedia — IBM 1410",
+   "url": "https://en.wikipedia.org/wiki/IBM_1410",
+   "note": "Announcement/withdrawal dates; 1401 compatibility mode."
+  },
+  {
+   "title": "Wikipedia — IBM 1400 series",
+   "url": "https://en.wikipedia.org/wiki/IBM_1400_series",
+   "note": "7010 relationship."
+  },
+  {
+   "title": "Wikipedia — IBM RPG",
+   "url": "https://en.wikipedia.org/wiki/IBM_RPG",
+   "note": "RPG 1959 on 1401; RPG II 1969."
+  },
+  {
+   "title": "ETHW — Early Popular Computers 1950-1970",
+   "url": "https://ethw.org/Early_Popular_Computers,_1950_-_1970",
+   "note": "1400-family installed-base totals."
+  }
+ ]
+}

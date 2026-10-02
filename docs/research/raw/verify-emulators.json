@@ -1,0 +1,77 @@
+{
+ "topic": "IBM 1410 emulators / simulators / test software survey — adversarial check",
+ "refuted": [
+  {
+   "claim": "cube1us/1410 note1410.txt instruction-length tests cover 'one per opcode A S ? ! M % D Z E C T J X R B W V G , lozenge / .' — with M listed as the Multiply op (summary text and Core/.cor claim).",
+   "why": "Jaeger's note1410.txt does label 00500 as 'Multiply Instruction (M)', but that is a slip in his notes. In the 1410 Principles of Operation the Multiply op code is @ and Divide is % (A22-0526-3 text: 'Multiply M a,b @ (A) (B)' in the instruction summary; instruction format 'M @ aaaaa bbbbb'). On the 1410, op code M is the tape/unit-record I/O op (Move mode) — Van Snyder's chart says the same ('M and L on 1410 are only for I/O'). An emulator that decoded M as Multiply would be applying the 1401 op code (1401 Multiply = M) to the 1410.",
+   "correction": "1410 native op codes: Multiply = @, Divide = %; M and L are I/O (move-mode / load-mode data transfer). note1410.txt's '(M)' for Multiply is the author's shorthand error, not a 1410 fact. Also 02100 lists I/O ops 'M, L, U, K, F, 4, 2'.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_PrincOps.pdf (instruction summary; local text extract princops_a22-0526-3.txt lines 2062, 11434, 11844); https://raw.githubusercontent.com/cube1us/1410/master/note1410.txt lines 17-38"
+  },
+  {
+   "claim": "Table '1410-relevant BCD/card codes': Tape Segment (\") = 0-7-8, BCD bits CA8421.",
+   "why": "The Van Snyder chart row reads 'Tape Segment 0-7-8 A8421' (no C bit). A8421 has 4 bits set, so with even parity (C = even) on 7-track BCD tape the C bit is absent; the finder added a C. The Group Mark row (12-7-8, CBA8421) is correct.",
+   "correction": "Tape Segment: card 0-7-8, BCD A8421 (no check bit). Group Mark: 12-7-8, CBA8421. Record Mark: 0-2-8, A82. Word Separator: 0-5-8, CA841. Mode Change: 11-7-8, B8421.",
+   "source": "https://ibm-1401.info/Van1401-CodeChart.pdf (pdftotext -layout, rows 'Tape Segment' and 'Group Mark')"
+  },
+  {
+   "claim": "cube1us/1410 and companion repos: 'the FPGA ... per his site' — status page gives no license; the FPGA repo license is unknown.",
+   "why": "Minor, but the finder's open question can be narrowed: the computercollection.net FPGA status page states the application source is GPL-licensed ('GPL'). GitHub still detects no LICENSE file in cube1us/IBM1410FPGA (api: license null, contents only VHDL/ and dbModel/), so the author's intent is GPL even though the repo has no license file.",
+   "correction": "Author's site says GPL; repo lacks a LICENSE file. Still worth confirming with Jaeger before deriving tables, but the intent is documented.",
+   "source": "https://www.computercollection.net/index.php/ibm-1410-fpga-implementation/ ; https://api.github.com/repos/cube1us/IBM1410FPGA"
+  }
+ ],
+ "upgraded": [
+  {
+   "claim": "Jaeger's FPGA status: CU01 (1410 mode) and M011A (1401 mode) pass (early Aug 2023); as of mid-2026 passes 1410 and 1401 I/O diagnostics, runs PR-108 and full PR-155 including Autocoder/compilers and PR-155 sysgen; tape via 1414 TAU logic in FPGA + PC-side program over UDP (late 2025); blog #42 'IBM 1414 Unit Record I/O Synchronizer' dated 2026-08-21; board is Digilent Nexys 4 ('might have even fit on a Nexys 2').",
+   "source": "https://www.computercollection.net/index.php/ibm-1410-fpga-implementation/ ; https://www.computercollection.net/index.php/2021/05/02/ibm-1410-fpga-posted-to-github/"
+  },
+  {
+   "claim": "The 1410's 1401 compatibility mode is selected by a console switch (not microcode): PrincOps 'Compatibility Switch (Figure 56), when at the 1401 setting, makes it possible to run IBM 1401 programs on the 1410. Ordinarily, the switch should be in the 1410 setting.' The 1401 COMPAT light shows the mode; index lists 'Compatibility Switch, 1415 Test Panel'. Jaeger's page states it was 'all done in hard wired logic'.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_PrincOps.pdf (1415 Console chapter, 'Compatibility Controls'; local extract lines 6630-6640, 6864-6870, 12107) ; https://www.computercollection.net/index.php/the-ibm-1410-data-processing-system/"
+  },
+  {
+   "claim": "sky-visions: PR-155 master tape derives from Paul Pierce's tape adc00036 with parity errors cleaned up; site has no disk master tape so no disk-resident PR-155 can be generated.",
+   "source": "https://sky-visions.com/ibm/ibm7010_soft.shtml (fetched HTML: 'Pierces site tape adc00036, but I fixed it to clean up some parity errors in the data'; 'disk master tape so we can't at the moment generate a disk')"
+  },
+  {
+   "claim": "Cornwell i7010: help text 'The CPU can be set to a IBM 1401 or IBM 1410/7010'; MODEL(1) '1401' = 'Emulate a 1401', MODEL(2) '7010' = 'Emulate a 7010'; memory settable 10K..100K in 10K steps (MAXMEMSIZE 100000 in i7000_defs.h); default unit MODEL(2)|MEMAMOUNT(9)|OPTION_PRIO|OPTION_FLOAT. No 1410-specific model; 1401-mode translation code at i7010_cpu.c ~941-1000 maps 1401 M/L/D/P/Y to OP_MOV with modifiers and 1401 K/F to channel control.",
+   "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_cpu.c (lines 52-59, 182, 208-209, 317, 941-999, cpu_help ~3998-4010); https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7000_defs.h line 58"
+  },
+  {
+   "claim": "STATUS.txt i7010 entry (verbatim): 'Protection mode has some errors left. Protection mode does not handle setting H or L to 0. T020 tape diags fail. Disks may work. PR108 not tested.' i7010_test.ini echoes 'CU26 not working yet' and 'Expect error 17 on T020C test'.",
+   "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/STATUS.txt ; https://raw.githubusercontent.com/rcornwell/sims/master/I7000/tests/i7010_test.ini"
+  },
+  {
+   "claim": "No browser/JavaScript IBM 1401 or 1410 emulator exists in public search results (PCjs has none; retrocomputingforum thread lists only SimH, ROPE, BAL360, Windows/Swift/C++ ports).",
+   "source": "WebSearch 'IBM 1401 emulator JavaScript browser online' — https://www.pcjs.org/ ; https://retrocomputingforum.com/t/ibm-1401-emulators/3143 ; https://github.com/moshix/IBM1401"
+  }
+ ],
+ "additions": [
+  {
+   "claim": "1410 storage: five 1411 models — 10,000 / 20,000 / 40,000 / 60,000 / 80,000 positions (models 1-5, 'A' suffix adds an E frame). Data Channel 2 is a special feature (channel 1 standard); 1410 max is 2 channels, 7010 has 4 and addresses 100K. For diffing against Cornwell's i7010, set memory to 80K or less and expect a 7010-default config (PRIO+FLOAT on) unless you 'set cpu nofloat nopri'.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_PrincOps.pdf (local extract lines 134-147, 10263-10272); https://sky-visions.com/ibm/ibm7010_instr.shtml; i7010_cpu.c line 182",
+   "confidence": "verified"
+  },
+  {
+   "claim": "In 1401 mode a 10K 1410 behaves as an 8K 1401; every larger 1410 behaves as a 16K 1401. 1401 features usable in 1401 mode: additional storage, multiply-divide, expanded print edit, advanced programming (indexing, SAR, move record), print storage, high-low-equal compare, read-punch release, sense switches. NOT supported in 1401 mode: column binary, compressed tape, punch-feed read, serial I/O adapter (1009/1011/1012/1412/1418/1419), process overlap, selective tape listing, space suppression.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_PrincOps.pdf ('1401 Compatibility' section; local extract lines 10975-11010)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Behavioural differences in 1401 mode that a 1410 emulator must model differently from a true 1401: (1) input characters with bad parity — the 1401 forces them valid by flipping C; the 1410 stores an asterisk (*) instead; (2) divide with an initially blank B field and zero quotient — 1401 leaves blanks, 1410-in-1401-mode converts them to zeros; (3) 1401-mode I/O errors are governed by the console I/O Check Stop switch and 1401 I/O Check-Reset switch, which are inoperative in 1410 mode.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_PrincOps.pdf ('Differences in 1401 and 1410 system operation', 'Compatibility Controls'; local extract lines 6871-6885, 11011-11025)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Cornwell's 1401-mode translation (i7010_cpu.c) maps 1401 op codes to 1410 internal ops: B with various lengths -> OP_BCE or OP_B; U/W/V keep modifier; K/F issued as immediate channel control commands then become NOP; M/L without X-control become OP_MOV with modifier C / X; D -> OP_MOV mod '1'; P -> OP_MOV mod '.'; Y -> OP_MOV mod '2'; 1401 I/O digits 1-7 handled as 'Handle 1401 I/O opcodes'. This is a useful reference for how a 1401-mode decoder can reuse the 1410 Move engine.",
+   "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_cpu.c lines 941-1000",
+   "confidence": "verified"
+  },
+  {
+   "claim": "The Van Snyder chart's 1410-specific print glyph column: on the 1410 the 2-8 card code (BCD 'A' alone) prints as ¢, and 0-7 (CA421) is the 1410 '*' op-code marker; 12-7 (BA421) is 'S?R' flagged 1410 (Store A-address? register); 0-3 T is marked 1460/1410. These ¶ marks are the finder's basis and are read correctly.",
+   "source": "https://ibm-1401.info/Van1401-CodeChart.pdf (pdftotext rows 21-37)",
+   "confidence": "verified"
+  }
+ ],
+ "notes": "Checked with primary sources downloaded to the scratchpad (i7010_cpu.c, i7010_defs.h, i7000_defs.h, STATUS.txt, i7010_test.ini, note1410.txt, Van1401-CodeChart.pdf, sky-visions HTML, and the A22-0526-3 1410 PrincOps text extract already present in the scratchpad). Not re-verified: byte sizes of diag.bin/d90_1410.bin/pr155_mst.bcd/pr108.bcd (finder's HEAD requests; not load-bearing), the SimH Classic kit list, ROPE details, the 1401-only Shirriff facts (out of scope for 1410 behaviour), and bitsavers directory listings. The 1401-vs-1410 confusion found: the summary's opcode letter list treats M as 1410 Multiply (it is @ on the 1410; M is I/O) — inherited from a slip in Jaeger's note1410.txt. The finder's own 1410/1401 op-code caveats (from Van Snyder) are otherwise consistent with the 1410 PrincOps. Cornwell's help text for MODEL(2) says 'Emulate a 7010' in the MTAB but 'sets IBM 1410/7010 emulation' in cpu_help — the finder's quote is accurate. Group Mark = CBA8421 and ¢ = 2-8 confirmed; only Tape Segment bits were wrong."
+}

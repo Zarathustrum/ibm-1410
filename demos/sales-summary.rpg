@@ -1,0 +1,60 @@
+RG                                                                         02010
+CAA  001 CS                              010060300302                      03010
+DDEPT  003         CAA 006                                                 04010
+DPART  008         CAA 014                                                 04020
+DQTY   005         CAAN019                                                 04030
+DAMT   008         CAAN027                                                 04040
+DPAGENO003         PAG                                                     04050
+ACOMM  014         AMT   008X00005 005?         D0202                      05010
+ADTOT  010                   AMT   008A         D                          05020
+ADCOM  010                   COMM  014A         D                          05030
+ARTOT  010                   DTOT  010A F1      T                          05040
+ARCOM  010                   DCOM  010A F1      T                          05050
+AGTOT  012                   RTOT  010A F2      T                          05060
+AGCOM  012                   RCOM  010A F2      T                          05070
+LHA1X  HA2    01    1P                                                     06010
+K                                 021          021MONTHLY SALES SUMMARY    06020
+K                                 033          011BY DISTRICT              06030
+K                                 063          004PAGE                     06040
+F                           PAGENO067         Z                            06050
+LHA2X       02                                                             06060
+K                                 004          004DEPT                     06070
+K                                 016          004PART                     06080
+K                                 026          003QTY                      06090
+K                                 042          006AMOUNT                   06100
+K                                 057          010COMMISSION               06110
+LHB1X  HB2    01    OF                                                     06120
+K                                 021          021MONTHLY SALES SUMMARY    06130
+K                                 033          011BY DISTRICT              06140
+K                                 063          004PAGE                     06150
+F                           PAGENO067         Z                            06160
+LHB2X       02                                                             06170
+K                                 004          004DEPT                     06180
+K                                 016          004PART                     06190
+K                                 026          003QTY                      06200
+K                                 042          006AMOUNT                   06210
+K                                 057          010COMMISSION               06220
+LD11X       01      01                                                     06230
+F                           DEPT  004                                      06240
+F                           PART  016                                      06250
+F                           QTY   026         Z                            06260
+F                           AMT   042             WORD01                   07010
+B                           COMM  057             WORD03                   07020
+LT11X       02      F1                                                     07030
+K                                 015          010DEPT TOTAL               07040
+B                           DTOT  042             WORD02                   07050
+B                           DCOM  057             WORD02                   07060
+K                                 060          001*                        07070
+LT21X       02      F2                                                     07080
+K                                 015          014DISTRICT TOTAL           07090
+B                           RTOT  042             WORD02                   07100
+B                           RCOM  057             WORD02                   07110
+K                                 061          002**                       07120
+LT31X       02      LC                                                     07130
+K                                 015          011GRAND TOTAL              07140
+B                           GTOT  042             WORD03                   07150
+B                           GCOM  057             WORD03                   07160
+K                                 062          003***                      07170
+W                           WORD01             010   ,   .                 07180
+W                           WORD02             013  ,   ,   .              07190
+W                           WORD03             015    ,   ,   .            07200

@@ -1,0 +1,711 @@
+/* ═════════════════════════════════════════════════════════════════════════════════════════════
+   src/ui/styles/period.css — the MACHINE ROOM tab's whole appearance, and nothing else's.
+
+   Source: Phase-4 plan §10.3 ("The stylesheet — src/ui/styles/period.css, ~640 lines, ONE wave"),
+   §10.1 (the desk's five NAMED grid areas, so the mount order and the display order cannot
+   disagree), §10.4 (typography, and no webfont), §1 step 1 (the paper order the grid is),
+   §2.2 (what this page refuses to draw), §8.3 (one lamp colour for the whole panel), §11 wave 5
+   oracle (e) — the CSS lint this file is written against — and oracle (f), the class drift guards;
+   architecture.md §6, the two surfaces "visually foreign to each other on purpose".
+
+   WHAT IS SCOPED WHERE. `index.html` keeps `body` — the one selector that cannot be scoped — plus
+   the INTERNALS tab's rules under `#internals`. This file is the other half: every rule below is
+   under `#machine-room` or a `.period-*` class, so the period surface cannot restyle the panel and
+   the panel cannot restyle the desk. `body` is NEVER written here; `#machine-room` overrides type
+   and colour for its own subtree and inherits the rest.
+
+   THE §15 CUSTOM-PROPERTY TABLE (plan §10.3), one property per `[unverified]` colour, declared on
+   `#machine-room` below, each with the ledger row it comes from in the comment beside it. For the
+   SIX this file uses — `--lamp-group-border`, `--ribbon`, `--card-stock`, `--desk-top`,
+   `--desk-pedestal` and `--bar-shade` — flipping the ruling is ONE line here and no code change
+   anywhere. The three lamp properties are DECLARED AND UNUSED, and the note at their declaration
+   says why and what flipping them actually costs today:
+     --lamp-lit / --lamp-lens / --lamp-dark    LAMP_IS_WARM_WHITE_BEHIND_A_CLEAR_LENS
+     --lamp-group-border                       LAMP_GROUPS_ARE_SILKSCREEN_NOT_LENS_COLOUR
+     --ribbon                                  SELECTRIC_RIBBON_IS_BLACK_SINGLE_COLOUR
+     --card-stock                              CARD_STOCK_IS_CREAM
+     --desk-top / --desk-pedestal              DESK_IS_LIGHT_LAMINATE_ON_CHARCOAL_PEDESTALS
+     --bar-shade                               GREEN_BAR_IS_THE_DEFAULT_WITH_A_WHITE_TOGGLE
+
+   THE 1401 RED-FAULT CONVENTION IS REFUSED HERE BY NAME (plan §2.2 fact 1, §8.3, §16 item 2 —
+   this file is one of the three places the refusal is written down, beside
+   `console/lightsView.ts`'s header and `printer/panelView.ts`'s). console-and-physical.md §11:
+   "1415 lamp/lens color has no primary source … The claim that labels light up red on fault is
+   from a **1401** page and does **not** transfer to the 1415" `[unverified for 1410]`. So:
+   NOTHING ON THIS SURFACE IS RED. Not the 1403's END OF FORMS or FORMS CHECK (§7.2 — the specific
+   temptation, a pair of legends that look exactly like a fault indicator and are drawn in the same
+   dark lens as every other legend on that panel), not the 1415's SYSTEM CHECK or PROGRAM check
+   lamps (§8.3), not a diagnostic, not an error, not a disabled control. There is ONE lamp colour
+   on this desk — warm white behind a clear lens — and error is said in words, in the ribbon's own
+   single colour, exactly as the Selectric said it: with an underscore (console-and-physical.md §2).
+
+   WHAT THIS FILE DOES NOT CARRY — four things, and the lint of §11 wave 5 oracle (e) checks them:
+    1. NO NUMBER THAT MATTERS. 132 print positions, 66 line positions, three lines to a half-inch
+       bar, 80 columns × 12 rows at 0.087 / 0.250 in, matrix 30 and 35, the twelve carriage
+       channels, the six rotary detent angles and the five dualed chain glyphs live in DOM-free
+       modules under `src/ui/period/paper/` and `src/ui/period/console/`, tested in node (§0
+       bullet 1). Not one of them is repeated here, and no form or card selector below carries a
+       pixel width — the form is 132 CHARACTERS wide and the card is a `viewBox`, so a pixel width
+       would be a second, uncheckable copy of a number that has a test. The ONE number that moved
+       into this file is a colour: `--bar-shade`, `formView.ts`'s `BAR_SHADE = '#ececec'`.
+    2. NO WEBFONT — no font-face rule, and the lint greps for the at-rule by name, so this file
+       does not even spell it. §10.4 and §15 `NO_WEBFONT`: `ui-monospace, Menlo, Consolas,
+       monospace` already renders `⌑`, `‡`, the slashed `Ø` of `printout.ts:29` (C28-0351-5 p.2)
+       and the combining word mark and parity underscore in shipped output.
+    3. NO STYLESHEET IMPORT AND NO REMOTE URL — the other two at-rules the lint greps for by
+       name, and spelled out here for the same reason. The settled deliverable is a static
+       local site whose
+       `dist/index.html` opens from the filesystem with no network request (DECISIONS.md
+       2026-08-30 "Run local, Gitea"; plan §10.5, §13 criterion 17). Every texture below is drawn
+       with a gradient or a border; there is no image file anywhere in this phase.
+    4. NO BARE ELEMENT SELECTOR. `#machine-room pre { … }` is scoped; `pre { … }` is not, and the
+       second one would restyle the internals tab's six shipped views through the wall §6 puts
+       between the surfaces (critic item 6, §14 R9).
+
+   ONE MORE THING THIS FILE MUST NOT DO, written down because it is invisible until it breaks:
+   **it sets no `display` on `#machine-room` itself.** `src/ui/main.ts` switches tabs with the
+   `hidden` attribute, and `hidden` is a UA `display: none` that ANY author `display` on an
+   id selector would beat — the machine room would then be permanently visible under the panel.
+   The grid lives on `.period-desk`, one element in.
+   ═════════════════════════════════════════════════════════════════════════════════════════════ */
+
+
+/* ───────────────────────────────────────────────────────────────────────────────────────────────
+   1. THE SURFACE AND ITS PALETTE
+   The custom properties of §10.3's table, then the type and colour the whole desk inherits.
+   ───────────────────────────────────────────────────────────────────────────────────────────────*/
+
+#machine-room {
+  /* §15 LAMP_IS_WARM_WHITE_BEHIND_A_CLEAR_LENS — [unverified]; the red-fault half is a REFUSAL.
+     console-and-physical.md §13 row 1 and §11; A22-0526-3 Fig.57 p.59 and S223-2648 Figs.1-3 are
+     black and white. Warm white / amber incandescent behind a clear-white lens, on a charcoal
+     panel with white silkscreen legends.
+
+     THESE THREE ARE DECLARED AND NOT YET USED, and that is a wave boundary rather than an
+     oversight. Every lamp on this desk is drawn by a view that holds its own value inline —
+     `console/lightsView.ts` and `console/keysView.ts` and `reader/keysView.ts` carry
+     `LAMP_LIT = '#f2ecd2'` and `LAMP_DARK = '#3a3a3a'`, and `printer/panelView.ts:53` carries
+     `LAMP_DARK` alone because nothing on the Fig.69 panel is lit — and `period/console/**`,
+     `period/reader/**` and `period/printer/**` are all on wave 5's does-not-touch row (§11), 5b
+     included. So the HOIST — deleting each inline constant and reading `var(--lamp-…)` instead —
+     is the first job of the phase after this one, and the properties are declared now so that job
+     is a deletion and not a design decision. Until then, flipping this ruling is those inline
+     values in the four views, not one line here.
+
+     PROVENANCE, honestly: `--lamp-lit` and `--lamp-dark` ARE the views' two values. `--lamp-lens`
+     is not — NO view declares a lens colour (the lens is drawn as the lit or dark face itself),
+     so this value is THIS FILE'S OWN CHOICE under the same [unverified] row: the clear-white lens
+     read off §11's "backlit white/clear lens lights", which happens to land on the same off-white
+     as `console/keyboardView.ts:126`'s `KEY_FACE`. A colour photograph would settle all three. */
+  --lamp-lit: #f2ecd2;
+  --lamp-lens: #e9e6df;
+  --lamp-dark: #3a3a3a;
+
+  /* §15 LAMP_GROUPS_ARE_SILKSCREEN_NOT_LENS_COLOUR — [unverified].
+     console-and-physical.md §13 row 9: whether the 1415's lights are colour-coded by group is
+     published nowhere. Uniform lamp colour per panel; groups separated by SILKSCREENED box
+     borders. One border colour for the seven panel boxes and for the sub-groups inside them —
+     reversing the ruling is one rule per box. */
+  --lamp-group-border: #7d7a73;
+
+  /* §15 SELECTRIC_RIBBON_IS_BLACK_SINGLE_COLOUR — [unverified], NEW IN PHASE 4.
+     console-and-physical.md §2: A22-0526-3 p.45, p.49 and S223-2648 p.6 describe the type element,
+     the 64-character set and the error-underscore feature and say NOTHING about ribbon colour.
+     Black on off-white, ONE colour, and no red shift on error — the error convention is the
+     underscore, so a second ribbon colour would invent a signal on top of a documented one. This
+     is the ink of everything printed on paper on this desk. */
+  --ribbon: #1a1a1a;
+
+  /* §15 CARD_STOCK_IS_CREAM — [unverified], NEW IN PHASE 4.
+     NO CITATION EXISTS: no file under `docs/research/` gives a card-stock colour, so this is
+     recorded as a NAMED FALLBACK rather than passed off as period (research/README.md's
+     [unverified] rule). It is `reader/cardFaceView.ts`'s `CARD_STOCK` hoisted; reverting to the
+     shipped `#fff` is one line and loses a shade. Nothing computes from it. */
+  --card-stock: #f7f3e8;
+
+  /* §15 DESK_IS_LIGHT_LAMINATE_ON_CHARCOAL_PEDESTALS — [verified from photos] for the look.
+     console-and-physical.md §1: "Desk form: light-colored laminate top, dark pedestals"; §11:
+     "dark (charcoal) cabinets with light top surfaces" (A22-0526-3 Fig.57 p.59; S223-2648
+     Figs.1-3). ONE look, read off the photographs, and NO colour chooser — IBM's Noyes palette
+     and the UW-Madison red / Wisconsin-DOA blue machines are [likely — secondary] and are not
+     used. A site skin is a one-property change. */
+  --desk-top: #d9d3c3;
+  --desk-pedestal: #35332e;
+
+  /* §15 GREEN_BAR_IS_THE_DEFAULT_WITH_A_WHITE_TOGGLE — [unverified].
+     Whether 1961-65 1410 sites ran green-bar stock or plain white is published nowhere
+     (console-and-physical.md §13 rows 7-8). The SHADE is `printer/formView.ts`'s `BAR_SHADE`, the
+     one number in this file, and it is a colour: the bars themselves are drawn per line position
+     in TS, from `paper/page.ts`'s tested `LINES_PER_BAR`, and the toggle beside the form IS the
+     fallback. Here it is the stock's own edge — the stack of fanfold under the top sheet. */
+  --bar-shade: #ececec;
+
+  /* The desk itself. Type is `body`'s — one stack, no webfont (§10.4, §15 NO_WEBFONT) — and it is
+     inherited rather than restated, because the only typographic claim this surface makes is that
+     everything on it is monospaced, which is what lets a ruler line up over the position it
+     counts. Colour and ground are the photographs' (§15 above): light laminate under paper. */
+  background: var(--desk-top);
+  color: #2b2822;
+  padding: .8em;
+  box-sizing: border-box;
+}
+
+
+/* ───────────────────────────────────────────────────────────────────────────────────────────────
+   2. THE DESK — five NAMED areas in PAPER ORDER
+   Plan §1 step 1: "SPEC SHEET and CODING SHEET at the left, the 1402 below them, the 1415 desk to
+   their right, the 1403 filling the right-hand column." Plan §10.1: mount order is a
+   data-dependency chain and display order is this — they cannot disagree, because `desk.ts` places
+   each station element into the area NAMED below and nothing depends on append order for layout.
+   The names here are `DeskArea`'s five members, verbatim.
+   ───────────────────────────────────────────────────────────────────────────────────────────────*/
+
+/* THE NARROW WINDOW IS THE DEFAULT and the wide one is the media query, so the fallback is the
+   simple case: one column, in the same paper order the DOM is in. */
+#machine-room .period-desk {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: min-content;
+  gap: 1.1em;
+  align-items: start;
+}
+
+/* THE DESK PROPER. Three columns: the two authoring sheets and the 1402 at the left, the 1415
+   beside them, the 1403 filling the right — and the printer column is the widest because the form
+   it holds is the widest thing in the room. The breakpoint is a layout convenience and not a
+   dimension: no unit on this page is measured in inches
+   (§15 NO_UNIT_DIMENSION_IS_DRAWN_OR_LABELLED). */
+@media (min-width: 64em) {
+  #machine-room .period-desk {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.7fr);
+    grid-template-areas:
+      'specs  console printer'
+      'coding console printer'
+      'reader console printer';
+  }
+
+  #machine-room .period-specs { grid-area: specs; }
+  #machine-room .period-coding { grid-area: coding; }
+  #machine-room .period-reader { grid-area: reader; }
+  #machine-room .period-console { grid-area: console; }
+  #machine-room .period-printer { grid-area: printer; }
+}
+
+
+/* ───────────────────────────────────────────────────────────────────────────────────────────────
+   3. THE STATION SHELL — the frame and the header band every area carries
+   All five get the SAME shell on purpose. Three of them are machines and two are paper, and the
+   two authoring stations (`period/coding/**` and `period/specs/**`, moved and restyled by wave 5b)
+   were transitional when this was written — the shell is what makes the desk read as one room
+   whether or not their innards have been touched yet. The band across the top is the pedestal colour: a station stands on the desk, and the
+   dark edge is where it meets it (§15 DESK_IS_LIGHT_LAMINATE_ON_CHARCOAL_PEDESTALS).
+   `min-width: 0` is load-bearing: a grid item's default `min-width: auto` refuses to shrink below
+   its content, and the 1403's form is 132 characters wide — without it the printer column pushes
+   the other two off the desk instead of scrolling inside its own paper.
+   ───────────────────────────────────────────────────────────────────────────────────────────────*/
+
+#machine-room .period-specs,
+#machine-room .period-coding,
+#machine-room .period-reader,
+#machine-room .period-console,
+#machine-room .period-printer {
+  min-width: 0;
+  overflow-x: auto;
+  background: #e7e2d4;
+  border: 1px solid #b3ac9a;
+  border-top: .45em solid var(--desk-pedestal);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .18);
+  padding: .7em .8em .9em;
+  box-sizing: border-box;
+}
+
+/* The first thing inside a station is its own heading, and the shell already carries the band —
+   so the heading sits tight under it rather than opening a second gap. */
+#machine-room .period-specs > *:first-child,
+#machine-room .period-coding > *:first-child,
+#machine-room .period-reader > *:first-child,
+#machine-room .period-console > *:first-child,
+#machine-room .period-printer > *:first-child {
+  margin-top: 0;
+}
+
+/* The two PAPER stations read as paper: a cream ground under the frame, so a sheet on the desk is
+   distinguishable at a glance from a machine on the desk without a single word being written.
+   This is the whole of what wave 5a does to the authoring stations; their contents are 5b's
+   (plan §3.4's 5a / 5b split). */
+#machine-room .period-specs,
+#machine-room .period-coding {
+  background: var(--card-stock);
+}
+
+
+/* ───────────────────────────────────────────────────────────────────────────────────────────────
+   4. TYPE ON THE DESK — headings, rules, and the notes under the drawings
+   Every station heading, every caption and every "what this is" line the shipped views already
+   write with `make('h2')`, `make('h3')` and `make('div')`. Scoped, so `#internals` keeps its own.
+   ───────────────────────────────────────────────────────────────────────────────────────────────*/
+
+/* A station's name. Small, spaced and quiet: the drawn panel is the loud thing, not its caption. */
+#machine-room h2 {
+  margin: 0 0 .5em;
+  font-size: 1em;
+  font-weight: bold;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #3b3830;
+}
+
+/* A block inside a station — `specs/resultView.ts:67`'s, and whatever else 5b's restyle keeps. */
+#machine-room h3 {
+  margin: .9em 0 .3em;
+  font-size: .92em;
+  font-weight: bold;
+  letter-spacing: .05em;
+  color: #4a463c;
+}
+
+/* The rule the three shipped mounts still draw between blocks (`make('hr')`). On the internals tab
+   it is a hairline separator; here it is the edge of the desk under a station, so it takes the
+   pedestal colour and no margin above — the shell already spaced it. */
+#machine-room hr {
+  border: none;
+  border-top: 1px solid var(--lamp-group-border);
+  margin: .9em 0 .5em;
+}
+
+/* The captions, notes and refusals the views write as bare `<div>`s directly under a drawing —
+   `printer/formView.ts`'s word-separator note, `reader/hopperView.ts`'s "reads and does not
+   punch", `console/lightsView.ts`'s REDUCED PANEL line, `specs/mount.ts:73`'s framing paragraph. They
+   are prose about a machine rather than the machine, and several of them are paragraphs, so the
+   desk opens the line spacing and stops there. It sets no size and no colour ON PURPOSE: the
+   views that want a caption smaller or lighter already say so inline (`formView.ts:204`,
+   `lightsView.ts`'s legend colour), and a size set from here would fight them without being able
+   to see which of the two won. */
+#machine-room .period-specs div,
+#machine-room .period-coding div,
+#machine-room .period-reader div,
+#machine-room .period-console div,
+#machine-room .period-printer div {
+  line-height: 1.45;
+}
+
+
+/* ───────────────────────────────────────────────────────────────────────────────────────────────
+   5. THE CONTROLS — buttons, inputs, selects, text areas
+   `index.html`'s `input, select, button { font: inherit; }` is scoped to `#internals` in this same
+   wave, so the period surface must say it for itself: without this rule every control on the desk
+   reverts to the browser's UI face and the machine room stops being monospaced.
+
+   TWO KINDS OF `<button>` SHARE THIS SURFACE AND THEY MUST NOT LOOK ALIKE, which is why the skin
+   below is on CONTAINERS and not on the bare element.
+    · A DRAWN KEY is a key that IBM published on a figure, and it is a `<button>` with an inline
+      margin and nothing else: `reader/keysView.ts:128` builds Fig.60 p.61's seventeen-entry 1402
+      strip that way, `console/keysView.ts:130` builds Fig.47 p.49's 1415 controls (setting a
+      backlit face only for the two legends `LIT_CONSTANTS` names), `console/inquiryView.ts:57`
+      the inquiry levers and `console/keyboardView.ts:146` the Selectric key tops. **The view owns
+      that look and this wave may not edit a view** (§11 wave 5's does-not-touch row — and 5b may
+      not touch `reader/**` or `console/**` either), so what the desk owes them is the browser's
+      own button in the page's monospace and NOTHING MORE. A beige page-button skin over Fig.60
+      would redraw a `[verified]` figure in this file, which is exactly the class of claim §0
+      bullet 1 keeps out of files that touch the DOM.
+    · A PAGE CONTROL is this emulator's, not IBM's: sample deck, PUT DECK IN HOPPER, key the
+      bootstrap (all three inside `.deck-box`, `reader/deckBoxView.ts:223-226`); PUNCH INTO
+      HOPPER, ASSEMBLE, sample source, sample data and the listing's A/H toggle (all inside
+      `.period-coding`); SEND TO AUTOCODER, GENERATE and sample spec (all inside `.period-specs`).
+      Those three containers get the skin.
+   TWO PAGE CONTROLS FALL OUTSIDE ALL THREE and are left bare on purpose: `printer/formView.ts`'s
+   green-bar / plain-white toggle and its END OF JOB. END OF JOB is captioned on the page as the
+   emulator's own control and not a 1403 key precisely because Fig.69 / Fig.70 has none (§7.2), and
+   the toggle is the `GREEN_BAR_IS_THE_DEFAULT_WITH_A_WHITE_TOGGLE` fallback made visible. Skinning
+   them would put two page buttons inside the one station whose panel is drawn entirely from
+   published figures, so they stay browser buttons in the page's face.
+
+   `color: inherit` IS DELIBERATELY NOT SET on the bare element, and the reason is the console: the
+   1415 station is a dark cabinet (§9 below) and a drawn key that inherited its near-white legend
+   colour onto the browser's light button face would be unreadable. The UA's own `buttontext` is
+   correct for every bare button on this desk; the skinned containers set their colour explicitly.
+   NOTHING HERE GOES RED, disabled included — see the refusal at the top of this file. A dead
+   control is dead in GREY, which is what a legend with no lamp behind it looks like on the real
+   machine (§15 REFUSED_FEATURE_LAMPS_ARE_OMITTED_NOT_DARKENED, the same reading).
+   ───────────────────────────────────────────────────────────────────────────────────────────────*/
+
+#machine-room button,
+#machine-room input,
+#machine-room select,
+#machine-room textarea {
+  font: inherit;
+}
+
+/* THE PAGE CONTROLS, and only they — the three containers named above. */
+#machine-room .deck-box button,
+#machine-room .period-coding button,
+#machine-room .period-specs button {
+  background: #cfc9b8;
+  color: #23211d;
+  border: 1px solid #8d8a83;
+  border-radius: 1px;
+  padding: .25em .7em;
+  margin: 0 .4em .4em 0;
+  cursor: pointer;
+}
+
+#machine-room .deck-box button:hover,
+#machine-room .period-coding button:hover,
+#machine-room .period-specs button:hover {
+  background: #dcd6c5;
+}
+
+#machine-room .deck-box button:active,
+#machine-room .period-coding button:active,
+#machine-room .period-specs button:active {
+  box-shadow: inset 2px 2px 0 #8d8a83;
+}
+
+/* Grey, never red (see above). The control is present and inert, which is the honest shape: the
+   thing exists, the machine will not do it yet, and the page says why in words beside it —
+   `deckBoxView.ts:161-162`'s rule, "a disabled control with no visible reason reads as a bug". */
+#machine-room .deck-box button:disabled,
+#machine-room .period-coding button:disabled,
+#machine-room .period-specs button:disabled {
+  background: #ccc7ba;
+  color: #86817a;
+  border-color: #a9a49a;
+  cursor: default;
+  box-shadow: none;
+}
+
+#machine-room .deck-box button:disabled:hover,
+#machine-room .period-coding button:disabled:hover,
+#machine-room .period-specs button:disabled:hover {
+  background: #ccc7ba;
+}
+
+/* The focus ring. It matters more here than on an ordinary page: the 1415's keyboard region is a
+   `tabindex="0"` element that eats keystrokes when it holds focus, and three text areas share the
+   desk with it (§15 KEYBOARD_LISTENS_ON_THE_CONSOLE_REGION_NEVER_ON_DOCUMENT). A person must be
+   able to SEE where a keystroke is going. `console/keyboardView.ts` draws its own, brighter ring
+   inline for the same reason; this is the rest of the desk's. */
+#machine-room button:focus-visible,
+#machine-room input:focus-visible,
+#machine-room select:focus-visible,
+#machine-room textarea:focus-visible {
+  outline: 2px solid #4a463c;
+  outline-offset: 1px;
+}
+
+
+/* ───────────────────────────────────────────────────────────────────────────────────────────────
+   6. PAPER TEXTURE ONE — CONTINUOUS FORM (the 1403's green bar, and the listing on the same stock)
+   `.green-bar` is `printer/formView.ts:154`'s `<pre>` and `coding/listingView.ts:139`'s: the 1403's
+   form at the platen with the printed stack under it, and the Autocoder listing that came off the
+   same printer on the same paper. The two rules that came across from `index.html` are the two
+   that must never move — `white-space: pre` and `overflow-x: auto` — because the form is 132
+   CHARACTERS wide and a wrap would silently lie about the page.
+   THE BARS THEMSELVES ARE NOT DRAWN HERE. They are painted per line position by `formView.ts`
+   from `paper/page.ts`'s `LINES_PER_BAR`, which is tested in node; a `repeating-linear-gradient`
+   in this file would be a second, untested copy of the one number the plan spends a §15 row on.
+   What this file draws is the STOCK: its colour, its edge, and the stack of fanfold beneath it.
+   ───────────────────────────────────────────────────────────────────────────────────────────────*/
+
+#machine-room .green-bar {
+  /* The two declarations `index.html` reserved for this element before it existed, now carrying
+     two of them: `printer/formView.ts`'s form and `coding/listingView.ts`'s listing. The 1403's
+     132 columns MUST NOT WRAP — a wrapped line would silently misreport the page — so the paper
+     scrolls sideways instead. */
+  white-space: pre;
+  overflow-x: auto;
+
+  /* The stock. Off-white rather than white: paper that has been through a printer is not #fff,
+     and the bar shade the view paints over it reads as a tint of this rather than a stripe on a
+     screen. */
+  background: #fbfaf6;
+  color: var(--ribbon);
+  margin: .4em 0 0;
+  padding: .5em .4em;
+  border: 1px solid #b9b3a4;
+
+  /* The stack of fanfold under the top sheet — three offset edges in the bar shade, which is the
+     one colour this file takes from a view (`formView.ts`'s `BAR_SHADE`). It is a shadow, not a
+     measurement: nothing about the number of sheets or the height of the stack is claimed, and
+     `paginate` is the only thing that knows how many forms there are. */
+  box-shadow:
+    1px 1px 0 var(--bar-shade),
+    2px 2px 0 #e2e0da,
+    3px 3px 0 var(--bar-shade),
+    4px 4px 0 #dcdad4;
+
+  /* The form is tall. It scrolls in its own box rather than pushing the desk down the page — and
+     the scroll is on the paper, not the station, so the carriage and the panel beside it stay put
+     while a person reads the print. */
+  max-height: 27em;
+  overflow-y: auto;
+}
+
+/* The listing came off the same 1403 on the same stock, and the page heading C28-0326-2 §12 puts
+   AROUND `renderListing`'s columns is part of the printed page — so it takes the same paper and
+   the same ribbon, and nothing distinguishes it from the report but what is printed on it. */
+#machine-room .period-coding .green-bar {
+  max-height: 22em;
+}
+
+
+/* ───────────────────────────────────────────────────────────────────────────────────────────────
+   7. PAPER TEXTURE TWO — SHEET AND CARD STOCK (everything a person holds)
+   The cream of `--card-stock` (§15 CARD_STOCK_IS_CREAM) under the three things the plan says may
+   still carry an inch figure because a person can hold them: the card, and the two paper stocks.
+   Every `<pre>` on this surface is paper — `coding/sheetView.ts`'s ruler, `coding/listingView.ts`'s
+   page, `specs/sheetView.ts`'s guide, `specs/resultView.ts`'s three, `console/logView.ts`'s form
+   and its ruling — and `index.html`'s global `pre` rule is scoped to `#internals` in this same
+   wave, so this is where they get their box back.
+   THE BASE RULE IS DELIBERATELY THIN: margin, height and ink, and no box. Three of those `<pre>`s
+   are already INSIDE a drawn form — `console/logView.ts` paints the Selectric's stock, its border
+   and its two pin-feed hole columns on the wrapper around them — and a second bordered box inside
+   that one would sit on top of the holes. The stock and the frame go on the paper that needs them,
+   named one at a time below.
+   ───────────────────────────────────────────────────────────────────────────────────────────────*/
+
+#machine-room pre {
+  margin: 0;
+  max-height: 18em;
+  overflow: auto;
+  color: var(--ribbon);
+}
+
+/* A text area on this desk is a sheet of paper with a pencil on it — the deck box, the coding
+   sheet and the specification sheet all are — so it takes the stock and the ribbon rather than the
+   browser's white field, and it never wraps: all three carry `wrap="off"` because a card column is
+   a position and a wrapped line would move it. */
+#machine-room textarea {
+  background: var(--card-stock);
+  color: var(--ribbon);
+  border: 1px solid #a9a296;
+  padding: .35em;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+/* THE CARD FACE AND THE DECK BOX, carried from `index.html:31` in the wave-5 split with their
+   comment: greyscale, monospace, no art — the card's own outline draws the corner cut, so it gets
+   no CSS border. The `viewBox` is the card (`paper/cardGeometry.ts`), which is why the width here
+   is a proportion and not a pixel count: the geometry has a golden file and this rule must not be
+   a second copy of it. */
+#machine-room .card-face svg,
+#machine-room .deck-box textarea {
+  display: block;
+  width: 100%;
+  max-width: 56em;
+  height: auto;
+  box-sizing: border-box;
+  font: inherit;
+}
+
+/* The card's caption — `deck box, card N`, `loaded deck, next card`, `object deck, card N`
+   (§7.1's templates, drawn by `reader/cardFaceView.ts`). It sits under the face and is not
+   printed on it: nothing on a real card says which card it is. */
+#machine-room .card-face {
+  margin: .4em 0 .6em;
+  max-width: 56em;
+}
+
+/* The deck box: the one place on the desk where a person types eighty columns at a time. */
+#machine-room .deck-box {
+  margin: .3em 0 .6em;
+}
+
+/* The coding sheet (`coding/sheetView.ts`'s `.source-box`) and the specification sheets
+   (`specs/sheetView.ts`'s `.rpg-spec-box`). THE RULER IS THE FORM (§15, and §2.2's largest stated
+   fidelity gap): there is no facsimile X24-1336…1339 or C28-0309-1 artwork anywhere in this phase,
+   because none of the four sheets is digitised — the COLUMNS are `[verified]` and the ARTWORK is
+   not, and a drawn form would put invented artwork around verified columns. So the sheet is a
+   parser-backed ruler over a text area on cream stock, framed like paper, and it says what it is
+   rather than pretending to be a scan. The column numbers themselves are `src/asm/types.ts`'s
+   `SOURCE_FIELDS` and `src/rpg/sheets/columns.ts`'s `SHEET_COLUMNS`, and a defined grep proves no
+   column number is written anywhere under `src/ui/period/**` — this file included. */
+#machine-room .source-box,
+#machine-room .rpg-spec-box {
+  background: var(--card-stock);
+  border: 1px solid #b9b3a4;
+  padding: .5em .6em .6em;
+  margin: .4em 0 .7em;
+}
+
+/* The ruler over the sheet is set in the same monospace cell as the text under it, so a tick lands
+   over the column it counts — and it is quieter than the source, because it is the FORM and not
+   what a person wrote on it. */
+#machine-room .source-box pre,
+#machine-room .rpg-spec-box pre {
+  border: none;
+  background: transparent;
+  color: #6a6560;
+  padding: 0 0 .2em;
+  max-height: none;
+}
+
+/* The generated result of an RPG run (`specs/resultView.ts`'s `.rpg-result`): the memory map and
+   the Autocoder source the generator emitted. It is machine output about a program that does not
+   exist yet — the one thing on this station that came OUT of a machine rather than off a pencil —
+   so its two `<pre>`s take the paper box the thin base rule above does not give. */
+#machine-room .rpg-result {
+  margin: .5em 0 0;
+}
+
+#machine-room .rpg-result pre {
+  background: var(--card-stock);
+  border: 1px solid #b9b3a4;
+  padding: .4em;
+  max-height: 16em;
+}
+
+
+/* ───────────────────────────────────────────────────────────────────────────────────────────────
+   8. DIAGNOSTICS — `.deck-errors`, in three views and never in red
+   `reader/deckBoxView.ts:186`, `coding/listingView.ts:138` and `specs/resultView.ts:74` all draw
+   the same element: the reasons a deck, an assembly or a specification did not go through. Carried
+   from `index.html:32` with its shape intact — a rule down the left margin and a wrapped column —
+   and it is the clearest place on the desk where the 1401 red-fault convention would have been
+   copied in without noticing. It is not. The mark is a bar in the panel's own silkscreen colour;
+   the message says what is wrong in words.
+   ───────────────────────────────────────────────────────────────────────────────────────────────*/
+
+#machine-room .deck-errors {
+  white-space: pre-wrap;
+  border-left: 3px solid var(--lamp-group-border);
+  padding-left: .5em;
+  margin: .4em 0;
+  color: #3b3830;
+}
+
+/* `specs/resultView.ts:74` draws its diagnostics as a `<pre>` INSIDE `.rpg-result`, so the paper
+   box above would land on it. It is a margin note on the sheet, not a second sheet — the rule down
+   its left edge is the whole of it. */
+#machine-room pre.deck-errors {
+  background: transparent;
+  border: none;
+  border-left: 3px solid var(--lamp-group-border);
+  padding: 0 0 0 .5em;
+}
+
+
+/* ───────────────────────────────────────────────────────────────────────────────────────────────
+   9. THE STATIONS, one block each — what the area itself owns
+   Everything INSIDE a station is drawn by its own view with inline styles, and this wave does not
+   edit a view (plan §3.4, §11 wave 5's does-not-touch row). What is left for the desk is the box
+   the station sits in: how tall it may grow, how its overflow behaves, and how a drawn panel meets
+   the laminate around it.
+   ───────────────────────────────────────────────────────────────────────────────────────────────*/
+
+/* THE 1403 — the printer column. It holds the widest object in the room (the form) and one of the
+   tallest (the carriage tape beside it), and both scroll inside their own boxes rather than
+   setting the height of the desk. The carriage strip's `<svg>` carries its width and height as
+   ATTRIBUTES on purpose (`printer/carriageView.ts:134-146`: a CSS width on that element resolves
+   against its `font-size: 1.6` presentation attribute and collapses the strip to a sliver), so
+   nothing in this file touches an `svg` that is not the card face — and the shell's own
+   `overflow-x` is the whole of what this column needs, so it has no rule of its own.
+
+   THE 1402 — the card read punch. The hopper's edge slivers, the five stackers, the five pockets
+   and the Fig.60 key strip are drawn inline by their views; the station holds them, and a long
+   deck box grows downwards rather than sideways. It has no rule of its own either. */
+
+/* THE 1415 — the console. This is the one station that is genuinely a DARK cabinet rather than
+   paper on a desk: console-and-physical.md §1 and §11 read "dark console front with white legend
+   text and backlit white/clear lens lights" [verified from photos], and every one of its views
+   already paints its own charcoal panel inline. What the desk adds is the surround — the pedestal
+   the console stands on — so the panels do not float on the laminate with a hairline between them.
+   The Selectric's form and the light panel above it are the two things a person looks at, and they
+   are drawn by `console/logView.ts` and `console/lightsView.ts`; NOTHING here recolours a lens. */
+#machine-room .period-console {
+  background: #46433c;
+  border-color: #2a2823;
+  color: #ece8dd;
+}
+
+/* The console's own captions and notes, on the dark panel: legend white, never a lens colour, and
+   never red (§8.3, and the refusal at the top of this file). */
+#machine-room .period-console h2,
+#machine-room .period-console h3 {
+  color: #ece8dd;
+}
+
+/* The paper in the Selectric is still paper — a light form standing out of a dark desk, which is
+   exactly what the photographs show — but the FORM is `console/logView.ts`'s, drawn inline: the
+   stock, the border and the two columns of pin-feed holes are on the wrapper, and the log, the
+   ruling and the pending row are three bare `<pre>`s sitting ON that form. So the desk gives them
+   nothing: no box of its own inside a box that is already the paper. */
+#machine-room .period-console pre {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+/* THE CODING SHEET and THE SPECIFICATION SHEETS. The two authoring stations are transitional: they
+   were `period/autocoder/**` and `period/rpg/**` until wave 5b moved and restyled them into
+   `period/coding/**` and `period/specs/**` (plan §3.4's 5a / 5b split), and they carry no
+   `.period-*` class of their own. The frame and the
+   band above are the whole of what they get here, plus the paper stock of §7 — enough that the
+   desk reads as ONE room in the screenshot rather than three drawn stations and two bare forms.
+   They too take no rule of their own: the shell and the stock are the restyle 5a owes them. */
+
+
+/* ───────────────────────────────────────────────────────────────────────────────────────────────
+   10. THE NARROW WINDOW
+   Below the breakpoint of §2 the desk is one column in paper order, which is the DOM order
+   `desk.ts` appends its five areas in — so the page reads top to bottom exactly as it reads left
+   to right, and so does the keyboard. The only thing worth loosening is the paper: on a small
+   screen a form that scrolls in two directions inside a box that scrolls in two directions is
+   unreadable, so the boxes give up their heights and the page scrolls instead.
+   ───────────────────────────────────────────────────────────────────────────────────────────────*/
+
+@media (max-width: 63.99em) {
+  #machine-room {
+    padding: .5em;
+  }
+
+  #machine-room .green-bar {
+    max-height: 18em;
+    box-shadow: 1px 1px 0 var(--bar-shade), 2px 2px 0 #e2e0da;
+  }
+
+  #machine-room pre {
+    max-height: 14em;
+  }
+}
+
+
+/* ───────────────────────────────────────────────────────────────────────────────────────────────
+   11. PRINT
+   A person who prints this page wants the paper, not the room. The desk's ground and the station
+   frames come off, the boxes stop scrolling and give up their heights, and what is left on the
+   sheet is what the 1403 and the Selectric put on paper in the first place. No colour is inverted
+   and no lamp is redrawn: a print of a dark panel is a dark panel.
+   ───────────────────────────────────────────────────────────────────────────────────────────────*/
+
+@media print {
+  #machine-room {
+    background: transparent;
+    padding: 0;
+  }
+
+  #machine-room .period-desk {
+    display: block;
+  }
+
+  #machine-room .period-specs,
+  #machine-room .period-coding,
+  #machine-room .period-reader,
+  #machine-room .period-console,
+  #machine-room .period-printer {
+    border: none;
+    box-shadow: none;
+    overflow: visible;
+    background: transparent;
+    padding: 0;
+  }
+
+  #machine-room .green-bar,
+  #machine-room pre {
+    max-height: none;
+    overflow: visible;
+    box-shadow: none;
+  }
+}

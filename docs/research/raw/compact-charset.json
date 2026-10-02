@@ -1,0 +1,211 @@
+{
+ "topic": "charset",
+ "summary": "The 1410 stores each character as 6 data bits B A 8 4 2 1 plus a C (check) bit and an eighth-plane word-mark bit. Parity is odd over all eight bits: the C bit is set when the count of BA8421 bits plus the word-mark bit is even (so the same character has opposite C values with and without a word mark). Zone bits map straight from card zones: 12 -> BA, 11 -> B, 0 -> A, no zone -> none; digit punches 1-9 map to their BCD value; a lone 0 punch is 8-2 (bits 82, value 10), not 0000; blank is all-zero. Specials in the 8-x punch group (x-3-8..x-7-8) encode 8 plus the digit (3-8 = 821, 4-8 = 84, 5-8 = 841, 6-8 = 842, 7-8 = 8421). The chart authoritative for the 1410 is Figure 2 \"Standard BCD Interchange Code\" of the 1410 Principles of Operation (A22-0526-3, p.6), reproduced in full in the tables below; it also gives the 1410 collating sequence (Figure 2 is printed in ascending collating order, blank = 00, nine = 63) which Compare uses. Compare tests only BA8421 (never C or WM) and sets High/Equal/Low indicators comparing B to A. The collating order is NOT the numeric order of the 6-bit code: it goes 12-zone specials, &, 11-zone specials, -, /, 0-zone specials, no-zone specials, ?, A-I, !, J-R, record mark, S-Z, 0-9. An emulator should use a 64-entry BCD->collate-rank table (given below).\n\nThe 1410 PoO's Figure 3 documents that the 1410's \"Standard BCD Interchange Code\" renamed six code points relative to the \"previous\" (1401-era) code: 12-5-8 ( -> [, 11-5-8 ) -> ], 0-5-8 = (word separator) -> the word-separator hook glyph, 0-6-8 ' -> \\, 0-7-8 \" (tape segment) -> the triple-bar segment mark, 2-8 cent -> substitute blank. Bits and punches are identical between 1401 and 1410 for all 64 codes; only the glyph names/print arrangements differ. In the 1410 PoO the two 1403 arrangements are called A2 (commerce/report) and H2 (program languages: COBOL/FORTRAN); the 1403 Component Description calls them arrangement A / H (AN / HN as trains). Exactly five BCD code points print differently between A and H: 12 (& / +), 12-4-8 (lozenge / ')' ), 0-4-8 (% / '(' ), 3-8 (# / =), 4-8 (@ / '). Either arrangement has 48 printable graphics: A-Z, 0-9 and 12 specials; on A that is & . lozenge - $ * / , % # @ and record mark. Of the remaining 16 code points, on a typical A chain the 1410 PoO says: ? (12-0, +0) prints &, ! (11-0, -0) prints -, substitute blank (2-8) prints the record-mark glyph, and [ < groupmark ] ; delta wordsep \\ segmark : > tapemark all print blank.\n\nSigns: the sign of a numeric field is the zone of its units digit. Minus is always B-only (11 zone). Plus is BA (12 zone), no zone, or (less commonly) A-only (0 zone); the machine generates BA for a plus result and B for a minus result. So a punched field with an 11 over the units digit is negative; 12 over it is positive; and printed on a 1403 the signed units digit appears as the letter with that zone: -1 = 11-1 = B1 = J, -2 = K ... -9 = R, -0 = 11-0 = \"!\" which prints as \"-\"; +1 = 12-1 = A ... +9 = I, +0 = 12-0 = \"?\" which prints as \"&\". Move-and-suppress-zeros and edit remove the units-position zone bits so the digit prints normally. Word marks are not on cards or tape; on tape/cards they are represented by a preceding word-separator character (0-5-8, A841) when written in load mode; the 1403 can print word marks as the digit 1 via the \"write word marks as 1's\" instruction.",
+ "facts": [
+  {
+   "claim": "1410 character = BA8421 bits + C check bit + word mark bit; every character must have an odd number of bits counting C and WM; the WM is counted before C is determined (A=BA1 no WM -> BA1; A with WM -> WMCBA1; C=BA21 no WM -> CBA21; with WM -> WMBA21).",
+   "source": "IBM 1410 Principles of Operation A22-0526-3 p.5 'Character Coding' (https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1410 Figure 2 'Standard BCD Interchange Code' lists all 64 code points with card code and BCD bits including C, arranged in ascending collating sequence with blank lowest (00) and 9 highest (63); the 1415 console can read/punch/type all 64; 48 print on a 1403 with an alphameric chain.",
+   "source": "IBM 1410 PoO A22-0526-3 p.6 Figure 2 and text",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Five BCD code points print as two different characters depending on 1403 chain / console type head: 12 (& vs +), 12-4-8 (lozenge vs ')'), 0-4-8 (% vs '('), 3-8 (# vs =), 4-8 (@ vs '). Arrangement A2 = commerce/report writing; H2 = COBOL/FORTRAN program languages. The manual assumes A2.",
+   "source": "IBM 1410 PoO A22-0526-3 p.6-7 (Figure 2 Commerce/Science columns and text)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "On a 1403 with a typical (A2) chain: [ < groupmark ] ; delta word-separator \\ segment-mark : > tape-mark print blank; substitute blank (2-8, A-bit only) prints the record-mark glyph; ? (12-0) prints &; ! (11-0) prints -.",
+   "source": "IBM 1410 PoO A22-0526-3 p.6 Figure 2 footnotes (1)-(4)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1410 Figure 3: Standard BCD Interchange Code renamed six code points from the previous (1401) code: 12-5-8 '(' -> '[', 11-5-8 ')' -> ']', 0-5-8 '=' -> word separator glyph, 0-6-8 apostrophe -> backslash, 0-7-8 double-quote -> segment mark (triple bar), 2-8 cent -> substitute blank. Bits/punches unchanged; a no-charge MES converted older systems and supplied the 1415 console with type heads matching A2 and H2.",
+   "source": "IBM 1410 PoO A22-0526-3 p.7 Figure 3 and text",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1410 Figure 4 symbol names: group mark, record mark, segment mark, word separator, at sign, number sign, ampersand, plus zero (?), minus zero (!), plus, minus/hyphen, asterisk, percent, slash, backslash, lozenge, blank (b), substitute blank, ( ) [ ], tape mark (sqrt), less than, greater than, equal to, semicolon, colon, period/point, prime/apostrophe, mode change (delta).",
+   "source": "IBM 1410 PoO A22-0526-3 p.7 Figure 4",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1410 Compare (op C) compares B-field to A-field using BA8421 bits only (not C or WM); result determined by the collating sequence of Figure 2; sets High (B>A), Equal, Low (B<A) indicators (Unequal also on); ended by A- or B-field word mark; shorter A-field -> High. Example 6: B-field 444444M is High vs A-field 444444D even though M carries a minus zone.",
+   "source": "IBM 1410 PoO A22-0526-3 p.28-29 'Comparing'",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1410 sign: sign of a field is the zone bits of its units position. Minus is always B-bit only (11 zone). Plus may be B and A (12 zone), no zone bits, or less commonly A-bit only (0 zone). Machine-generated signs: BA for plus, B for minus. Test for minus: BWZ ... K (branch if zone equals B).",
+   "source": "IBM 1410 PoO A22-0526-3 p.16 'Sign Change or Development' and Figure 11",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1410 digit coding in arithmetic: numerals, letters, and / ? ! record-mark have numeric bits totalling 0-9; all other characters (blank & - substitute-blank, or numeric sum >9) are converted: blank -> zero (82) and the 8 bit dropped for out-of-range codes, e.g. group mark CBA8421 becomes G (BA421) if zones retained or 7 if zones stripped; # (821) becomes 3.",
+   "source": "IBM 1410 PoO A22-0526-3 p.16 'Digit Coding'",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1410 Move Characters and Suppress Zeros (Z) replaces high-order zeros and commas with blanks and removes zone bits in the units (sign) position of the B-field; edit (E) removes any sign in the units position of the data field; CR or - in edit control status portion is blanked when A-field sign is plus, undisturbed when minus.",
+   "source": "IBM 1410 PoO A22-0526-3 p.28, 31-33",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1410 1403 write with L op code translates word marks to word-separator characters going to the print buffer; there is no word-separator print slug so a blank precedes each word-marked character. 'Write word marks as 1s' (x-ctrl %21/⌑21) prints a 1 in every word-marked position and blanks elsewhere. Print data record must be terminated by a group-mark-with-word-mark.",
+   "source": "IBM 1410 PoO A22-0526-3 p.80 Figure 88 and text",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1410-attached 1403 Models 1/2/3: 100/132/132 print positions, 600/600/1100 lpm alphameric; 1285 lpm numeric-only with Numeric Print feature (Models 1,2); each position prints one of 48 characters: 26 alphabetic, 10 numeric, 12 special; chain of five 48-character sections.",
+   "source": "IBM 1410 PoO A22-0526-3 p.67",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1403 basic character arrangements: A (standard BCD Interchange Code) and H (FORTRAN and COBOL); each prints 48 characters (26 alpha, 10 numeric, 12 special). Chain = five 48-character sections (240 slugs); Model 3/N1 train = 5 sections of 80 slugs x 3 chars.",
+   "source": "IBM 1403 Printer Component Description GA24-3073 p.5-6 (https://ibm-1401.info/IBM-1403_Manual_A24-3073.pdf)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1403 UCS dualing: 'The four graphics % lozenge # @ of the AN arrangement are dualed with ( ) = ' of the HN arrangement' by assigning the 48AN codes to both; UCS (S/360 era) allows 120 (System/3) or 240 (S/360, S/370) graphics; UCS is not a 1401/1410 feature (requires 2020 or 2821).",
+   "source": "IBM 1403 Component Description GA24-3073 p.26-27",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1403 Preferred Character Set (Model 3 train, 1400 lpm max) carries the same 48 characters arranged so 0-9 , - . * appear 8 times, A-Z $ / % & 4 times, # @ lozenge record-mark 2 times; train sequence shown in Fig 30/32 is '*.& IHG FED CBA ONM LKJ -,0 987 654 321 *.% ZYX WVU TS/ @$# RQP -,0 987 654 321' (second half alternates @$# with lozenge $ recordmark).",
+   "source": "IBM 1403 Component Description GA24-3073 p.25 Figures 30/32",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Therefore the 12 A-chain specials are & . lozenge - $ * / , % # @ record-mark; the H chain replaces & lozenge % # @ with + ) ( = ' (record mark, . - $ * / , retained).",
+   "source": "Derived from 1403 GA24-3073 p.25 train listing + p.27 dualing statement + 1410 PoO Fig 2 Commerce/Science columns",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1401 Figure 267 (Reference Manual A24-1403-5 p.170) 'Character Code Chart in Collating Sequence' has identical bits and punches and identical collating order to 1410 Figure 2; its glyph names use the older code: 12-5-8 '(', 11-5-8 ')', 0-5-8 '= Word Separator', 0-6-8 apostrophe, 0-7-8 '\" Tape Segment Mark', 2-8 'cent (prints as record mark)', 7-8 'sqrt Tape Mark', 12-7-8 group mark, 11-7-8 delta mode change, 0-2-8 record mark; 'prints as' column shows blank for ( < GM ) ; delta WS ' \" : > tapemark, & for ?, - for !.",
+   "source": "IBM 1401 Reference Manual A24-1403-5 Figure 267 p.170 (http://bitsavers.informatik.uni-stuttgart.de/pdf/ibm/1401/A24-1403-5_1401_Reference_Apr62.pdf)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1401 Fig 267 Note 1: group mark 12-7-8 can optionally be made compatible with 705 group mark code 12-5-8. Note 2: A-bit-only (cent) coding must be program generated (cannot be read from a card; punches as zero) and is used with the C bit to indicate a blank on even-parity tape. Note 3: other special character printing arrangements can be obtained. The 1401 ignores 8-9 (MLP) punches in a column in the read feed.",
+   "source": "IBM 1401 Reference Manual A24-1403-5 p.170 notes",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1401 sign convention: 'A negative sign is indicated by a B-bit in the units position'; plus is A- and B-bits, A-no-B, or no-A-no-B; either A&B or no-zone should be used for signing positive; machine produces A&B for plus, B for minus. Same as 1410.",
+   "source": "IBM 1401 Reference Manual A24-1403-5 p.28-30 (pdftotext extraction of arithmetic section)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1401 SPS/Autocoder machine-language equivalents: ZA op code is '?' (prints as &), ZS op code is '!' (prints as -), CW is lozenge, D is %, M is @, SW is comma, CS is /, MA is #.",
+   "source": "IBM 1401 Reference Manual A24-1403-5 Figure 19 p.24",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Van Snyder's consolidated 1401/1440/1460/1410/7010 chart agrees with both IBM charts on all 64 bit/punch assignments and states: where two print characters are shown the first is the A chain and the second the H chain (#=, @', %(, lozenge), &+); cent sign is substitute blank on 1410; the word separator (CA841) is used on tape to indicate that the next character has a word mark; 1410 does not interpret # H P Q Y or 1-9 as op codes; % and @ are standard on 1410.",
+   "source": "https://ibm-1401.info/Van1401-CodeChart.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "ibm-1401.info card code page reproduces Figure 267 in BCD (octal) order with the same punch assignments, confirming e.g. octal 32 = 0-2-8 record mark A82, 35 = 0-5-8 word separator A841, 37 = 0-7-8 segment mark A8421, 57 = 11-7-8 delta B8421, 77 = 12-7-8 group mark BA8421, 17 = 7-8 tape mark 8421, 20 = A-only cent.",
+   "source": "https://ibm-1401.info/1401CardCode1.html",
+   "confidence": "likely"
+  },
+  {
+   "claim": "Doug Jones's card-code table gives the same 1401 punch set and notes parentheses in the 1401 set were frequently printed as square brackets.",
+   "source": "https://landley.net/history/mirror/pre/punchedcards/codes.html",
+   "confidence": "likely"
+  },
+  {
+   "claim": "Wikipedia BCD (character encoding) and IBM 1401 pages carry the same 64-code layout (zero = 8-2, B/A zone bits, C parity, M word mark shown by underlining) but do not give A/H print differences or Hollerith detail; they add nothing beyond the IBM manuals.",
+   "source": "https://en.wikipedia.org/wiki/BCD_(character_encoding) ; https://en.wikipedia.org/wiki/IBM_1401",
+   "confidence": "likely"
+  },
+  {
+   "claim": "Community sources (ibm-1401.info Print Character Wars / 1403Fonts pages, cctalk) agree: 'The H chain had the parens in place of the % and square lozenge'; the 1401 did not care which chain was installed because internal BCD was the same; the lozenge had no defined purpose beyond check-protection/total-flagging conventions.",
+   "source": "https://ibm-1401.info/PrintCharacterWars.html ; https://ibm-1401.info/1403Fonts.html",
+   "confidence": "likely"
+  },
+  {
+   "claim": "The 1410 in 1401-compatibility mode fills read-buffer positions 1-14 and 66-80 with valid blanks for 51-column cards; a group-mark-word-mark is needed in position 52 in 1410 mode only.",
+   "source": "IBM 1410 PoO A22-0526-3 p.100",
+   "confidence": "verified"
+  }
+ ],
+ "tables": [
+  "Complete 1410 64-character chart (1410 PoO Fig. 2) in collating order: rank | 1410 Commerce glyph (A2) | Science glyph (H2) | 1401 (old code) name | BCD bits BA8421 | C bit (no WM) | Hollerith | prints on A chain | prints on H chain",
+  "BCD 6-bit code by zone x digit (bits -> punch), showing the regular structure for an emulator lookup",
+  "1410 collating sequence (Compare) as a flat ordered string, low to high",
+  "Sign over units digit: punch -> BCD -> printed glyph (1410 and 1401)",
+  "1403 print arrangements A vs H: the five dualed code points and full 48-character sets"
+ ],
+ "open_questions": [
+  "Exact slug order of the standard (non-preferred) 240-slug A and H chains (needed only if emulating print timing, not glyph mapping) — not in the 1410 PoO; the 1403 manual gives only the Preferred Character Set train sequence.",
+  "Whether any 1410 sites ran 63- or 120-character chains: the 1410 PoO and 1403 manual state 48 printable characters for 1401/1410 attachment; UCS/larger sets are S/360-only. No primary evidence of a 63/120-char chain on a 1410 was found.",
+  "The 1415 console I/O printer glyph for the 16 non-1403-printable codes (it can type all 64 per the PoO p.6) — the exact typeball graphics were not captured; Figure 4 gives the symbol names only.",
+  "Precise console/print glyph for the word separator and segment mark: the PoO draws WS as a hooked tilde-like mark and SM as a triple vertical bar; Van Snyder's chart uses '=' style names — Unicode choice is an emulator decision.",
+  "Behavior of the 1402 when asked to punch the A-bit-only code (rank 19): the 1401 manual says it punches as zero; not separately confirmed for the 1410's 1402."
+ ],
+ "verdict": {
+  "topic": "IBM 1410 character coding: BCD (BA8421+C+WM), Hollerith card codes, 1410 collating sequence, 1403 A/H print arrangements, sign conventions",
+  "refuted": [
+   {
+    "claim": "Table row rank 19 (substitute blank, A-bit only): Hollerith '2-8 (A-bit only; cannot be read from card on 1401, punches as 0)' presented inside the 1410 chart, and open question 5 ('Behavior of the 1402 when asked to punch the A-bit-only code ... not separately confirmed for the 1410').",
+    "why": "1401-vs-1410 confusion. The 1410 PoO explicitly states the 1410 punches an A-bit-only character as an 8-2 punch and reads an 8-2 punch as an A bit; only the 1401 (without RPQ 898148) punches it as zero and rejects 8-2 on read as invalid.",
+    "correction": "On the 1410 the substitute blank (A-bit only) round-trips through the 1402 as a 2-8 punch: 'The 1410 system punches an A bit in core storage (substitute blank, formerly cent) as an 8-2 combination in a card column and reads an 8-2 combination in a card column as an A bit. The 1401 system punches an A bit in core storage as a zero in a card column and reads an 8-2 combination in a card column as an invalid character. A no-charge RPQ (898148) makes the 1401 operate as described for the 1410.' Emulator: 2-8 <-> A-bit is a valid, readable card code on the 1410; the 'punches as 0 / invalid on read' rule is 1401-only. Open question 5 is closed.",
+    "source": "IBM 1410 PoO A22-0526-3, 'IBM 1401-1410 Compatibility' section, 'Card Read-Punch Character Set' (p.100, OCR lines 11086-11094 of scratchpad princops_a22-0526-3.txt); same RPQ number confirmed in Van Snyder chart footnote"
+   },
+   {
+    "claim": "Van Snyder chart note repeated as verified: '1410 does not interpret # H P Q Y or 1-9 as op codes'.",
+    "why": "The 1410 PoO itself assigns digit op codes for channel-2 I/O: carriage control is op code F for channel 1 and op code 2 for channel 2 (p.81 instruction form 'CC or CC1 F(Ch1), CC2 2(Ch2)'); the write-word-marks-as-1s listing on p.80 likewise shows the channel-2 form with a digit op code. SimH's 1410/7010 CPU (i7010_defs.h) implements op codes 1, 2, 3, 4 (I/O status branch ch 2, carriage control ch 2, select stacker ch 2) and Y (priority feature).",
+    "correction": "On a 1410 with a second data channel, digit characters 1-4 are valid op codes (channel-2 counterparts of R/X, F, K); with the Priority feature, Y is the priority-mode op code. The Van note is only true of a base one-channel 1410 without the priority feature. # H P Q remain uninterpreted on the 1410 (SimH defines no such ops). Emulator op-code decode must not treat 1-4 or Y as invalid.",
+    "source": "IBM 1410 PoO A22-0526-3 p.80-81 (OCR lines 8895-8902, 8960-8968); SimH i7010_defs.h OP_IO3=CHR_3, OP_IO4=CHR_1, OP_CC2=CHR_2, OP_SSF2=CHR_4, OP_PRI=CHR_Y (https://github.com/simh/simh/blob/master/I7000/i7010_defs.h)"
+   },
+   {
+    "claim": "Table column 'Prints H' shows '?' (12-0, BA82) printing '&' on the H chain (rank 25: 'Prints A: &, Prints H: &').",
+    "why": "Internally inconsistent with the finder's own verified dualing claim. The 1410 PoO footnote 'prints as &' is explicitly for a 'typical printing chain' (the A2 arrangement the manual assumes). The 1403 prints whatever slug is assigned to the 12-zone (BA) code; on the H arrangement that slug is '+', not '&'.",
+    "correction": "On an H chain the plus-zero code (12-0) prints '+', not '&'. Rank 35 '!' printing '-' and rank 19 substitute-blank printing the record-mark glyph are chain-independent because '-' and record mark exist on both A and H sets. Confidence of the correction: likely (derived from the dualing statement; no primary source prints an explicit H-chain 'prints as' column).",
+    "source": "IBM 1410 PoO A22-0526-3 Figure 2 footnotes (typical chain = A2) + 1403 Component Description GA24-3073 p.27 dualing of & with +"
+   }
+  ],
+  "upgraded": [
+   {
+    "claim": "The 64-entry collating rank table (blank=0 ... 9=63, with ?=25 before A, !=35 between I and J, record mark=45 between R and S, and the special-character order . lozenge [ < GM & $ * ] ; delta - / , % WS \\ SM subst-blank # @ : > tapemark) is correct for the 1410.",
+    "source": "Independently confirmed entry-for-entry against SimH's 1410/7010 emulator table cmp_order[0100] in I7000/i7010_cpu.c (used by the Compare and BCE paths: sign = cmp_order[br & 077] - cmp_order[ar & 077]); every one of the 64 values matches the finder's rank column, and the 1410 PoO text 'chart is arranged in ascending collating sequence with a blank having the lowest' (p.5) and 'All BA8421 bits are compared, but not C bits or word marks' (p.28) is verbatim in the OCR."
+   },
+   {
+    "claim": "ibm-1401.info card-code page / Wikipedia layouts (octal 32=RM A82, 35=WS A841, 37=SM A8421, 57=delta B8421, 77=GM BA8421, 17=tapemark 8421, 20=A-only) — marked 'likely' by the finder.",
+    "source": "Bit/punch assignments confirmed directly from Van Snyder's chart text (Van1401-CodeChart.pdf, which cites 1401 Fig 267) and from the SimH mem_to_ascii[64] table in i7010_sys.c (index 012='0', 032='x' record mark, 035='`' WS, 037='_' SM, 057='^' delta, 077='|' GM, 017='s' tape mark, 020='b' subst blank) — three independent sources agree on all 64 code points."
+   }
+  ],
+  "additions": [
+   {
+    "claim": "1410 word-separator semantics in I/O (needed for tape/card load-mode emulation): Move mode — word separators in input are stored unchanged, output writes core word separators unchanged and never transfers word marks. Load mode input — a single word separator becomes a word mark over the NEXT incoming character; two consecutive word separators enter core as ONE word separator (record shortens by one position either way). Load mode output — each word mark becomes a word separator written BEFORE the character; a word separator in core is written as TWO word separators. Disk storage units can handle word marks directly in eight-bit mode (no word-separator translation).",
+    "source": "IBM 1410 PoO A22-0526-3 'Move Mode / Load Mode' (OCR lines 5115-5165)",
+    "confidence": "verified"
+   },
+   {
+    "claim": "Write Word Marks As 1s (M %21 / L %21): if the L (load) op code is used, no printing results at all — because load mode converts word marks to word separators before the buffer, and every non-word-mark position is blank. Only the M form prints 1s.",
+    "source": "IBM 1410 PoO A22-0526-3 p.80: '(Thus, if the L Op code is used, no printing results.)' (OCR line 8944)",
+    "confidence": "verified"
+   },
+   {
+    "claim": "1410 compare with unequal field lengths: if the A-field is shorter than the B-field the HIGH indicator is turned on (example 5); if the B-field is shorter than or equal in length to the A-field, indicators are set correctly for the portions compared. The comparison is always B to A, never A to B.",
+    "source": "IBM 1410 PoO A22-0526-3 p.28 'Word Marks' paragraph under Compare (OCR lines 3369-3375)",
+    "confidence": "verified"
+   },
+   {
+    "claim": "1410 sign test idiom stated in the PoO: because the machine generates BA for plus and B for minus, a minus result is tested with branch-if-zone-equal-B, V (I) (B) K; if no branch, the sign zone is BA, A, or none, all positive.",
+    "source": "IBM 1410 PoO A22-0526-3 p.16 'Sign Change or Development' (OCR lines 1647-1660)",
+    "confidence": "verified"
+   },
+   {
+    "claim": "1410 Compare/collate rank table exists ready-made in SimH: cmp_order[0100] in I7000/i7010_cpu.c; SimH's ASCII rendering of 1410 BCD is mem_to_ascii[64] in i7010_sys.c (uses ' ' 1-9 0 = ' : > s b / S-Z x , ( ` \\ _ - J-R ! $ * ] ; ^ + A-I ? . ) [ < | in octal order 00-77). Note SimH renders 12 (BA) as '+' and 12-4-8 as ')' and 0-4-8 as '(' — i.e. the H-chain glyphs — while 4-8 renders as '\\'' and 3-8 as '='. An emulator that copies SimH's table inherits the H arrangement, not the A2 arrangement the 1410 PoO assumes.",
+    "source": "https://github.com/simh/simh/blob/master/I7000/i7010_sys.c (local copy scratchpad/i7010_sys.c lines 204-214) and i7010_cpu.c lines 266-284",
+    "confidence": "verified"
+   }
+  ],
+  "notes": "Method: checked claims against the OCR text layer of the 1410 PoO A22-0526-3 (scratchpad/princops_a22-0526-3.txt, 12k lines), Van Snyder's chart text, the 1403 Component Description text (1403.txt), and SimH's I7000 1410/7010 emulator source (i7010_cpu.c, i7010_sys.c, i7010_defs.h) already present in the scratchpad. Verified verbatim in the PoO: the parity/word-mark rule and its six examples (p.5), Figure 3/4 text and MES/A2/H2 statement (p.7), Digit Coding incl. the 4=|=4%=|= -> 4744G and # -> 3 examples (p.16), sign rules and Figure 11 (p.16), MCS zone removal in the units position (p.27), Compare semantics (p.28), L-op-code word-separator/blank-space behaviour and write-word-marks-as-1s (p.80), 1403 arrangement A/H = 48 chars = 26+10+12 (GA24-3073 p.5), AN/HN dualing sentence (p.27), 51-column blank fill of positions 1-14/66-80 and GM-WM at position 52 (p.64 and p.100). Not independently re-verified (finder read scanned figures as images; OCR does not carry the figure cells): the exact glyph-by-glyph contents of Figures 2/3/4 and the 1403 Preferred Character Set train order — no contradiction found in the sources I could read, and the bit/punch assignments are corroborated by SimH and Van Snyder. Untestable here: 1415 console typeball glyphs for the 16 non-1403 codes; the 1401 Reference Manual A24-1403-5 Fig 267 notes (p1401.txt OCR confirms only the 8-9 MLP-ignore sentence). The three refutations above are the ones that would change emulator behaviour: (1) 2-8 punch <-> A-bit is valid card I/O on the 1410, (2) digits 1-4 and Y are valid 1410 op codes with channel 2 / priority feature, (3) plus-zero prints '+' on an H chain."
+ }
+}

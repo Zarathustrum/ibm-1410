@@ -1,0 +1,154 @@
+{
+  "topic": "gap-reentry-fixed-point-transcendentals",
+  "refuted": [
+    {
+      "claim": "Machine parameters that bound the design: ... core storage capacities 10,000 / 20,000 / 40,000 / 80,000 positions. (marked 'verified')",
+      "why": "A22-0526-3 lists FIVE 1411 models, not four. The 60,000-position model is missing from the finder's list. The manual's own indexing section repeats the same five: 'The validity of addresses must be considered when altering or interchanging programs between 10K, 20K, 40K, 60K, and 80K systems.'",
+      "correction": "1411 models 1/1A=10,000; 2/2A=20,000; 3/3A=40,000; 4/4A=60,000; 5/5A=80,000 storage positions. Models with the A suffix have a fifth (E) frame. The 4.5 us/character core cycle is correct.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf — A22-0526-3, system introduction p.5 (model/capacity table) and 'Indexing' p.14"
+    },
+    {
+      "claim": "Table row for J24-1468-1: 'Real magnitude range 10^-99 .. (1 - 10^-f) x 10^99' (in a fact block marked 'verified')",
+      "why": "The OCR of J24-1468-1 does not read 10^-99 anywhere; the two magnitude statements come through as garbage ('10\"*deg\"' and '10--'-^^'). Nothing in the scan supports 10^-99, and the value is arithmetically wrong for this format: with a normalized fraction in [0.1,1) and a 2-digit exponent, the smallest representable magnitude is 0.1 x 10^-99 = 10^-100, which is exactly what the later C28-0328-3 states in plain text.",
+      "correction": "Do not claim 10^-99 for J24-1468-1. The readable, primary-source range is C28-0328-3's: 10^-100 to (1 - 10^-f) x 10^99. Treat the J24-1468-1 range as unread; the f<=45 / k<=99 limits from that manual ARE readable and stand.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/J24-1468-1_1410fortran.pdf ('Arithmetic Precision' / 'Constants', pp.5-7, OCR illegible at both magnitude statements) vs http://bitsavers.trailing-edge.com/pdf/ibm/1410/C28-0328-3_1410_Fortran.pdf p.7 'MAGNITUDE OF REAL CONSTANTS - THE VALUE OF f'"
+    },
+    {
+      "claim": "rho0/rho_SL ratio 1.43044, log10 = 0.155414, halved = 0.077707; so log10(rho/rho_SL) = 0.155414 - 1.9740658e-5*y and sqrt(rho/rho_SL) = 10^(0.077707 - 9.870329e-6*y). (Summary also quotes 0.0777085 for the same constant — the two disagree with each other.)",
+      "why": "Arithmetic error. 0.0034/0.0023769 = 1.43043460 (ratio is right), but log10(1.43043460) = 0.15546801, not 0.155414 — an error of 5.4e-5 in the log, i.e. 0.012% in the density ratio. Half is 0.07773400, matching neither 0.077707 nor 0.0777085. These are constants that get typed into the program, so they should be right.",
+      "correction": "log10(rho/rho_SL) = 0.15546801 - 1.97406583e-5 * y (y in ft); sqrt(rho/rho_SL) = 10^(0.07773400 - 9.87032913e-6 * y). The beta*log10(e) constants (1.9740658e-5 and 9.870329e-6) are correct for beta = 1/22,000 ft^-1.",
+      "source": "NACA Report 1381 eq.(7) rho = 0.0034 e^(-y/22,000) (http://hpp.education/Lessons/MecaSpace/Files/AllenEggers.pdf, p.5) with rho_SL = 0.0023769 slug/ft3; recomputed in python3 (math.log10(0.0034/0.0023769) = 0.1554680063960062)"
+    },
+    {
+      "claim": "Power law u^3.15 over u in [0,1.1]: 111 entries at du=0.01 gives max error g'' du^2/8 with g'' = 3.15*2.15*u^1.15 <= 6.77, i.e. 8.5e-5 absolute.",
+      "why": "The bound was evaluated at u=1, not at the top of the stated interval. g''(u) = 3.15*2.15*u^1.15 is increasing, so on [0,1.1] the max is g''(1.1) = 6.7725 * 1.1^1.15 = 7.5570, not 6.77. The error figure 8.5e-5 also does not follow from the finder's own numbers (6.7725 * 1e-4 / 8 = 8.47e-5 is consistent with g''=6.77, but that g'' is wrong).",
+      "correction": "max |g''| on [0,1.1] = 7.5570; linear-interpolation error bound = 7.5570 * (0.01)^2 / 8 = 9.45e-5 absolute. Conclusion (far inside DKR's own +/-10-20%) is unchanged. The antilog table bounds (6.63e-6 at dF=0.001, 6.63e-4 at dF=0.01) recompute exactly as stated and stand.",
+      "source": "Recomputed in python3 from the finder's own formulas; DKR normalization q = 17,600 sqrt(rho/rho_SL) (V/26,000)^3.15 / sqrt(R_N) confirmed against this project's docs/research/raw/compact-avco.json"
+    },
+    {
+      "claim": "Design recommendation: 'Get 10^F for 0<=F<1 by Table Lookup (op T) into a 100- or 1000-entry table plus one linear interpolation' — and the algorithm table costs it as '1 lookup' alongside multiplies, i.e. as if it were cheap.",
+      "why": "Op T is a LINEAR right-to-left scan, and its cost grows with table size. The manual says so outright ('Because the timing of the table lookup operation is determined by the number of characters in the table that are read before a table argument is found, it is desirable to have the least possible number of characters in the function') and the timing symbols make it quantitative: N = number of fields actually compared, and B on a table search 'includes only those argument fields actually compared and the intervening function values'. For the recommended 1000-entry table with a 3-digit argument and a 5-digit inline function, an average hit at entry 500 gives N=500, B = 500*3 + 499*5 = 3995, so T = 4.5(12 + 1 + 3995 + 1500) = 24.8 ms average, 49.5 ms worst case. That is TEN TIMES the cost of an 8x8 multiply (2.4 ms), and it would dominate the entire integration step. The 100-entry version is ~2.5 ms average — still no cheaper than a multiply.",
+      "correction": "Do not search a uniform-grid transcendental table with op T. The grid is uniform and the argument digits ARE the index, so compute the entry address arithmetically and fetch with an indexed MLC: the 1410 has fifteen index registers (core 00025-00099, five positions each) and indexed addressing costs T = 34.5 us per single address indexed (30.67 us with the Accelerator), so an indexed 5-character MLC is roughly 4.5(12+1+5+5) + 34.5 = 138 us — about 180x cheaper than the 1000-entry T search and ~17x cheaper than a multiply. Reserve op T for genuinely non-uniform / unordered tables, where its right-to-left ordered scan is what you actually want.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf — A22-0526-3 'Table Lookup' pp.29-30 (timing T = 4.5(L+1+B+NA)), Figure 7 'Timing Formula Symbols' p.9 (definitions of N and of B on a table search), 'Indexing' p.14 (fifteen index registers, T = 34.5 per indexed address), '1410 Accelerator' p.96"
+    },
+    {
+      "claim": "'the same six mnemonics appear in the operation-code list of C28-0326-1 1410 Operating System Autocoder'",
+      "why": "The OS Autocoder's 'FLOATING POINT ARITHMETIC INSTRUCTIONS' group has EIGHT entries, not six. Beyond FRA/FST/FA/FS/FM/FD it also lists BXO 'Branch if Exponent Ovfl' and BXU 'Branch if Exponent Unfl'. These are load-bearing for anyone taking the software-float path: they are the only documented way to test the FORTRAN arithmetic package's exponent overflow/underflow from Autocoder. (The C28-0309-1 appendix genuinely lists only the six — that half of the claim is correct.)",
+      "correction": "C28-0309-1: six (FRA, FST, FA, FS, FM, FD) under 'FLOATING POINT ARITHMETIC INSTRUCTIONS INTERPRETED BY THE FORTRAN ARITHMETIC ROUTINES'. C28-0326-x OS Autocoder: eight — the same six plus BXO (Branch if Exponent Overflow) and BXU (Branch if Exponent Underflow).",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/C28-0326-1_1410_OS_Autocoder.pdf — C28-0326-1, 'Arithmetic Operation Codes' list (FA/FS/FM/FD/FRA/FST) and the appendix operation-code summary, which groups BXO/BXU under the FLOATING POINT ARITHMETIC INSTRUCTIONS heading; contrast http://bitsavers.trailing-edge.com/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf appendix, where no BXO/BXU appears"
+    },
+    {
+      "claim": "Citation for the Move d-modifier set: \"A22-0526-3, 'Move Characters and Suppress Zeros' d-character table, ~pp.26-27\"",
+      "why": "Wrong figure. 'Move Characters and Suppress Zeros' (MCS, op D with its own d-char, p.27) is a separate single instruction, not the d-character table for the Move family. The table that actually carries MLC/MLN/MLZ/MLW and the single-position forms is Figure 22, 'Data Move d-Characters and Mnemonics', p.26. A reader sent to the MCS pages will not find the d-characters the design depends on.",
+      "correction": "Cite A22-0526-3 Figure 22 'Data Move d-Characters and Mnemonics' (p.26). Its verified contents: through-first-WM-in-either-field forms MLN=A, MLZ=B, MLC=C, MLW=D (plus MLNW=E, MLZW=F, MLCW=G, SCNL='&'); single-position forms MLNS=1, MLZS=2, MLCS=3, MLWS=4 (SCNLS=blank); A-field-WM-only forms MLNA='/', MLZA=S, MLCA=T, MLWA=U; B-field-WM-only forms MLNB=J, MLZB=K, MLCB=L, MLWB=M. The Move/Scan family op code is the character D; note that Autocoder mnemonic 'D' is Divide, whose op code is '%'.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf — A22-0526-3 Figure 22 p.26; MCS instruction and Figures 23-24 p.27; instruction summary appendix p.101ff"
+    },
+    {
+      "claim": "Sign convention cited as 'A22-0526-3 ... arithmetic-operations chapter, ~p.15' / 'p.15: minus is always a B bit'",
+      "why": "Page number off by one. The manual's own index entry reads 'Sign Change or Development 16', and the Arithmetic Operations chapter opens on p.16. Page 15 is still in the Indexing section.",
+      "correction": "'Sign Change or Development' and Figure 11 'Bit Equivalents for Signs' are on A22-0526-3 p.16. The substance of the claim is exactly right and verified verbatim, including the minus test V (I)(B) K.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf — A22-0526-3 index, 'Sign Change or Development 16'; chapter opener 'Arithmetic Operations 16'"
+    }
+  ],
+  "upgraded": [
+    {
+      "claim": "Multiply timing T ~ 4.5[L + 1 + E + 2.5M + (2.5M + 1.5)(2.5A + 3)] with L = 1, 6 or 11; Divide timing T ~ 4.5{L + 1 + E + 6.5Q[A + 1.5(A + 2)]} with L = 1, 6 or 11. Substituted 8-digit values give ~2.4 ms per multiply and ~5.4 ms per divide. (Finder marked this 'likely' because of OCR doubt.)",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf — A22-0526-3 'Multiply' p.19 and 'Divide' p.20; formulas read cleanly in the text layer and independently recomputed: multiply L=11,M=8,A=8,E=0 -> 4.5*526.5 = 2369 us; divide L=11,Q=8,A=8,E=0 -> 4.5*1208 = 5436 us. Both round to the finder's figures. Cross-checked for internal consistency against the accelerated forms on p.96."
+    },
+    {
+      "claim": "Table Lookup (op T) semantics as stated: A-address = rightmost position of search argument; B-address = rightmost character of the ENTIRE table; searched right to left; table argument must equal the search argument in length, a shorter one ends the table and turns on high-compare; stops one position LEFT of the first satisfying table argument so the B-address register ends holding the rightmost character of the function; L = 1, 6 or 12 with L=6 chaining the B-address and reusing the previous d-modifier; T = 4.5(L + 1 + B + NA). Word marks required on the leftmost position of the search argument and of every table field.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf — A22-0526-3 'Table Lookup' discussion p.29, instruction p.30, Figures 25-26. Independently cross-checked against the SimH 7010 CPU implementation (i7010_cpu.c, case OP_T), which reproduces every one of these behaviours."
+    },
+    {
+      "claim": "The eight Table Lookup d-characters and their mnemonics (LL=1 low, LE=2 equal, LLE=3 low-or-equal, LH=4 high, LLH=5 low-or-high, LEH=6 equal-or-high, 7 = stop on any, blank = search to end of table).",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf — A22-0526-3 Figure 25 p.30, read row by row; all eight rows match the finder's table exactly"
+    },
+    {
+      "claim": "pi.job scaling-convention and idiom claims: three DS 5051 work areas (BASE1/INTER1/ACCUM1 with BASET=BASE1+5050 etc.), the step-2 comment 'FIGURE WHERE THE DECIMAL POINT WILL BE / (SAME RELATIVE PLACE IN EACH AREA)', 'ZA +0,ACCUM * ZERO ACCUMULATOR, FORCE POSITIVE', 'MLZS +0,BASET * SET POSITIVE SIGN', 'MLC BASET-7,BASET * SHIFT QUOTIENT', 'MLC LC0L9,BASE6 * REMOVE UNSHIFTED' with LC0L9 DCW 000000000, and 'D DIVBAS,BASE6'.",
+      "source": "http://www.sky-visions.com/ibm/7010/pr155/pi.job — every line confirmed in the source (lines 0014, 0041, 0042-0044, 0109, 0113, 0129-0138, 0174-0175). The rescale reading is mechanically correct: the divide leaves the quotient in the leftmost positions of the 5051-character B-field, the MLC from BASET-7 shifts the whole field seven positions right through the first word mark, and the nine-zero literal wipes the residue at the left."
+    },
+    {
+      "claim": "NACA Report 1381 checkpoints: eq.(7) rho = 0.0034 e^(-y/22,000) slug/ft3; eq.(13) V = V_E exp[-(C_D rho0 A / (2 beta m sin theta_E)) e^(-beta y)]; eq.(15) y1 = (1/beta) log[C_D rho0 A / (beta m sin theta_E)]; eq.(16) V1 = V_E e^(-1/2) ~= 0.61 V_E; eq.(17) max (dV/dt)/g = beta V_E^2 sin theta_E / (2 g e); and the caveat that eqs.(16)-(17) apply only if y1 is positive.",
+      "source": "http://hpp.education/Lessons/MecaSpace/Files/AllenEggers.pdf — NACA Report 1381, eq.(7) p.5, eqs.(13)-(17) pp.6-7, caveat on p.7 ('the velocity and deceleration as given by equations (17) and (16) apply only if the altitude y1, given by equation (15), is positive'). All five equations read verbatim in the extracted text."
+    },
+    {
+      "claim": "FORTRAN facts: real constant occupies f+2 positions, first f the fraction with the point understood before the high-order digit, last two the exponent, +3.14159 at f=8 stored as 31415900 / 01; magnitude 10^-100 to (1-10^-f) x 10^99; 3<=f<=18 default 8; 3<=k<=20 default 5; 'A**B is computed from EXP(B*ALOG(A))'; expanded form best for integer exponents 0-5, exponential form for 6+; EXP argument must be less than 225; SQRT of a negative argument returns the root of the absolute value plus an error message (use SQRT(ABS(A)) to suppress); ALOG argument must be greater than zero; SIN/COS argument less than 10000. radians.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/C28-0328-3_1410_Fortran.pdf — C28-0328-3 pp.7-8 (real/integer constants and the f, k limits), p.10 (exponential expression restrictions table and 'Use of Exponential and Expanded Forms'), p.23 Figure 5 (built-in functions). All read in the text layer, not inferred from page images."
+    },
+    {
+      "claim": "The IBM 1410 and the IBM 7010 both have no floating-point instruction; 'floating' occurs in each Principles of Operation only as 'floating dollar sign' in the editing section.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3: every occurrence of 'floating' is in the Move Characters and Edit section, index entry 'Floating Dollar Sign 32') and http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-6726_7010_PrincOps.pdf (A22-6726: same, index entry 'Floating Dollar Sign 27')"
+    },
+    {
+      "claim": "1410 has no shift instruction; scaling by a power of ten is a Move between offset addresses.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf — A22-0526-3: 'shift' appears only inside the multiply/divide algorithm narrative (pp.19-20) and in the console keyboard description (p.53); no shift instruction appears in the instruction summary appendix"
+    },
+    {
+      "claim": "Program Library facts: 1410-FO-138 'FORTRAN Subroutine Library' distributed in cards in absolute format, the 51-file Autocoder mixed-output tape no longer shipped by default but available as an optional item for those requesting symbolic listings and program decks; 7080-08.3.001 'Square Root Macro and Subroutine' uses Newton's iteration method.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/C20-1602-8_1410_pgmCatJun68.pdf — C20-1602-8, entry 1410-FO-138 (A-1410 section) and entry 7080-08.3.001; both read verbatim"
+    }
+  ],
+  "additions": [
+    {
+      "claim": "The 1410 Accelerator is an optional feature that changes EVERY timing formula in the manual: it cuts the memory cycle from 4.5 to 4.0 us and shortens data-operation cycle lengths, for ~23% internal speedup and 15-23% throughput gain. The accelerated arithmetic formulas are different in shape, not just scaled: Multiply T = 4[L + 1 + E + 2M + (2.5M + 1)(2A + 2)] and Divide T = 4[L + 1 + E + 6.5Q(2A + 2)]. For the 8-digit case that is ~1.62 ms per multiply and ~3.79 ms per divide, versus 2.37 / 5.44 ms unaccelerated. Any performance claim in the demo write-up must state which machine it assumes.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf — A22-0526-3 '1410 Accelerator' pp.96-97; arithmetic recomputed in python3",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Add/Zero-and-Add are roughly an order of magnitude cheaper than Multiply, which decides the algorithm shape. Add (two fields) T = 4.5(L + 1 + E + A + 1.5B + 1.5RB); Zero and Add (two fields) T = 4.5(L + 1 + E + A + 1.5B); E = 1 when L = 1, E = 0 when L = 11. For A = B = 8, L = 11, no recomplement: 4.5 * 32 = 144 us, against 2369 us for an 8x8 multiply — a 16:1 ratio. So a table fetch plus ONE interpolation multiply is the right shape, and any polynomial/series evaluation costing several multiplies per call is not.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf — A22-0526-3 'Add (Two Fields)' p.17, 'Zero and Add (Two Fields)' p.18; arithmetic recomputed",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The Table Lookup d-characters are a three-bit mask, not an arbitrary code: bit 1 = low, bit 2 = equal, bit 4 = high, ORed together. That is why d=3 is low-or-equal, d=5 is low-or-high, d=6 is equal-or-high, d=7 stops on any, and blank (0) never matches so the search runs to the end of the table. The SimH 7010 CPU implements exactly this ('if (cind & op_mod) break;' with cind set to 1/2/4 by the comparison), rejects any d with bits above 7 as an invalid opcode, and sets the high indicator (cind = 4) on hitting the end-of-table word mark. Knowing it is a mask makes the bracketing logic for interpolation deducible rather than guesswork.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf Figure 25 p.30, cross-checked against SimH i7010_cpu.c case OP_T (https://github.com/simh/simh, sims 7000-series i7010_cpu.c)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Indexing is the mechanism the design should be built on, and its cost is documented: fifteen index registers occupy core positions 00025-00099, five positions each (register 1 = 00025-00029 ... register 15 = 00095-00099); the index factor is an actual number, not an address, added to the tagged address if its sign is plus and subtracted if minus; overflow during indexing does not set the arithmetic overflow latch; word marks in the index-register area are ignored by indexing; positions 00025-00099 may be used as general storage if not needed for indexing. Timing T = 34.5 us for each single address indexed (30.67 us accelerated). Addresses that CANNOT be indexed: the X-control field of an M, L or U instruction, and the G (Store Address Register) instruction. On a 10K system the high-order position of any indexed address must contain a zero.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf — A22-0526-3 'Indexing' pp.14-15, Figure 9",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The Move family's word-mark termination is finer than 'through first word mark', and the distinction matters for the rescale idiom. MLC/MLN/MLZ/MLW (d = C/A/B/D) stop at the first word mark in EITHER the A- or the B-field. Separate variants stop on one field only: MLCA/MLNA/MLZA/MLWA (d = T/'/'/S/U) on the first A-field word mark, MLCB/MLNB/MLZB/MLWB (d = L/J/K/M) on the first B-field word mark. Single-position forms are MLNS=1, MLZS=2, MLCS=3, MLWS=4. MLZS's full manual name is 'Move Left Zones, Single Position' — it moves zone bits only, one position, which is what makes it a sign stamp. Move data timing T = 4.5(L + 1 + A + B), L = 1, 6 or 12.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf — A22-0526-3 Figure 22 'Data Move d-Characters and Mnemonics' p.26, instruction summary appendix p.101ff, accelerated timing list p.97",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The Autocoder spelling of the sign test is BZN with a d-operand, not a distinct mnemonic. Minus test: V(I)(B)K = BZN(I)(B)B or BZN(I)(B)-, 'branch if B-address has a B bit but no A bit'. Machine-developed-plus test: V(I)(B)B = BZN(I)(B)AB or BZN(I)(B)+, 'both B and A bits'. Also available: V(I)(B)S = BZN(I)(B)A (A bit but no B bit), and V(I)(B)2 = BZN(I)(B) (no B nor A bits, i.e. the unsigned-plus case). Since a machine-developed plus is always BA, the minus test alone is sufficient after arithmetic, but data read from cards can carry any of the three plus encodings.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf — A22-0526-3 branch-on-condition d-character table pp.38-39, and Figure 11 p.16",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The 7080 square-root Program Library entry is a stronger precedent than the finder credits, because it is explicitly a FIXED-POINT routine: 'THE MACRO CALLS UPON A CLASS B SUBROUTINE WHICH USES NEWTONS ITERATION METHOD TO DETERMINE THE SQUARE ROOT OF A NUMBER FROM ONE TO FIFTEEN SIGNIFICANT DIGITS. FORTRAN FLOATING POINT CODING AND SUBROUTINES ARE NOT REQUIRED. ROOT PRECISION IS CONTROLLED BY DECIMAL DEFINITION OF THE AUTOCODER RCD.' Size: 400 storage positions for the subroutine plus 35 positions in line per macro entry; source language 7080 Autocoder; author F. U. Voss, IBM DPD HQ, available 4th quarter 1963. That is direct evidence that IBM's house method for a transcendental on a variable-length decimal machine of this family was fixed-point Newton with programmer-chosen decimal precision — exactly the design the finder recommends — not a call into the FORTRAN float package.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/C20-1602-8_1410_pgmCatJun68.pdf — C20-1602-8, entry 7080-08.3.001 'SQUARE ROOT MACRO AND SUBROUTINE'",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The 1410 FORTRAN compiler itself is Program Library item 1410-FO-945, and the catalogue states that its users MUST order 1410-FO-138, which 'includes the relocation loader and subroutines necessary for executing FORTRAN object programs'. Appendix C of the 1410-FO-138 material contains instructions for constructing and maintaining a FORTRAN library tape, and the descriptive information lives in the 1410-PR-108 addendum ('Addendum for FORTRAN and FORTRAN Subroutines') and 1410-PR-134. These are the exact document/tape identifiers to chase at CHM or elsewhere.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/C20-1602-8_1410_pgmCatJun68.pdf — C20-1602-8, entries 1410-FO-138 and 1410-FO-945",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Contrary to the finder's flat 'no listing survives and none surfaced', the surviving PR-108 processor tape image DOES contain the FORTRAN system's built-in-function linkage table, with entry-point addresses: the character strings 'SIN 0~COS 0~LOG 0~EXP 0~SQRT 0~ATAN 0~ABS 2~XABS 2~INT 1~XINT 1~MOD 1~XMOD 1~MAX0 1~MAX1 1~XMAX0 1~XMAX1 1~MIN0 1~MIN1 1~XMIN0 1~XMIN1 1~FLOAT 2~XFIX 2~SIGN 1~XSIGN 1~DIM 1~XDIM 1' and a parallel table pairing those names with five-digit core addresses (FLOAT 13097, XFIX 13186, ABS 13165, XABS 13149, and SIN/COS/LOG/EXP/SQRT/ATAN all at 13123, i.e. a common dispatch entry). That is the compiler's name/address table rather than the routine bodies, so it does not by itself settle the algorithms — but it means the object-time package is worth disassembling from the tape image before declaring the 1410 EXP/ALOG/SQRT methods unrecoverable. Note also that this release names the log function LOG, not the ALOG of the later OS FORTRAN (C28-0328-3) — a within-1410 release difference, not a 1401 confusion.",
+      "source": "sky-visions PR-108 tape image (jpr108, http://www.sky-visions.com/ibm/ibm7010_soft.shtml), decoded character dump in the session scratchpad; strings located by grep. Compiler-vs-library distinction is my inference from the table's structure, not a documented statement.",
+      "confidence": "likely"
+    },
+    {
+      "claim": "Table Lookup leaves the A-address register at A-LW (the leftmost, word-marked position of the search argument), and during the search the C-address register holds the A-address so it can be reloaded for each table field. The finder's table records only the B-address register result. For a chained interpolation sequence (L=6 form reusing the previous d-modifier), knowing that the A-address register is left at A-LW rather than restored to the units position matters.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf — A22-0526-3 'Table Lookup' instruction, 'Address Registers after Operation' p.30",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Op-code spot-checks against the manual's own instruction descriptions, beyond the Table Lookup table (all confirmed): Add two-field mnemonic A, op code A, T = 4.5(L+1+E+A+1.5B+1.5RB), registers A-LW / B-LB. Subtract mnemonic S, op code S. Zero and Add mnemonic ZA, op code '?', one- and two-field forms. Zero and Subtract mnemonic ZS, op code '!'. Multiply mnemonic M, op code '@', L = 1/6/11, registers A-LA / B-LB. Divide mnemonic D, op code '%', L = 1/6/11, B-address register left at the tens position of the quotient. Move/Scan family op code D with the Figure 22 d-characters. Move Characters and Suppress Zeros mnemonic MCS, p.27, T = 4(L+1+4A) accelerated. Branch-on-condition op code V with d-characters 1 (word mark), 2 (no zones), B (zone AB), K (zone B), S (zone A), 3 (WM or no zones). Compare mnemonic C, T = 4.5(L+1+A+B), L = 1/6/11. Store Address Register op code G, cannot be indexed, T = 4(L+8.5) = 62 us accelerated. Note the collision worth flagging in any opcode table: Autocoder mnemonic D means Divide, while the machine op-code character D means Move/Scan.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf — A22-0526-3 pp.17-22, 25-30, 36-39 and the instruction summary appendix pp.101ff",
+      "confidence": "verified"
+    },
+    {
+      "claim": "One check the finder's validation section is missing: eq.(13) is the closed-form solution only for the NON-rotating, flat-earth, constant-gamma, drag-only problem Allen and Eggers set up, and only with their exponential atmosphere. If the demo integrates gravity or a varying flight-path angle, eq.(13) will diverge from the numeric answer by a real physical amount, not by integration error. Use it as a per-step check only for the drag-only configuration, and turn gravity off in the regression run.",
+      "source": "http://hpp.education/Lessons/MecaSpace/Files/AllenEggers.pdf — NACA Report 1381, derivation preceding eq.(13) (the equation is obtained by integrating dV/V = (C_D rho0 A / 2m sin theta_E) e^(-beta y) dy, with the assumptions stated on pp.5-6)",
+      "confidence": "verified"
+    }
+  ],
+  "notes": "Method: verification was done against pdftotext text layers of the exact bitsavers PDFs (A22-0526-3, C28-0328-3, J24-1468-1, C28-0309-1, C28-0326-1, C20-1602-8, A22-6726) already cached in this session's scratchpad, plus the pi.job source, the NACA 1381 text, and the SimH 7010 CPU source. Every fact block in the findings was checked; the eleven 'verified' ones are all genuine primary-source reads except for the two page-number/figure-citation slips and the storage-capacity omission reported above.\n\n1401-vs-1410 confusion hunt: I found none of substance. The specific traps I checked and cleared - Table Lookup (op T) is a genuine 1410 instruction with no 1401 equivalent, so citing it is correct; Multiply and Divide are described in A22-0526-3 as part of the machine, not as the optional Multiply-Divide feature the 1401 needs; the 4.5 us cycle and the 10K-80K capacities are 1410 figures, not 1401 ones; the B-bit-minus / BA-plus sign convention is stated in the 1410 manual itself rather than carried over. The one near-miss is the Move d-character citation, where the finder pointed at 'Move Characters and Suppress Zeros' - an instruction that exists on BOTH machines - instead of Figure 22; that is a wrong-figure error, not a wrong-machine error. The FORTRAN facts are correctly attributed to the 1410/7010 manuals throughout, and the 7080 square-root precedent is correctly flagged as a 7080 item.\n\nWhat I could not reach or resolve: (1) the sign placement inside the C28-0328-3 f+2 real format remains unreadable - the text layer renders the two worked examples as '5l4159005i' and '3141590651', which is consistent with overpunches but does not resolve which positions carry them; C28-0328-1 (the earlier printing, also on bitsavers) has NO text layer at all - pdftotext returns an empty file - so it cannot settle it without OCR or page images. The finder's open question stands unchanged. (2) I did not disassemble the PR-108 tape image, so whether the EXP/LOG/SQRT bodies are actually present in it is unestablished; I only confirmed the name/address table is there. (3) I did not attempt a CHM catalogue query for 1410-FO-138.\n\nBottom line for the implementer: the documentary spine of the findings is sound and largely verified. The two changes that would actually alter the program are the Table Lookup cost refutation - a 1000-entry op-T antilog table would cost ~25 ms per call and wreck the step loop, so index the table arithmetically instead - and the corrected atmosphere constants (0.15546801 / 0.07773400)."
+}

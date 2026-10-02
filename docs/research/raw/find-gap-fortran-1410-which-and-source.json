@@ -1,0 +1,182 @@
+{
+  "topic": "gap-fortran-1410-which-and-source",
+  "summary": "Four distinct FORTRAN language processors shipped for the IBM 1410 (none for a bare card system). Pre-OS, on the 1410-PR-108 Processor Operating System tape: 1410-FO-913 \"1410 FORTRAN\" (20K), a two-phase compiler whose FORTRAN phase emits Autocoder source that the Autocoder phase then assembles; and 1410-FO-950 \"1410 FORTRAN 40K Processor\", which compiles directly to relocatable machine language and is 4-6x faster. Both share the 1410-FO-138 FORTRAN subroutine library, which also carries the relocation loader used to execute FORTRAN object programs. On the 1410/1301 disk system tape 1410-PR-134: 1410-FO-945 \"1410 FORTRAN II Processor\", same two-phase FORTRAN/Autocoder structure, requiring a 1301 disk system. Under the 1410/7010 Operating System tape 1410-PR-155: 1410-FO-970, documented by C28-0328-3, compiling to OS relocatable format for the Linkage Loader. The single pre-OS language manual, J24-1468-1, covers FO-913 and FO-950 jointly.\n\nNONE of them runs in a card-only 20K configuration, and the catalog's tape minimum is not a soft floor. J24-1468-1 p.5 is explicit: in addition to the core-storage sizes, \"execution of either version of the processor requires the following input/output units: 1 IBM 1402 Card Read Punch, Model 2; 1 IBM 1403 Printer, Model 2; 4 magnetic tape units.\" The Catalog of Programs C20-1602-8 repeats it for the FORTRAN II processor (20K, four 729 II/IV/V or 7330 tape units, one 1402, one 1403 Model 2) and adds the crucial direction of the only documented trade: \"options are available to trade 1, 2, or 3 magnetic tape units for the 1402 and 1403 unit record devices\" - i.e. you may give up card/print devices and use MORE tape, never fewer. The 40K processor is worse: 40K + four tapes for compilation, and \"for execution of object programs... two tape units must be provided. One of these units is for the FORTRAN loader and library; the other is used as a work file by the loader at load time.\" The OS path is worse still: C28-0318-3 p.6 sets the tape-oriented OS minimum at 40,000 positions, 5 magnetic tape units, 1 card reader, with Processing Overlap and Priority required (disk-oriented: 60,000 positions, a 1301/2302 module, 2 tapes). The announced project scope (CPU + 1402 + 1403 + 1415, no tape) therefore cannot host any historical 1410 FORTRAN compiler. The tape requirement is architectural, not incidental: the 1410 compilers are tape-resident phase-overlay programs called by a supervisor that positions a system tape.\n\nCompiler SOURCE does not survive. IBM did ship it: C20-1602-8's optional program material for PR-108 lists \"1410-FO-913 ASSEMBLY LISTINGS, /THREE TAPES/... 1410-FO-950 AUTOCODER LANGUAGE, /ONE TAPE/\", and for PR-134 \"1410-FO-945 ASSEMBLY LISTINGS, /THREE TAPES/\" - so the 40K processor's Autocoder source was a purchasable item in 1968. None of those listing tapes is in any surviving archive. Paul Pierce's collection, the origin of essentially all recovered 1410 software, holds exactly five 1410 tapes: the Autocoder System Tape w/POS (identified as 1410-PR-108, 4,616,734 bytes), Master PR-155, PR155 from Tulsa, the 1410/7010 Master Diagnostic Tape, and a 1410 & 1401 Diagnostic Master Tape. Sky-visions summarizes the whole corpus as \"3 major pieces of software... two operating systems and a diagnostics tape.\" bitsavers /bits/IBM/1410/ contains one directory, 1410-PR-108, holding four label photos plus jpr108-2024.bcd and jpr108-2024.zip - and the zip contains a single member, jpr108-2024.bcd (1,392,339 bytes), i.e. the tape image again, NOT a source library. bitsavers /pdf/ibm/1410/ has no listings subdirectory and no program-listing PDF. (Do not be misled by github.com/IBM-1401's Fortran-v3m0 / Fortran-v3m4 repos: those are IBM 1401 FORTRAN II source, a different machine and a different compiler.)\n\nPractical consequence for the emulator: the TypeScript Autocoder must be the only assembler, and the reentry demo must be hand-written Autocoder. The software decimal-float format IS still available to borrow, because it is fully specified in the language manuals even though the compiler that implements it is unrunnable. C28-0328-3 pp.7-8: a real value occupies f+2 core positions, the first f digits holding the fraction with an understood decimal point before the high-order digit and the last two positions holding the exponent; with f=8, +3.14159 is stored as 3141590001 (fraction 31415900, exponent 01) and -3.14159 as the same ten digits with the sign carried as a zone over the low-order position. Magnitude range 10^-100 to (1-10^-f) x 10^99, or zero. f defaults to 8; OS FORTRAN allows 3<=f<=18, pre-OS FORTRAN allows f up to 45. Integers occupy k positions, k defaults to 5, OS range 3<=k<=20, pre-OS max 99; -314 with k=5 is stored as 00314 with the sign zone over the units digit.",
+  "facts": [
+    {
+      "claim": "IBM 1410 FORTRAN (J24-1468-1, (c)1962, minor revision May 1963) documents TWO pre-OS processors jointly: the FORTRAN (20K) processor, minimum 20,000 positions of core, and the FORTRAN (40K) processor, minimum 40,000 positions. The 20K processor's intermediate output is an Autocoder-language program that the Autocoder processor converts to machine language; the 40K processor compiles directly into machine language and does not require Autocoder.",
+      "source": "IBM J24-1468-1, 'IBM 1410 FORTRAN', p.5 (Introduction) - http://bitsavers.org/pdf/ibm/1410/J24-1468-1_1410fortran.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "J24-1468-1 p.5, 'Machine Requirements': 'In addition to the core-storage sizes specified above for each version of the FORTRAN processor, execution of either version of the processor requires the following input/output units: 1 IBM 1402 Card Read Punch, Model 2; 1 IBM 1403 Printer, Model 2; 4 magnetic tape units.' Four tape units are mandatory for BOTH the 20K and the 40K pre-OS processor. There is no card-only variant.",
+      "source": "IBM J24-1468-1, 'IBM 1410 FORTRAN', p.5 - http://bitsavers.org/pdf/ibm/1410/J24-1468-1_1410fortran.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The 1410-PR-108 Processor Operating System tape contained: 1410 Autocoder 1410-AU-906; 1410 COBOL 1410-CB-912; 1410 FORTRAN 1410-FO-913; 1410 FORTRAN (SUBROUTINES) (see 1410-FO-913, separately numbered 1410-FO-138); 1410 FORTRAN 40K PROCESSOR 1410-FO-950; 1410 IOCS 1410-IO-926; 1410 Report Program Generator 1410-RG-910; 1410 Systems Supervisor 1410-SV-907.",
+      "source": "IBM C20-1602-8, 'Catalog of Programs for IBM 1410', Jun 1968, IBM Programs section, page A-1410 004 (1410-PR-108 entry) - http://bitsavers.org/pdf/ibm/1410/C20-1602-8_1410_pgmCatJun68.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Catalog minimum machine configuration for the 1410 FORTRAN II processor (the FO-913 20K processor on PR-108): '1. 20K STORAGE 2. FOUR IBM 729 II, IV, V OR 7330 MAGNETIC TAPE UNITS 3. ONE IBM 1402 CARD READ-PUNCH 4. ONE IBM 1403 PRINTER MODEL 2', with the footnote 'OPTIONS ARE AVAILABLE TO TRADE 1, 2, OR 3 MAGNETIC TAPE UNITS FOR THE 1402 AND 1403 UNIT RECORD DEVICES.' The documented trade runs only one way - card/print devices may be given up in favour of additional tape; tape units may never be given up.",
+      "source": "IBM C20-1602-8, Jun 1968, IBM Programs section, pages A-1410 004-005 - http://bitsavers.org/pdf/ibm/1410/C20-1602-8_1410_pgmCatJun68.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Catalog machine configuration for the FORTRAN (40K) processor 1410-FO-950: 'FOR COMPILATION OF SOURCE PROGRAMS, 40K 1410 SYSTEM WITH, FOUR MAGNETIC TAPE UNITS /729 OR 7330/, ONE 1402 CARD READ PUNCH MODEL 2 /OR A TAPE UNIT/ AND, ONE 1403 MODEL 2 /OR A TAPE UNIT/... FOR EXECUTION OF OBJECT PROGRAMS - IN ADDITION TO THE MACHINE REQUIREMENTS FOR THE OBJECT PROGRAMS PROCESSING, TWO TAPE UNITS MUST BE PROVIDED. ONE OF THESE UNITS IS FOR THE FORTRAN LOADER AND LIBRARY - THE OTHER IS USED AS A WORK FILE BY THE LOADER AT LOAD TIME.' So even RUNNING a FO-950-compiled program needs two tape units.",
+      "source": "IBM C20-1602-8, Jun 1968, IBM Programs section, page A-1410 004 - http://bitsavers.org/pdf/ibm/1410/C20-1602-8_1410_pgmCatJun68.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The FORTRAN (40K) processor compiles to RELOCATABLE machine-language object programs, uses the current FORTRAN loader and library tape, and its output can be loaded together with programs compiled by Autocoder or by the FORTRAN (20K) processor. Timing comparison in the catalog: batches of 4-18 programs took 79-85 min under FORTRAN (20K) vs 12.5-28 min under FORTRAN (40K) on a 40K 1410 with six 729 VI tape units.",
+      "source": "IBM C20-1602-8, Jun 1968, IBM Programs section, page A-1410 004 - http://bitsavers.org/pdf/ibm/1410/C20-1602-8_1410_pgmCatJun68.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410-FO-945 is the FORTRAN II Processor on the 1410/1301 (disk) Processor Operating System tape 1410-PR-134. It is also a two-phase FORTRAN-then-Autocoder processor. Its minimum machine configuration is not stated in the catalog; the catalog defers to reference manual C26-0287, 'IBM 1410 Processor Operating System Using IBM 1301 Disk Storage'. The catalog adds: 'THE USER OF 1410 FORTRAN, 1410-FO-945, MUST ORDER A COPY OF THE 1410 FORTRAN SUBROUTINE LIBRARY, 1410-FO-138. THIS SUBROUTINE LIBRARY INCLUDES THE RELOCATION LOADER AND SUBROUTINES NECESSARY FOR EXECUTING FORTRAN OBJECT PROGRAMS.'",
+      "source": "IBM C20-1602-8, Jun 1968, IBM Programs section, page A-1410 005 (1410-PR-134 entry) - http://bitsavers.org/pdf/ibm/1410/C20-1602-8_1410_pgmCatJun68.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The 1410/7010 Operating System (1410-PR-155) minimum machine requirements are, for a tape-oriented system (System Operating File on tape): 40,000 positions of core storage, 5 magnetic tape units, 1 card reader (or an additional magnetic tape unit); a printer or additional tape unit is recommended for the Standard Print Unit. For a disk-oriented system: 60,000 positions, 1 module of IBM 1301/2302 Disk Storage, 2 magnetic tape units, 1 card reader. For either, the Processing Overlap and Priority features are REQUIRED. OS FORTRAN 1410-FO-970 runs only under this system.",
+      "source": "IBM C28-0318-3, 'IBM 1410/7010 Operating System: Basic Concepts', Nov 1965, p.6 ('Minimum Machine Requirements') - http://bitsavers.org/pdf/ibm/1410/C28-0318-3_1410_basicConcep.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "C28-0328-3 ('IBM 1410/7010 Operating System: FORTRAN', Dec 1965) does not restate a machine configuration; its 'Minimum Machine Requirements' paragraph says only that the minimum configuration required by the FORTRAN processor is discussed in IBM 1410/7010 Operating System: System Generation, Form C28-0352. There is therefore no lower, FORTRAN-specific floor than the OS floor above.",
+      "source": "IBM C28-0328-3, 'IBM 1410/7010 Operating System: FORTRAN', Introduction, 'Minimum Machine Requirements' (p.5) - http://bitsavers.org/pdf/ibm/1410/C28-0328-3_1410_Fortran.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "IBM sold FORTRAN compiler source as optional program material. For 1410-PR-108: 'EIGHT MAGNETIC TAPES - 1410-AU-906 AND 1410-SV-907 ASSEMBLY LISTINGS, /ONE TAPE/... 1410-CB-912 ASSEMBLY LISTINGS, /TWO TAPE/... 1410-FO-913 ASSEMBLY LISTINGS, /THREE TAPES/... 1410-FO-950 AUTOCODER LANGUAGE, /ONE TAPE/... 1410-RG-910 ASSEMBLY LISTING, /ONE TAPE/.' For 1410-PR-134: '...1410-FO-945 ASSEMBLY LISTINGS, /THREE TAPES/...'. The catalog notes these listing tapes are standard Autocoder output tapes and 'may also be used to obtain symbolic and condensed decks' - i.e. they carry recoverable source, not merely print images.",
+      "source": "IBM C20-1602-8, Jun 1968, IBM Programs section, pages A-1410 005 and A-1410 006 - http://bitsavers.org/pdf/ibm/1410/C20-1602-8_1410_pgmCatJun68.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "No 1410 FORTRAN assembly-listing tape survives in the Paul Pierce collection, which is the origin of essentially all recovered 1410/7010 software. The collection's IBM 1410 page lists exactly five tapes: 'Autocoder System Tape w/OSP' (noted by Pierce as 'apparently IBM 1410-PR-108', BCD character per byte, 4,616,734 bytes), '1410 and 1401 Diagnostic Master Tape', 'Master PR-155' (4,105,480 bytes), '1410/7010 Master Diagnostic Tape', and 'PR155 from Tulsa' (4,105,577 bytes). None is a listing/source tape.",
+      "source": "Paul Pierce, Computer Collection Library, IBM 1410 page and item pages kau1401s / kpr155 / ktul155 / ktulsa10 / kd1410 - http://www.piercefuller.com/library/ibm1410.html",
+      "confidence": "verified"
+    },
+    {
+      "claim": "bitsavers /bits/IBM/1410/ contains exactly one subdirectory, 1410-PR-108, holding 1410_1..4.jpg (tape label photos), jpr108-2024.bcd (1.3M) and jpr108-2024.zip (308K). The zip contains a single member: jpr108-2024.bcd, 1,392,339 bytes - the same tape image, compressed. It is NOT a source library. Byte-histogram inspection of the .bcd shows a raw 6-bit BCD object stream (105 distinct byte values, 0x40 dominant), not readable Autocoder text.",
+      "source": "http://bitsavers.org/bits/IBM/1410/1410-PR-108/ (directory listing and downloaded jpr108-2024.zip, verified with unzip -l)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "bitsavers /pdf/ibm/1410/ contains no 'listings' subdirectory and no program-listing PDF for any 1410 language processor; its subdirectories are CE_Instruction_Reference_Maintenance/, diagnostics/, and drawings/, and all files are IBM manuals or TNLs.",
+      "source": "http://bitsavers.org/pdf/ibm/1410/ (full directory listing, retrieved 2026-08-29)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The sky-visions IBM 7010 software page states: 'There are basicly 3 major pieces of software that have been recovered for the IBM 1410/7010, two operating systems and a diagnostics tape. Recovery of these are thanks to Paul Pierce.' Of PR108 it says: 'Very little documentation exists for PR108. I have been able to run a simple autocoder job and compile a fortran program, but can't get it to run. The tape includes Autocode, IOCS, 2 Fortran compilers, Cobol and RPG... I had to do a modification to get the system tape to run Fortran, I believe it might have been disabled in the original tape image. This is not a master tape, but a working system tape.' Downloads include 'Fixed to run 20k Fortran', 'Job to enable 40k Fortran' and 'Job to enable 20k Fortran'.",
+      "source": "http://www.sky-visions.com/ibm/ibm7010_soft.shtml",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Under PR-155 the surviving FORTRAN work does run: the SOF tape 'includes AUTOCODER, FORTRAN, COBOL, UTILITIES and SORT', and sample jobs are 'PI to 10k digits, recoded from 1401' (compiled in FORTRAN), 'Fortran II Prime number test', and a 'Fortran Laplace transform' the author is unsure about. All of this is under the OS, i.e. on a machine with tape and (for sysgen) disk.",
+      "source": "http://www.sky-visions.com/ibm/ibm7010_soft.shtml",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The github.com/IBM-1401 organization's Fortran-v3m0 ('Fortran II V3M0 source and listing') and Fortran-v3m4 ('Fortran II V3M4') repositories are IBM 1401 FORTRAN, NOT IBM 1410 FORTRAN. The 1401 and 1410 FORTRAN processors are separate programs for separate machines; recovery of 1401 FORTRAN source says nothing about 1410 FORTRAN source.",
+      "source": "https://api.github.com/orgs/IBM-1401/repos (repository list and descriptions)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The 1410 software decimal-float format IS fully specified in the surviving manuals and can be borrowed even though no compiler can run. C28-0328-3: 'Within core storage a real constant is stored in an exponential form occupying f+2 digits (f+2 core-storage positions). The first f digits contain the fraction (a decimal point is understood to precede the high-order digit position). The last two positions hold the exponent. Thus if f is 8, a real constant occupies ten core-storage positions - eight for the fraction and two for the exponent. For example, the constant +3.14159 is stored (assuming f=8) as 3141590001. The constant -3.14159 is stored as 3141590001' (the two differ only in the sign zone carried over the low-order position). Magnitude must lie between 10^-100 and (1-10^-f) x 10^99, or be zero.",
+      "source": "IBM C28-0328-3, 'IBM 1410/7010 Operating System: FORTRAN', pp.7-8 ('Real Constants' / 'Magnitude of Real Constants - the Value of f') - http://bitsavers.org/pdf/ibm/1410/C28-0328-3_1410_Fortran.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Precision is a compile-time control-card parameter, not fixed. OS FORTRAN (FO-970): real precision f defaults to 8, user range 3<=f<=18; integer word size k defaults to 5 core positions, user range 3<=k<=20, specified on the Monitor control card that invokes the compiler. The pre-OS processors allow more: J24-1468-1 states floating-point precision defaults to eight decimal digits, 'the specification for (f) cannot exceed 45; (k) cannot exceed 99', and gives 'a 20-digit floating-point number, 18 for the mantissa and 2 for the characteristic' as an example.",
+      "source": "IBM C28-0328-3 pp.7-8 (k and f ranges) - http://bitsavers.org/pdf/ibm/1410/C28-0328-3_1410_Fortran.pdf ; IBM J24-1468-1, 'Arithmetic Precision' (p.6) - http://bitsavers.org/pdf/ibm/1410/J24-1468-1_1410fortran.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Integers are stored as k decimal digits with the algebraic sign carried as a zone (over-punch) on the units position: 'the constant +314 is stored (assuming k=5) as 00314. The constant -314 is stored as 00314' with a sign mark over the low-order digit. Zero is always stored with a positive sign.",
+      "source": "IBM C28-0328-3, p.7 ('Magnitude of Integer Constants - the Value of k') - http://bitsavers.org/pdf/ibm/1410/C28-0328-3_1410_Fortran.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Pre-OS 1410 FORTRAN is a FORTRAN II dialect. J24-1468-1 documents SENSE LIGHT / IF (SENSE LIGHT) / IF (SENSE SWITCH), READ INPUT TAPE / WRITE OUTPUT TAPE / READ TAPE / WRITE TAPE / END FILE / REWIND / BACKSPACE against symbolic tape units, READ / PUNCH / PRINT / TYPE for card, punch, printer and console, FUNCTION / SUBROUTINE / CALL / RETURN, and DEFINE FILE / FETCH / RECORD / FIND for 1301 Disk Storage. Card and printer I/O statements do exist, so a FORTRAN-authored program's own I/O need not use tape - only the compiler and loader do.",
+      "source": "IBM J24-1468-1, contents and Input/Output Statements / 1301 Disk Storage Statements sections - http://bitsavers.org/pdf/ibm/1410/J24-1468-1_1410fortran.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The 1410 FORTRAN (20K) two-phase path in principle ends in an Autocoder-produced condensed CARD deck, which suggests a 20K-FORTRAN object program with card/printer-only I/O could execute on a tapeless machine after being compiled elsewhere. J24-1468-1 does not document object-deck loading or the loader at all, and the catalog states that FO-138 (required with FO-913 as well as FO-945) 'includes the relocation loader and subroutines necessary for executing FORTRAN object programs', which leaves open whether that loader is tape-resident for the 20K path too.",
+      "source": "Inference from IBM C20-1602-8 (A-1410 004-005) plus absence of any loader documentation in J24-1468-1 - http://bitsavers.org/pdf/ibm/1410/C20-1602-8_1410_pgmCatJun68.pdf",
+      "confidence": "unverified"
+    }
+  ],
+  "tables": [
+    {
+      "title": "IBM 1410 FORTRAN implementations and their documented minimum configurations",
+      "markdown": "| Program no. | Name | Distributed on | Core min | Tape min | Card/print | Compiles to | Manual |\n|---|---|---|---|---|---|---|---|\n| 1410-FO-913 | 1410 FORTRAN (20K) / FORTRAN II Processor | 1410-PR-108 POS tape | 20,000 | 4 (729 II/IV/V or 7330) | 1402 M2 + 1403 M2 (may be traded away only in exchange for MORE tape) | Autocoder source, then assembled by 1410-AU-906 | J24-1468-1 |\n| 1410-FO-950 | 1410 FORTRAN 40K Processor | 1410-PR-108 POS tape | 40,000 | 4 for compile, +2 more to execute object programs (loader/library tape + work tape) | 1402 M2 (or a tape unit) + 1403 M2 (or a tape unit) | relocatable machine language directly | J24-1468-1 |\n| 1410-FO-945 | 1410 FORTRAN II Processor (disk) | 1410-PR-134 1410/1301 POS tape | not stated (defers to C26-0287); PR-134 System Control needs 40K, overlap+priority, 2 tapes, 1402, 50 cylinders of 1301 | >=2 plus 1301 disk | 1402; 1403 for library print | Autocoder source, then assembled | C26-0287 |\n| 1410-FO-970 | 1410/7010 OS FORTRAN | 1410-PR-155 OS tape 2 | 40,000 (tape SOF) / 60,000 (disk SOF) | 5 (tape SOF) / 2 + one 1301-2302 module (disk SOF) | 1 card reader, or an additional tape unit | OS relocatable format for the Linkage Loader | C28-0328-3 |\n| 1410-FO-138 | 1410 FORTRAN Subroutine Library | ordered with FO-913 / FO-945 | - | tape-resident | - | contains the relocation loader + execution subroutines | - |",
+      "source": "IBM J24-1468-1 p.5; IBM C20-1602-8 pages A-1410 004-006; IBM C28-0318-3 p.6"
+    },
+    {
+      "title": "1410 FORTRAN software decimal-float and integer storage format (borrowable for the demo)",
+      "markdown": "| Item | Value | Note |\n|---|---|---|\n| Real value width | f + 2 core-storage positions | one digit per core position |\n| Fraction field | first f positions | decimal point understood before the high-order digit (value is 0.dddd... x 10^exp) |\n| Exponent field | last 2 positions | plain 2-digit power of 10; sign carried as a zone |\n| Sign of the number | zone (over-punch) on the low-order position | +3.14159 and -3.14159 share the digits 3141590001 |\n| Example, f = 8 | +3.14159 -> 3141590001 | fraction 31415900, exponent 01 |\n| Real magnitude range | 10^-100 .. (1 - 10^-f) x 10^99, or zero | |\n| f default / range | 8 default; 3<=f<=18 (OS FO-970); f<=45 (pre-OS FO-913/FO-950) | set by control card / Monitor card |\n| Integer width | k core-storage positions | +314 with k=5 -> 00314 |\n| Integer sign | zone on the units position | zero always stored positive |\n| k default / range | 5 default; 3<=k<=20 (OS); k<=99 (pre-OS) | set by control card |\n| Integer magnitude range | 1 .. (10^k - 1), or zero | high-order digits lost on overflow |",
+      "source": "IBM C28-0328-3 pp.7-8; IBM J24-1468-1 'Arithmetic Precision' p.6"
+    },
+    {
+      "title": "Surviving 1410/7010 software artifacts (what exists, and in what form)",
+      "markdown": "| Artifact | Form | Size | Contains compiler source? | Where |\n|---|---|---|---|---|\n| Autocoder System Tape w/POS (= 1410-PR-108) | BCD tape image, 1 char/byte | 4,616,734 bytes | No - executable system tape | Paul Pierce collection (piercefuller.com/library/kau1401s.html) |\n| jpr108-2024.bcd / .zip | BCD tape image (zip has ONE member, the .bcd) | 1,392,339 bytes | No | bitsavers.org/bits/IBM/1410/1410-PR-108/ |\n| Master PR-155 | BCD tape image | 4,105,480 bytes | No - OS master for sysgen | Paul Pierce (kpr155.html) |\n| PR155 from Tulsa | BCD tape image | 4,105,577 bytes | No | Paul Pierce (ktul155.html) |\n| 1410/7010 Master Diagnostic Tape | BCD tape image | - | No - diagnostics | Paul Pierce (ktulsa10.html) |\n| 1410 & 1401 Diagnostic Master Tape | tape | - | No - diagnostics | Paul Pierce (kd1410.html) |\n| 1410-FO-913 ASSEMBLY LISTINGS (3 tapes) | Autocoder listing tapes, IBM optional material 1968 | - | YES - but no copy is known to survive | not in any archive found |\n| 1410-FO-950 AUTOCODER LANGUAGE (1 tape) | Autocoder source tape, IBM optional material 1968 | - | YES - but no copy is known to survive | not in any archive found |\n| 1410-FO-945 ASSEMBLY LISTINGS (3 tapes) | Autocoder listing tapes, IBM optional material 1968 | - | YES - but no copy is known to survive | not in any archive found |\n| github.com/IBM-1401 Fortran-v3m0 / v3m4 | source + listing | - | Yes, but for the IBM **1401**, a different machine | github.com/IBM-1401 |",
+      "source": "piercefuller.com/library/ibm1410.html and item pages; bitsavers.org/bits/IBM/1410/1410-PR-108/; IBM C20-1602-8 pages A-1410 005-006; api.github.com/orgs/IBM-1401/repos"
+    }
+  ],
+  "open_questions": [
+    "Can a FORTRAN (20K) object program - the condensed card deck that comes out of the Autocoder phase - be loaded and run on a tapeless 20K 1410? J24-1468-1 documents no loader at all, and C20-1602-8 says 1410-FO-138 supplies 'the relocation loader and subroutines necessary for executing FORTRAN object programs' without saying whether that loader is tape-resident on the FO-913 path as it demonstrably is on the FO-950 path. Settling this needs the pre-OS 'Operator's Guide for System Supervisor and Autocoder' or C28-0287-1 (1410 POS Using 1301 Disk Storage); the bitsavers scan of C28-0287-1 has no OCR text layer and was not read page-by-page here.",
+    "What is the exact minimum machine configuration for 1410-FO-945? C20-1602-8 defers to reference manual C26-0287, which is not on bitsavers under that form number (C28-0287-1 is the closest and may be the same document renumbered). Academic for this project - FO-945 needs a 1301 disk regardless.",
+    "Does the sign zone on a negative real sit on the low-order exponent digit or the low-order fraction digit? C28-0328-3 p.8 prints +3.14159 and -3.14159 as the same ten digits with small over-marks; at scan resolution the marks are ambiguous, and the manual never gives the character code. The 1410 convention (B-zone over the units position, giving letters J-R for a negative low-order digit) is the obvious reading but was not confirmed against a code chart here.",
+    "Does any 1410-FO-913 / FO-950 / FO-945 assembly-listing tape survive outside the searched archives - e.g. in a Computer History Museum accession, a university tape hoard, or an uncatalogued private collection? Searches covered bitsavers (pdf and bits), the Paul Pierce collection index, sky-visions, and GitHub; a CHM collections-catalog query was not exhaustively run.",
+    "What exactly did the sky-visions author change to 'enable 20k Fortran' on the PR108 tape image, and why could a compiled FORTRAN program not be run afterward? If that is a system-tape catalog/flag issue rather than a compiler defect, it does not change the tape requirement but does bear on whether a PR-108 FORTRAN run can be reproduced in an emulator at all."
+  ],
+  "sources": [
+    {
+      "title": "IBM J24-1468-1, IBM 1410 FORTRAN (Systems Reference Library, (c)1962, minor revision May 1963)",
+      "url": "http://bitsavers.org/pdf/ibm/1410/J24-1468-1_1410fortran.pdf",
+      "note": "The single pre-OS language manual, covering FO-913 (20K) and FO-950 (40K) jointly. p.5 'Machine Requirements' is the definitive statement that either version needs a 1402 M2, a 1403 M2 and 4 magnetic tape units. Supersedes J24-1468-0 and incorporates TNLs N28-1051, N28-1062, N28-1064. 27 pages; bitsavers scan has NO OCR text layer - page images only."
+    },
+    {
+      "title": "IBM C28-0328-3, IBM 1410/7010 Operating System: FORTRAN (Dec 1965)",
+      "url": "http://bitsavers.org/pdf/ibm/1410/C28-0328-3_1410_Fortran.pdf",
+      "note": "OS FORTRAN 1410-FO-970. Defers machine requirements to C28-0352 (sysgen). pp.7-8 carry the full integer and real storage formats, the k and f ranges, and the +/-3.14159 worked example. No OCR text layer on bitsavers."
+    },
+    {
+      "title": "IBM C20-1602-8, Catalog of Programs for IBM 1410 (Jun 1968)",
+      "url": "http://bitsavers.org/pdf/ibm/1410/C20-1602-8_1410_pgmCatJun68.pdf",
+      "note": "IBM Programs section, pages A-1410 004-006. Authoritative per-program-number minimum configurations for PR-108 (AU-906, CB-912, FO-913, FO-950, IO-926, RG-910, SV-907) and PR-134 (AU-942, CB-944, FO-945, IO-926, RG-943, SV-941), plus the optional-material lists that prove IBM shipped FORTRAN assembly listings and FO-950 Autocoder source on tape. No OCR text layer on bitsavers."
+    },
+    {
+      "title": "IBM C28-0318-3, IBM 1410/7010 Operating System: Basic Concepts (Nov 1965)",
+      "url": "http://bitsavers.org/pdf/ibm/1410/C28-0318-3_1410_basicConcep.pdf",
+      "note": "p.6 'Minimum Machine Requirements' - the OS floor: 40K + 5 tapes + card reader (tape SOF), or 60K + 1301/2302 module + 2 tapes + card reader (disk SOF); Processing Overlap and Priority required in both cases."
+    },
+    {
+      "title": "Paul Pierce, Computer Collection Library - IBM 1410",
+      "url": "http://www.piercefuller.com/library/ibm1410.html",
+      "note": "The complete list of surviving 1410 tapes: kau1401s (Autocoder System Tape w/POS = PR-108), kd1410, kpr155, ktulsa10, ktul155. All five are system or diagnostic tapes; none is a listing/source tape. Pierce notes all five were borrowed and are not part of the collection."
+    },
+    {
+      "title": "bitsavers /bits/IBM/1410/1410-PR-108/",
+      "url": "http://bitsavers.org/bits/IBM/1410/1410-PR-108/",
+      "note": "The only 1410 software directory on bitsavers. jpr108-2024.zip was downloaded and listed: a single member, jpr108-2024.bcd, 1,392,339 bytes. No source library."
+    },
+    {
+      "title": "Sky Visions - IBM 7010 Software",
+      "url": "http://www.sky-visions.com/ibm/ibm7010_soft.shtml",
+      "note": "Secondary but hands-on. Establishes that only two OS tapes and a diagnostics tape have been recovered; that PR108 needed a modification to run FORTRAN at all and the author could compile but not run a FORTRAN program under it; and that the working FORTRAN sample jobs (PI to 10k digits, prime numbers, Laplace) all run under PR-155."
+    },
+    {
+      "title": "GitHub organization IBM-1401 repository list",
+      "url": "https://api.github.com/orgs/IBM-1401/repos",
+      "note": "Fortran-v3m0 ('Fortran II V3M0 source and listing') and Fortran-v3m4 are IBM 1401, not IBM 1410. Cited to close off a likely false lead."
+    },
+    {
+      "title": "bitsavers /pdf/ibm/1410/ directory listing",
+      "url": "http://bitsavers.org/pdf/ibm/1410/",
+      "note": "Retrieved 2026-08-29. Subdirectories: CE_Instruction_Reference_Maintenance, diagnostics, drawings. No listings directory; no program-listing PDF for any 1410 language processor."
+    }
+  ]
+}

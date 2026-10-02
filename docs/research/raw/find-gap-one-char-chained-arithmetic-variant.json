@@ -1,0 +1,126 @@
+{
+  "topic": "gap-one-char-chained-arithmetic-variant",
+  "summary": "ANSWER: A 1-character (chained) A / S / ZA / ZS / @ / % on the IBM 1410 executes the TWO-FIELD form. The A field is at the current contents of AAR and the B field is at the current contents of BAR. It is NOT the one-field (double-in-place / zero-in-place) form. This is stated explicitly in IBM A22-0526-3, IBM 1410 Principles of Operation, page 12, under 'Chaining Instructions': after 'A 05985 06985' leaves AAR=05980 and BAR=06979, 'The instruction S causes the data at location 05980 to be subtracted from the data at 06979.' That is a chained 1-character Subtract reading two distinct fields.\n\nMECHANISM (why the ambiguity dissolves): the 'One Field' add/subtract/ZA/ZS is not a separate operation in the hardware at all. A, S, ZA and ZS are 'address double type' op codes. Per IBM 223-2588-2 CE Handbook p.37 and 223-2589 System Fundamentals p.52, the A-address of an address-double op code is read simultaneously into the AAR, BAR, CAR and DAR during instruction read-out, 'so that if a WM is read out at I ring 6 time, the single address is used as both the A and B field addresses.' So the 6-character form is literally the two-field form with AAR == BAR, which is why Add doubles the field and Subtract zeroes it. A 1-character instruction never enters address decode at all, so AAR and BAR both retain whatever the previous instruction left. 223-2589 p.52 adds the chained case explicitly: 'If an arithmetic op code is chained at I ring 1 time, the CPU takes a D cycle during which the address in the BAR is set into STAR, modified by zero, and read into the DAR (the BAR's and DAR's must contain the same address).' Only BAR is copied to DAR; AAR is untouched and BAR is not overwritten from AAR. Two fields.\n\nRESOLVING THE A22-0526-3 TIMING-LINE CONFLICT: the 'Add (One Field)' entry on p.17 says 'L = 1 or 6', which is what made this look ambiguous. That L=1 case is real but degenerate: a one-field add leaves AAR and BAR both at A-LA (both registers end at the same place, per its own Address-Registers-after-Operation line). So a 1-character A chained after a 6-character one-field A finds AAR == BAR and doubles the next field to the left as well. It is still the same two-field execution path; the one-field behaviour is an emergent consequence of AAR == BAR, not a decode-time variant. There is exactly one execution routine, selected by nothing.\n\nIMPLEMENTER'S RULE (do this): decode arithmetic ops by length only in the address-load stage, never in execution. L=11: AAR <- A-address, BAR <- B-address (add-type also copies into CAR/DAR). L=6: A/S/ZA/ZS are address-double, so AAR <- BAR <- CAR <- DAR <- the single address. L=1: touch neither AAR nor BAR. Then run one unified two-field add/subtract/zero-add/zero-subtract that reads A at AAR and B at BAR. Doubling and zeroing fall out for free. Multiply (@) and Divide (%) also accept L = 1, 6, 11 but have NO one-field form documented in A22-0526-3 and are classified 'not address double type', so their 6-character form loads AAR only and leaves BAR chained from the previous operation ('Not address double-type op codes use the contents remaining in the BAR at the completion of the previous E phase for the B field address', 223-2589 p.52). Cross-checked against the two available behavioural oracles: rcornwell/sims I7000/i7010_cpu.c has no length branch in OP_A / OP_S / OP_ZA / OP_ZS execution at all, and Jaeger's cube1us/1410 note1410.txt cycle traces of a real chained Add and chained ZA show distinct A and B addresses.",
+  "facts": [
+    {
+      "claim": "A 1-character chained Subtract on the 1410 subtracts the field at the current AAR from the field at the current BAR - i.e. the two-field form. A22-0526-3 p.12: after 'A 05985 06985' (A field 5 chars, B field 6 chars) the registers hold AAR=05980, BAR=06979, and 'The next instruction need contain only the operation code, because the A- and B-address registers are already at the desired locations. The instruction S causes the data at location 05980 to be subtracted from the data at 06979.'",
+      "source": "IBM A22-0526-3, IBM 1410 Principles of Operation, p.12, 'Chaining Instructions'. http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The 6-character 'One Field' form of A / S / ZA / ZS is produced at instruction read-out, not at execution: A, S, ZA and ZS are 'address double type' op codes whose single A-address is read into the AAR, BAR, CAR and DAR simultaneously, 'so that if a WM is read out at I ring 6 time, the single address is used as both the A and B field addresses.'",
+      "source": "IBM 223-2589, IBM 1410 System Fundamentals (Instruction-Reference / Customer Engineering), p.52, 'Address Double-Type Op Codes'. http://bitsavers.org/pdf/ibm/1410/223-2589_Instruction_Reference_1410_System_Fundamentals_Nov63.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "For a chained (1-character) arithmetic op the machine takes only a D cycle that copies BAR into DAR; AAR and BAR themselves are not modified and BAR is never loaded from AAR. 223-2589 p.52: 'If an arithmetic op code is chained at I ring 1 time, the CPU takes a D cycle during which the address in the BAR is set into STAR, modified by zero, and read into the DAR (the BAR's and DAR's must contain the same address). Chaining multiply, divide, and table look-up op codes at I ring 1 time initiates a C cycle to update the CAR.'",
+      "source": "IBM 223-2589, IBM 1410 System Fundamentals, p.52, 'Arithmetic Op Codes' / 'Chaining Circuit Description'. http://bitsavers.org/pdf/ibm/1410/223-2589_Instruction_Reference_1410_System_Fundamentals_Nov63.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "'Not address double-type op codes use the contents remaining in the BAR at the completion of the previous E phase for the B field address.' This is the general 1410 rule for a single-address (6-character) instruction on a non-address-double op code: the B address is chained.",
+      "source": "IBM 223-2589, IBM 1410 System Fundamentals, p.52, 'Chaining'. http://bitsavers.org/pdf/ibm/1410/223-2589_Instruction_Reference_1410_System_Fundamentals_Nov63.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The CE Handbook's Common Op Code Grouping Chart has explicit 'Addr Dbl Op Codes' and 'Not Addr Dbl Op Codes' rows across the 1410 op-code set, and the ALD grouping-line objectives state that 'Add-Type Op Codes (13.14.02) ... Sets ADDRESS DOUBLE TYPE OP CODES if not 1401' and 'Sets NO D CYCLE AT I RING 6 OPS', while the separate 'Arithmetic-Type Op Codes (13.14.02)' group (the superset including multiply and divide) carries 'SET D CYCLE CONTROL at I 1 or 1401 and I 3, with B channel WM'. Compare-Type op codes are explicitly 'NOT ADDRESS DOUBLE TYPE OP CODES'. I ring 1 + word mark = a 1-character (chained) instruction; I ring 6 + word mark = a 6-character (single-address) instruction.",
+      "source": "IBM 223-2588-2, IBM 1410 Data Processing System Customer Engineering Handbook (Apr 1964), 'Common Op Code Grouping Chart' p.37 and 'Common Op Code Grouping Line Objectives' pp.40-41. https://bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/223-2588-2_1410_CE_Handbook_196404.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The 1410 Add op code has exactly three valid instruction lengths, 1, 6 and 11 characters, and instruction-length checking is a hardware check: 'No operation code has two valid lengths that differ by only one character. Instruction-length checking insures that the instruction length as read out of storage is one of the valid lengths for the particular operation code. The add op code, for example, has three valid lengths: 1, 6, or 11 characters.'",
+      "source": "IBM 223-2589, IBM 1410 System Fundamentals, p.13, 'Stored Programming'. http://bitsavers.org/pdf/ibm/1410/223-2589_Instruction_Reference_1410_System_Fundamentals_Nov63.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "A22-0526-3 documents Add/Subtract/ZA/ZS as two separate 'Instruction Form' entries, Two Fields (L = 1 or 11) and One Field (L = 1 or 6), and their Address-Registers-after-Operation lines differ: Two Fields leaves AAR = A-LW and BAR = B-LB; One Field leaves AAR = A-LA and BAR = A-LA (both at the same address). LW is the number of characters in the A- or B-field, whichever is shorter; LA is the A-field length; LB is the B-field length.",
+      "source": "IBM A22-0526-3, IBM 1410 Principles of Operation, pp.17-18 ('Add (Two Fields)', 'Add (One Field)', 'Subtract (Two Fields)', 'Subtract (One Field)', 'Zero and Add (Two Fields)', 'Zero and Add (One Field)', 'Zero and Subtract (Two Fields)', 'Zero and Subtract (One Field)') and Figure 8 'Address-Register Symbols' p.12. http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The 'L = 1 or 6' on the One Field timing formulas is not a second decode variant. Because a 6-character one-field add/subtract/ZA/ZS ends with AAR == BAR (both = A-LA), a following 1-character chained instruction of the same op naturally sees AAR == BAR and therefore again operates on a single field. The L=1 entry documents the timing of that chained continuation, not a distinct instruction decode.",
+      "source": "Derived from A22-0526-3 pp.12,17-18 (Address Registers after Operation for the One Field forms = A-LA / A-LA) combined with 223-2589 p.52 (chained arithmetic modifies only DAR). http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "confidence": "likely"
+    },
+    {
+      "claim": "Multiply (@) and Divide (%) have only ONE documented instruction form in A22-0526-3 - the two-address form - with 'L = 1, 6, or 11'. There is no 'Multiply (One Field)' or 'Divide (One Field)' section. Multiply leaves AAR = A-LA, BAR = B-LB; Divide leaves AAR = A-LA and BAR at the tens position of the quotient field.",
+      "source": "IBM A22-0526-3, IBM 1410 Principles of Operation, 'Multiply' p.19 and 'Divide' p.20. http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "A 6-character Multiply or Divide therefore loads AAR (and CAR) only and chains the B address from the previous operation, because M and D are not address-double-type op codes. In rcornwell/sims the Multiply and Divide table entries are O_AB with no O_DBL flag, unlike A, S, ZA, ZS, C(S), B, ZS and CWM which carry O_DBL.",
+      "source": "223-2589 p.52 ('Not address double-type op codes use the contents remaining in the BAR...') cross-checked against rcornwell/sims I7000/i7010_cpu.c op_args[64] table, lines ~295-312. https://github.com/rcornwell/sims/blob/master/I7000/i7010_cpu.c",
+      "confidence": "likely"
+    },
+    {
+      "claim": "The rcornwell/sims IBM 7010/1410 emulator does NOT branch on instruction length in arithmetic execution. OP_A and OP_S both call the same do_addsub() after ValidAddr(AAR)/ValidAddr(BAR); OP_ZA/OP_ZS read A from AAR and write B at BAR unconditionally. The one-field behaviour is produced purely at fetch time by the O_DBL flag (commented '/* When chained A same as B */'), which executes 'AAR = STAR; if (op_info & O_DBL) { if (op_info & O_D) DAR = AAR; BAR = AAR; }' at the point a complete 5-character A address has been decoded. The instruction-character fetch loop is 'while(((br = FetchP(IAR)) & WM) == 0 && op_info != 0 && fault == 0)', so a 1-character instruction never executes the loop body and AAR/BAR/DAR keep their previous values. Confirms: chained = two-field.",
+      "source": "rcornwell/sims, I7000/i7010_cpu.c, op_args table lines ~293-312, fetch loop line ~641, O_DBL application lines ~714 and ~859, execution cases OP_S/OP_A lines ~1420-1432, OP_ZS/OP_ZA lines ~1448-1478. https://github.com/rcornwell/sims/blob/master/I7000/i7010_cpu.c",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Jaeger's hand-built 1410 instruction-decode test notes (cube1us/1410, note1410.txt) trace chained arithmetic with two distinct field addresses, confirming the two-field reading against a real instruction-level test deck. Entry '02379 Add Instruction, chained: A field, chained from previous instruction, 10031 is 2 / B field, chained from previous instruction, 10034 is 04'. Likewise '02561 Zero and Add Instruction, Chained from above: A field, 10231 is 01 / B field, 10236 is 123 / D: AAR=10231, BAR=10236, Scan N, Extension (from previous instruction)'. Separately the genuine one-field case is annotated as address-equal: '02544 Zero and Add Instruction, Same value as above, but single field ... A and B addresses have the same address.'",
+      "source": "cube1us/1410, note1410.txt (notes accompanying Core/insttest.cor and ilentest.cor), entries 02368/02379 (Add chain test), 02473/02484 (Subtract chain test), 02544 (ZA single field), 02550/02561 (ZA chain test). https://github.com/cube1us/1410",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Chaining carries a d-character side effect worth emulating: 'if a two-address instruction does not require a d-character (11-position instruction), the op-modifier register is blanked; thus, any chained instructions then directly following will be automatically assigned a blank d-character.' Also, the 6-character form of the d-character ops (D/Move, BCE, BBE, BWZ; L = 1, 6 or 12) is documented with the note 'An instruction length of 6 chains the B-address and uses the last previous operation modifier' - the same B-chaining rule, stated per-instruction.",
+      "source": "IBM A22-0526-3, IBM 1410 Principles of Operation, p.12 ('Chaining Instructions') and the Move / Branch-if-Character-Equal / Branch-if-Bit-Equal / Branch-if-Word-Mark-or-Zone-Equal instruction descriptions. http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Chaining is only legal for the non-percent-type op codes: 'Not Percent-Type Op Codes: Only these op codes (except R and X) can be chained.' Percent-type op codes are U, M, L, F, K, G and N (op-code characters, i.e. the I/O and special-format instructions), which cannot be chained.",
+      "source": "IBM 223-2589, IBM 1410 System Fundamentals, p.51, 'Common Op-Code Grouping Lines'. http://bitsavers.org/pdf/ibm/1410/223-2589_Instruction_Reference_1410_System_Fundamentals_Nov63.pdf",
+      "confidence": "verified"
+    }
+  ],
+  "tables": [
+    {
+      "title": "IBM 1410 arithmetic op codes: what each legal instruction length does to AAR/BAR at decode",
+      "markdown": "| Mnemonic | Op code | L=11 (two addresses) | L=6 (one address) | L=1 (chained) |\n|---|---|---|---|---|\n| A (Add) | A | AAR<-A, BAR<-B | address-double: AAR=BAR=CAR=DAR<-A (field doubles in place) | AAR, BAR unchanged; D cycle copies BAR->DAR. **Two-field: A at AAR + B at BAR -> B** |\n| S (Subtract) | S | AAR<-A, BAR<-B | address-double: AAR=BAR<-A (field zeroes in place) | AAR, BAR unchanged. **Two-field: B at BAR - A at AAR -> B** |\n| ZA (Zero and Add) | ? | AAR<-A, BAR<-B | address-double: AAR=BAR<-A (strip zones in place) | AAR, BAR unchanged. **Two-field: A at AAR -> B at BAR** |\n| ZS (Zero and Subtract) | ! | AAR<-A, BAR<-B | address-double: AAR=BAR<-A (strip zones, flip sign in place) | AAR, BAR unchanged. **Two-field: -A at AAR -> B at BAR** |\n| M (Multiply) | @ | AAR<-A, BAR<-B | NOT address-double: AAR<-A only, BAR chained from previous E phase | AAR, BAR unchanged; C cycle updates CAR. Two-field |\n| D (Divide) | % | AAR<-A, BAR<-B | NOT address-double: AAR<-A only, BAR chained from previous E phase | AAR, BAR unchanged; C cycle updates CAR. Two-field |\n\nSources: A22-0526-3 pp.12,17-20; 223-2589 pp.13,51-52; 223-2588-2 CE Handbook pp.37,40-41.",
+      "source": "IBM A22-0526-3 pp.12,17-20 + IBM 223-2589 pp.13,51-52 + IBM 223-2588-2 pp.37,40-41"
+    },
+    {
+      "title": "A22-0526-3 Address-Registers-after-Operation for the arithmetic ops (the chaining contract)",
+      "markdown": "| Instruction | Page | IAR after | AAR after | BAR after |\n|---|---|---|---|---|\n| Add (Two Fields) | 17 | NSI | A - LW | B - LB |\n| Add (One Field) | 17 | NSI | A - LA | A - LA |\n| Subtract (Two Fields) | 17 | NSI | A - LW | B - LB |\n| Subtract (One Field) | 18 | NSI | A - LA | A - LA |\n| Zero and Add (Two Fields) | 18 | NSI | A - LW | B - LB |\n| Zero and Add (One Field) | 18 | NSI | A - LA | A - LA |\n| Zero and Subtract (Two Fields) | 18 | NSI | A - LW | B - LB |\n| Zero and Subtract (One Field) | 18 | NSI | A - LA | A - LA |\n| Multiply | 19 | NSI | A - LA | B - LB |\n| Divide | 20 | NSI | A - LA | tens position of the quotient field |\n\nSymbols (A22-0526-3 Figure 8, p.12): LA = number of characters in the A-field; LB = number of characters in the B-field; LW = number of characters in the A- or B-field, whichever is shorter; NSI = address of the next sequential instruction. Note that the Two-Fields arithmetic ops decrement AAR by min(LA,LB), not by LA - this matters for the next chained instruction.",
+      "source": "IBM A22-0526-3, IBM 1410 Principles of Operation, Figure 8 p.12 and instruction descriptions pp.17-20"
+    },
+    {
+      "title": "Timing formulas as printed (the lines that made this look ambiguous)",
+      "markdown": "| Form | Timing formula (microseconds) | Legal L |\n|---|---|---|\n| Add / Subtract (Two Fields) | T = 4.5 (L + 1 + E + A + 1.5B + 1.5RB); when L=1, E=1; when L=11, E=0 | 1, 11 |\n| Add / Subtract (One Field) | T = 4.5 (L + 1 + A + 1.5A) | 1 or 6 |\n| Zero and Add / Zero and Subtract (Two Fields) | T = 4.5 (L + 1 + E + A + 1.5B); when L=1, E=1; when L=11, E=0 | 1, 11 |\n| Zero and Add / Zero and Subtract (One Field) | T = 4.5 (L + 1 + A + 1.5A) | 1 or 6 |\n| Multiply | T ~ 4.5 [L + 1 + E + 2.5M + (2.5M + 1.5)(2.5A + 3)] | 1, 6, 11 |\n| Divide | T ~ 4.5 {L + 1 + E + 6.5Q [A + 1.5 (A + 2)]} | 1, 6, 11 |\n\nE (A22-0526-3 Figure 7, p.12): 'is 2 on a single-character multiply or divide operation. It is 1 on a single-character add, subtract, zero and add, zero and subtract, table lookup, or a 6-character multiply or divide operation. It is zero otherwise.' The E term is the cost of the extra D cycle (or C cycle for multiply/divide) that a chained arithmetic op takes to reload DAR/CAR - direct corroboration that L=1 chaining does extra address-register work rather than skipping a field.",
+      "source": "IBM A22-0526-3, IBM 1410 Principles of Operation, Figure 7 p.12 and instruction descriptions pp.17-20"
+    }
+  ],
+  "open_questions": [
+    "The exact 1410 behaviour when a 1-character chained arithmetic op is executed with AAR or BAR left holding an address in a different 'sequence' (e.g. after an intervening branch or I/O op that clobbered one register) is not spelled out beyond A22-0526-3 p.12's caution: 'The only restriction is that the fields remain in sequence and that the address registers contain valid addresses.' No source states what the machine does with a stale/invalid register other than the normal address-validity check.",
+    "Whether the 1410 CE Manual Oct61 data-flow charts (bitsavers /pdf/ibm/1410/1410_CE_Manual_Oct61.pdf) draw the D-cycle/address-double distinction more explicitly than 223-2589 p.52 was not checked - 223-2589 and the 223-2588-2 CE Handbook were already decisive, so that PDF was not opened.",
+    "Whether 1410 Autocoder ever emits a 6-character (one-address) A/S/ZA/ZS from source, or only the 11-character and 1-character forms, was not established. If Autocoder never emits L=6 arithmetic, the address-double path will be exercised only by hand-written decks and diagnostics.",
+    "The 1401-compatibility mode differences: the CE Handbook ALD objectives repeatedly qualify with 'if not 1401' (e.g. 'Sets ADDRESS DOUBLE TYPE OP CODES if not 1401'), and rcornwell/sims keeps a separate op_1401[64] table. The 1401-mode chaining/address-double rules were not researched here and should not be assumed identical."
+  ],
+  "sources": [
+    {
+      "title": "IBM A22-0526-3, IBM 1410 Principles of Operation",
+      "url": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "note": "Decisive prose. p.12 'Chaining Instructions' gives the worked A-then-chained-S example proving two-field semantics; Figures 7 and 8 on p.12 define the timing symbol E and the address-register symbols LA/LB/LW; pp.17-20 carry the Two Fields / One Field instruction descriptions, timing formulas and Address-Registers-after-Operation tables for A, S, ZA, ZS, M, D. Has a usable text layer via pdftotext -layout."
+    },
+    {
+      "title": "IBM 223-2589, IBM 1410 System Fundamentals (Instruction-Reference / Customer Engineering, Nov 1963)",
+      "url": "http://bitsavers.org/pdf/ibm/1410/223-2589_Instruction_Reference_1410_System_Fundamentals_Nov63.pdf",
+      "note": "Decisive hardware mechanism. p.13 states the Add op code's three valid lengths (1, 6, 11) and the instruction-length check. p.51 'Common Op-Code Grouping Lines' states only not-percent-type op codes can be chained. p.52 carries 'Address Double-Type Op Codes' (single address read into AAR/BAR/CAR/DAR), the 'Chaining' narrative, 'Not address double-type op codes use the contents remaining in the BAR', and 'Arithmetic Op Codes: If an arithmetic op code is chained at I ring 1 time, the CPU takes a D cycle...'. The only 1410 PDF with a real text layer."
+    },
+    {
+      "title": "IBM 223-2588-2, IBM 1410 Data Processing System Customer Engineering Handbook (Apr 1964)",
+      "url": "https://bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/223-2588-2_1410_CE_Handbook_196404.pdf",
+      "note": "Corroborating ALD-level detail. p.37 'Common Op Code Grouping Chart' has explicit 'Addr Dbl Op Codes' / 'Not Addr Dbl Op Codes' rows across the op-code set; pp.40-41 'Common Op Code Grouping Line Objectives' give 'Add-Type Op Codes (13.14.02) ... Sets ADDRESS DOUBLE TYPE OP CODES if not 1401 ... Sets NO D CYCLE AT I RING 6 OPS' and 'Arithmetic-Type Op Codes (13.14.02) ... SET D CYCLE CONTROL at I 1 ... with B channel WM', plus 'Compare-Type Op Codes ... NOT ADDRESS DOUBLE TYPE OP CODES'."
+    },
+    {
+      "title": "rcornwell/sims - I7000/i7010_cpu.c (IBM 7010/1410 simulator)",
+      "url": "https://github.com/rcornwell/sims/blob/master/I7000/i7010_cpu.c",
+      "note": "Behavioural oracle. No length branch in arithmetic execution; O_DBL (comment: 'When chained A same as B') is applied only after a full 5-character A address decode, setting BAR = AAR (and DAR = AAR when O_D). The instruction-character loop terminates on the first word mark, so a 1-character op leaves AAR/BAR untouched. A, S, ZA, ZS, CS, B, CWM carry O_DBL; M, D, C (compare), T, MOV, BCE, BBE do not."
+    },
+    {
+      "title": "cube1us/1410 - note1410.txt (Jaeger's IBM 1410 FPGA reimplementation, instruction-decode test notes)",
+      "url": "https://github.com/cube1us/1410",
+      "note": "Second behavioural oracle, derived from hand-built instruction tests (Core/insttest.cor, Core/ilentest.cor). Chained Add at 02379 uses A field 10031 and B field 10034 - two distinct addresses. Chained ZA at 02561 uses A field 10231 and B field 10236, with an explicit 'D: AAR=10231, BAR=10236' line. The genuine single-field ZA at 02544 is annotated 'A and B addresses have the same address', confirming the one-field form is the AAR==BAR degenerate case."
+    }
+  ]
+}

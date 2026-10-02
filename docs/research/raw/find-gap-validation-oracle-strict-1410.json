@@ -1,0 +1,288 @@
+{
+  "topic": "gap-validation-oracle-strict-1410",
+  "summary": "ANSWER, PART 1 (SIMH oracle): rcornwell/sims i7010 can be pinned most of the way to a strict 1410, but not all the way. Memory: `SET CPU 80K` gives exactly 80,000 positions, which is the real 1410 Model 5/5A maximum (MAXMEMSIZE for I7010 is 100000, the 7010 ceiling; the default UNIT flags are MODEL(2)|MEMAMOUNT(9) = 7010 + 100K + PRIORITY + FLOAT, so every strict setting must be made explicitly). Features: the three modifier keywords are NOFLOAT, NOPRIORITY and NOPROT; SIMH matches SET modifiers by prefix (`MATCH_CMD` = case-insensitive strncmp over strlen(ptr), scp.c:5996-5997), and rcornwell's own I7000/tests/i7010_test.ini uses the abbreviation `set cpu 80k prot float pri`, so the requested `set cpu nofloat nopri noprot` is accepted verbatim. Channels: NO. NUM_CHAN is a compile-time 5 for I7010 (a disabled placeholder channel 0 plus CH1-CH4), and chan_unit[1..4] are declared with CHAN_SET only - the CHAN_DEF macro that carries UNIT_DISABLE is defined at i7010_chan.c:43 but never used - so `SET CH3 DISABLED` is refused by SIMH and there is no runtime way to make a channel-3/4 reference fault. The practical approximation is to attach no devices to CH3/CH4. Bigger caveat: there is no 1410 CPU model at all. cpu_mod offers only `1401` (MODEL(1)) and `7010` (MODEL(2)); every CPU_MODEL test in i7010_cpu.c is `== 1` or `!= 1`, so 1410 and 7010 share one code path and the simulator cannot be told to reject 7010-only behaviour. Printer diffing works: `att lp <file>` plus `set ch1 urec=lp`, exactly as the shipped test .ini does. Finally, I7000/STATUS.txt itself flags open i7010 defects (protection mode errors, T020 tape diagnostics failing, PR-108 untested), so treat i7010 as a differential peer, not as ground truth.\n\nANSWER, PART 2 (card-only CPU diagnostic): CC01A exists and IBM did ship it as a card-only deck, but that deck does not survive as machine-readable data. The bitsavers cover page for CC01A (IBM Poughkeepsie Diagnostic Engineering Publication, 1410/7010, sequence number 001, dated 11/15/63) lists under Enclosures: \"Card Deck for CARD ONLY SYSTEMS (as punched by UP51) - 8 Cards - Card Loader (1-7) and 1 Core Clear; 160 Cards No. 001-160 Data Cards; 1 Card Execute Card\", while simultaneously stating \"This Program should be run only from tape.\" Page 003 repeats the deck (7 L1 loader + 1 core clear + 160 program + 1 execute, the execute card branching to 01972 to operate TC50) and gives Equipment Required as \"Minimum Storage, One tape Unit on any channel, Console Printer\". No card image of that deck is on bitsavers: /bits/IBM/1410/ contains only 1410-PR-108 (jpr108-2024.bcd, a tape image). The only surviving artefact is the 48-page scanned listing PDF, which has NO text layer (pdftotext yields zero bytes), so re-punching the deck means transcribing ~38 pages of scanned Autocoder listing by eye or OCR.\n\nANSWER, PART 3 (the actual usable oracle - Jaeger's core images): cube1us/1410 Core/cc01.cor IS CC01A, already assembled and loaded, and it needs neither tape nor cards. Verified byte-for-byte against the bitsavers listing: at 02180-02226 the core image holds N / J 02226 / [,]02181 / M %T0 01250 W / R 02194 2 / R 02218 [group mark] / N / J 02226, and CC01A listing page 3 (PDF p.11) shows exactly ADDRS 02180 N, 02181 J 02226, 02188 . 02181, 02194 M %T0 01250 W, 02204 R 02194 2, 02211 R 02218 (GM), 02218 N, 02219 J 02226. The literal \"CC01A\" message sits at 01250 and \"CC01 COMPLETE\" at 08921, matching the writeup's Typeouts section. The entire 10,000-position image contains exactly five I/O instructions - M %T0 00000 W (01807), M %T0 01887 R (01852), L %T0 00000 R (01883), M %T0 01250 W (02194), M %T0 08921 W (08890) - and %T0 is the console printer, not tape (1410 tape is %Ux/%Bx). So CC01A as shipped in cc01.cor is a pure-CPU test that types two console lines and, per its own writeup, \"All stops are Error Stops\" with no error typeouts at all. Its flow chart (CC01 page 006) covers NO-OP, unconditional branch, branch on word mark, clear+set word mark, store A&B address registers, branch bit equal, branch zone & WM/zone, add+subtract, clear storage, clear storage and branch, indexing, branch character equal, the MLNS/MLZS/MLCS scans, compare, and data moves - precisely the ambiguous areas the project needs settled. The .cor format is trivial and nearly byte-identical to SIMH's: 5 ASCII decimal digits giving the core size, then one little-endian integer per storage position (4 bytes in the committed files, 2 bytes in newer dumps), each holding WM C B A 8 4 2 1 with BITWM=0x80 and BITC=0x40 (parity). SIMH i7010 uses the same 6-bit code order (i7000_defs.h CHR_* octal 000-077 match Jaeger's bcd_ascii index order exactly) and the same WM bit (i7010_defs.h: `#define WM 0200`, cpu_dep masks val & (077|WM)). Conversion is therefore `simh_byte = cor_int & 0xBF & ~0x40` - i.e. `(v & 0x3F) | (v & 0x80)`.\n\nRECOMMENDED FALLBACK FOR THE IMPLEMENTER: do not try to diff printer output for CPU validation - CC01A produces none. Write a ~40-line .cor loader (5-digit header, N little-endian ints, strip bit 0x40), inject cc01.cor at 01000-09618 with IAR=02000, and use the halt address as the oracle: any halt other than the normal end path (which types \"CC01 COMPLETE\" then branches to the unloaded 01972) is an error stop whose address is looked up in the CC01A listing. Then run insttest.cor and ilentest.cor the same way against note1410.txt's documented address map (00100-02100 instruction-length cases, 02200-02288 index-register cases, 02300+ the annotated add/subtract/ZA/ZS/multiply/divide/move cases with expected results and cycle-by-cycle latch states). insttest.cor touches up to address 79,998, so it needs a full 80K machine; ilentest.cor tops out at 33,335. Use rcornwell i7010 (`set cpu 7010 80k nofloat nopri noprot`) as a second opinion on the same images, not as the arbiter.",
+  "facts": [
+    {
+      "claim": "rcornwell/sims i7010 has NO '1410' CPU model keyword. cpu_mod offers exactly two model strings: {UNIT_MODEL, MODEL(1), \"1401\", \"1401\", ...} and {UNIT_MODEL, MODEL(2), \"7010\", \"7010\", ...}. The built-in help says 'sim> set CPU 7010  sets IBM 1410/7010 emulation', i.e. one shared mode for both machines.",
+      "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_cpu.c lines 208-209 (cpu_mod) and 3999-4004 (cpu_help)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Every model test in i7010_cpu.c is against 1401 only: the file contains 26 occurrences of `CPU_MODEL == 1` / `CPU_MODEL != 1` and none comparing to 2 or 0. There is therefore no code path that distinguishes a 1410 from a 7010; the simulator cannot be made to reject 7010-only behaviour beyond the three feature flags.",
+      "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_cpu.c (grep CPU_MODEL: lines 623, 638, 648, 933, 1574, 1963, 2013, 2037-2103, 2259, 2385, 3592, 3604, 3619, 3652, 3804)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Memory can be set to exactly 80,000 positions with `SET CPU 80K` ({UNIT_MSIZE, MEMAMOUNT(7), \"80K\", \"80K\", &cpu_set_size}); cpu_set_size computes v = ((val>>UNIT_V_MSIZE)+1)*10000. Sizes offered are 10K through 100K in 10K steps. MAXMEMSIZE for I7010 is 100000.",
+      "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_cpu.c lines 210-219, 3884-3906; i7000_defs.h line 58",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The i7010 CPU unit's compiled-in default is MODEL(2)|MEMAMOUNT(9)|OPTION_PRIO|OPTION_FLOAT with capac = MAXMEMSIZE, i.e. a 7010 with 100K, priority interrupts ON and floating point ON, protection OFF. Every strict-1410 restriction must be set explicitly.",
+      "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_cpu.c line 182 (UNIT cpu_unit)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The three feature modifiers are spelled NOPRIORITY/PRIORITY, NOFLOAT/FLOAT and NOPROT/PROT. SIMH matches SET modifiers by prefix (`#define MATCH_CMD(ptr,cmd) ((NULL==(ptr))||(!*(ptr))||strncasecmp((ptr),(cmd),strlen(ptr)))`, used at scp.c:5996-5997), so `set cpu nofloat nopri noprot` resolves to NOFLOAT / NOPRIORITY / NOPROT. rcornwell's own test script uses the same abbreviation style: `set cpu 80k prot float pri`.",
+      "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_cpu.c lines 220-231; https://raw.githubusercontent.com/rcornwell/sims/master/scp.c line 463 (MATCH_CMD) and 5996-5997; https://raw.githubusercontent.com/rcornwell/sims/master/I7000/tests/i7010_test.ini line 5",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Channel count in i7010 is fixed at build time and cannot be reduced to 2. `#ifdef I7010 /* Includes 1410 and 7010 */ #define NUM_CHAN 5` gives a disabled placeholder channel 0 plus CH1-CH4. chan_unit[1..4] are declared `{UDATA(NULL, CHAN_SET|CHAN_S_TYPE(CHAN_7010)|UNIT_S_CHAN(n),0)}` with no UNIT_DISABLE flag (the CHAN_DEF macro carrying UNIT_DISABLE is defined but never used), so SIMH will refuse `SET CH3 DISABLED`. Only chan_unit[0] carries UNIT_DIS.",
+      "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7000_defs.h lines 46-56; i7010_chan.c lines 43, 91-96, 106-111",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Printer output diffing is supported: the i7010 device list includes lpr_dev (device name 'LP'), and the shipped test script attaches it with `att lp -n -q diag.lst` and routes unit-record interrupts with `set ch1 urec=lp`. The channel UREC modifier accepts CR / LP / CP / NONE.",
+      "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_sys.c lines 44-87 (sim_devices); I7000/tests/i7010_test.ini; i7010_chan.c lines 138-148 (urec_devs)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "i7010 can boot from cards: cdr_boot calls chan_boot, which sets caddr[chan]=1, cmd = CHAN_NOREC|CHAN_LOAD and leaves IAR=1 (set by cpu_reset) - i.e. it reproduces the 1402 Load key, reading one card in load mode into locations 00001+ and starting there. So `att cdr0 deck.txt` + `boot cdr0` is a working card-only entry path if a deck existed.",
+      "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7000_cdr.c lines 93, 315-326; I7000/i7010_chan.c lines 217-234; i7010_cpu.c cpu_reset (IAR = 1)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "There is no SIMH LOAD path for the i7010: sim_load() in i7010_sys.c is a stub returning SCPE_NOFNC. Core images must be injected with DEPOSIT commands (or by patching M[] directly).",
+      "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_sys.c lines 220-223",
+      "confidence": "verified"
+    },
+    {
+      "claim": "rcornwell's own STATUS.txt lists open i7010 defects: 'Protection mode has some errors left. Protection mode does not handle setting H or L to 0. T020 tape diags fail. Disks may work. PR108 not tested.' i7010 is a peer for differential testing, not an oracle of record.",
+      "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/STATUS.txt",
+      "confidence": "verified"
+    },
+    {
+      "claim": "CC01A exists on bitsavers as a 48-page scanned PDF with no OCR text layer (pdftotext produces zero bytes for the whole document). It is an IBM Poughkeepsie 'Diagnostic Engineering Publication', 1410/7010, subject 'Diagnostic Program CC01A - 1410/7010 Limited CPU Instruction Test', Sequence Number 001, Replaces: New Program, dated 11/15/63.",
+      "source": "http://www.bitsavers.org/pdf/ibm/1410/diagnostics/DIAGV100/CC01A_1410_Limited_CPU_Instruction_Test.pdf cover page (PDF p.1)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The CC01A cover page states both 'This Program uses no System or Channel Control Cards' and 'This Program should be run only from tape.', yet lists among its Enclosures: 44 Pages; 'Card Deck for CARD ONLY SYSTEMS (as punched by UP51)' = 8 Cards - Card Loader (1-7) and 1 Core Clear; 160 Cards No. 001-160 Data Cards; 1 Card Execute Card. Distribution is marked for both 1410 and 7010.",
+      "source": "http://www.bitsavers.org/pdf/ibm/1410/diagnostics/DIAGV100/CC01A_1410_Limited_CPU_Instruction_Test.pdf cover page (PDF p.1)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "CC01A test description (page 003): 'CC01 was taken directly from C021 to test enough of the basic instruction set to read in and operate the Tape Control Program. It does not contain any Error Typeouts, Loops, Tad Controls or Options to repeat, it is strictly a special purpose test that runs prior to the Tape Control Program and halts for any error.' Equipment required: Minimum Storage, One tape Unit on any channel, Console Printer. Card deck: 7 L1 Loader + 1 Core Clear + 160 Program Cards + 1 Execute (Branch to 1972) to operate TC50.",
+      "source": "http://www.bitsavers.org/pdf/ibm/1410/diagnostics/DIAGV100/CC01A_1410_Limited_CPU_Instruction_Test.pdf page 003 (PDF p.5)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "CC01A error reporting is by halt address only: page 005 says 'PROGRAM STOPS: All stops are Error Stops'; 'TYPEOUTS - NORMAL: \"CC01A\" Test Ident. / \"CC01 COMPLETE\" Indicate End of Test'; 'ERROR: None.' Page 004 adds: 'If there is an error the program will stop. The CE must then consult the listing to find out which instruction failed... It is possible to continue to the next instruction by pushing the Start Key.' Locations 01000-01100 hold a character pattern for the CE to inspect for TAU/CPU information-transfer errors.",
+      "source": "http://www.bitsavers.org/pdf/ibm/1410/diagnostics/DIAGV100/CC01A_1410_Limited_CPU_Instruction_Test.pdf pages 004-005 (PDF pp.6-7)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "CC01A's tape loading procedure gives 1410 forms for two channels only (E and F) and 7010 forms for four (E, F, G, H) - a direct confirmation in the diagnostic documentation that the 1410 tops out at two data channels while the 7010 has four.",
+      "source": "http://www.bitsavers.org/pdf/ibm/1410/diagnostics/DIAGV100/CC01A_1410_Limited_CPU_Instruction_Test.pdf page 004 sections 2.xx.01.1 (1410 TAPE INPUT: E, F) and 2.xx.01.2 (7010 TAPE INPUT: E, F, G, H)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "CC01A's flow chart (page 006) enumerates the test sequence: NO-OP instruction; unconditional branch; branch on word mark; clear and set word mark; type ident; store A and B address registers; branch bit equal; branch zone and WM/zone; add and subtract; clear storage; clear storage and branch; indexing; branch character equal; scans MLNS/MLZS/MLCS; compare; data moves; type 'CC01 complete'; read in tape control.",
+      "source": "http://www.bitsavers.org/pdf/ibm/1410/diagnostics/DIAGV100/CC01A_1410_Limited_CPU_Instruction_Test.pdf page 006 (PDF p.8)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "No machine-readable CC01A card deck (or any 1410 diagnostic deck) survives on bitsavers. /bits/IBM/1410/ contains a single subdirectory, 1410-PR-108, holding jpr108-2024.bcd (1.3M tape image), jpr108-2024.zip and four JPEGs. The DIAGV100 directory holds only PDFs (CC01A, CC01A-Part, the Diagnostics Summary Pages, Introduction to Diagnostics, listings.pdf, M003E, M014B, TC50C).",
+      "source": "http://www.bitsavers.org/bits/IBM/1410/ and http://www.bitsavers.org/bits/IBM/1410/1410-PR-108/ and http://www.bitsavers.org/pdf/ibm/1410/diagnostics/DIAGV100/ directory listings, retrieved 2026-08-29",
+      "confidence": "verified"
+    },
+    {
+      "claim": "cube1us/1410 Core/cc01.cor IS the CC01A object program in core. The image is 10,000 positions with content in 01000-09618, holds the literal word-marked string 'CC01A' at 01250 and 'CC01 COMPLETE' at 08921, and its bytes at 02180-02226 match the CC01A listing line for line: 02180 N; 02181 J 02226; 02188 [,] 02181; 02194 M %T0 01250 W; 02204 R 02194 2; 02211 R 02218 (group mark); 02218 N; 02219 J 02226.",
+      "source": "https://raw.githubusercontent.com/cube1us/1410/master/Core/cc01.cor decoded against http://www.bitsavers.org/pdf/ibm/1410/diagnostics/DIAGV100/CC01A_1410_Limited_CPU_Instruction_Test.pdf listing page 3 (PDF p.11, columns ADDRS/INSTRUCTION)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "cc01.cor needs no tape and no card reader. The entire image contains exactly five I/O instructions, all to %T0 (the console printer, channel 1 only): M %T0 00000 W at 01807, M %T0 01887 R at 01852, L %T0 00000 R at 01883, M %T0 01250 W at 02194 (types 'CC01A'), M %T0 08921 W at 08890 (types 'CC01 COMPLETE'). 1410 tape is addressed %Ux or %Bx, never %T. After typing CC01 COMPLETE the code branches J 01972, which is blank in this image (that is the TC50 read-in entry the card-deck Execute card targets).",
+      "source": "https://raw.githubusercontent.com/cube1us/1410/master/Core/cc01.cor (exhaustive scan for word-marked M/L/U/K/F followed by %); device code %T0 = console printer per IBM 1410 Principles of Operation A22-0526-3 p.45-46 Figure 44",
+      "confidence": "verified"
+    },
+    {
+      "claim": ".cor format: 5 bytes of ASCII decimal core size, then one little-endian integer per storage position. LoadCore accepts word size 2 or 4 (fileSize/coresize) and warns otherwise; DumpCore now writes 2-byte entries, but the four committed .cor files are the older 4-byte form. Each value is the BCD class's internal int, laid out WM C B A 8 4 2 1 with BITWM=0x80, BITC=0x40 (odd parity), character in the low 6 bits. Blank storage is 0x00000040 (BCD_SPACE = 0|BITC).",
+      "source": "https://raw.githubusercontent.com/cube1us/1410/master/UI1410CPUT.cpp lines 1663-1830 (T1410CPU::LoadCore / DumpCore); https://raw.githubusercontent.com/cube1us/1410/master/ubcd.h (BITWM/BITC/BCD class, 'WM C B A 8 4 2 1')",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Jaeger's 6-bit character codes and SIMH i7010's CHR_* codes are the same table in the same order (0=blank, 1-9, 10='0', 11='=', 12='@', 13=':', 14='>', 15=radical, 16=substitute blank, 17='/', 18-25=S..Z, 26=record mark, 27=',', 28='%', 29=word separator, 30='\\\\', 31=segment mark, 32='-', 33-41=J..R, 42='!', 43='$', 44='*', 45=']', 46=';', 47=delta, 48='+', 49-57=A..I, 58='?', 59='.', 60=lozenge, 61='[', 62='<', 63=group mark), and both use 0x80 for the word mark (SIMH: `#define WM 0200`; cpu_dep stores val & (077|WM)). Converting a .cor value to a SIMH memory byte is therefore just (v & 0x3F) | (v & 0x80) - drop the 0x40 parity bit.",
+      "source": "https://raw.githubusercontent.com/cube1us/1410/master/ubcd.cpp lines 36-100 (bcd_ascii[64]); https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7000_defs.h lines 561-625 (CHR_*); I7000/i7010_defs.h line 33 and i7010_cpu.c cpu_dep",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The four Jaeger core images and their sizes/extents: cc01.cor = 40,005 bytes, header '10000', content 01000-09618 (7,671 non-blank positions); insttest.cor = 320,005 bytes, header '80000', non-blank 0-79,998 (2,755 positions); ilentest.cor = 320,005, header '80000', non-blank 0-33,335 (1,061 positions); ilentst2.cor = 320,005, header '80000' (backup of ilentest). insttest.cor therefore requires a full 80,000-position machine.",
+      "source": "https://api.github.com/repos/cube1us/1410/git/trees/master?recursive=1 (sizes) plus direct decode of the downloaded files",
+      "confidence": "verified"
+    },
+    {
+      "claim": "note1410.txt's '00500 Multiply Instruction (M)' is a slip in the notes, not in the data. The op character actually stored at 00500 in both insttest.cor and ilentest.cor is BCD 12 (bits 8-4), which Jaeger's own table renders as \"'\"/@ - i.e. the 1410 Multiply op code @. The letter M does appear as a real op character in the same file at 02100, where the I/O tests begin with M %B0 11111 D. Any downstream doc (emulators.md) repeating 'M = Multiply' should be corrected to '@ = Multiply; M is the Autocoder mnemonic and separately the I/O Move op character'.",
+      "source": "https://raw.githubusercontent.com/cube1us/1410/master/Core/insttest.cor and ilentest.cor decoded at 00500 and 02100; https://raw.githubusercontent.com/cube1us/1410/master/note1410.txt; character table https://raw.githubusercontent.com/cube1us/1410/master/ubcd.cpp",
+      "confidence": "verified"
+    },
+    {
+      "claim": "note1410.txt's documented instruction-length map is confirmed by the file contents: each entry is 'op 11111 22222 / op 33333 / op' followed by two halts, so each address exercises the 3 legal instruction lengths (11, 6, 1) for one op. Verified spot checks: 00100 A, 00200 S, 00500 @ (Multiply), 00700 D, 01500 V, 01900 / (Clear Storage), 02100 the I/O group. The 02100 entry also contains a channel-2 form (L with the lozenge in place of %), so the length tests do exercise both channels' I/O decode.",
+      "source": "https://raw.githubusercontent.com/cube1us/1410/master/Core/ilentest.cor and insttest.cor decoded at those addresses; https://raw.githubusercontent.com/cube1us/1410/master/note1410.txt",
+      "confidence": "verified"
+    },
+    {
+      "claim": "note1410.txt warns that the instruction-length and index-register blocks are decode/length tests only: 'Before using them, it is convenient to go into T1410CPU::DoStartClick() and change it so that the instructions don't actually try to execute' (and again for the index tests: 'it is good to disable the actual execution of these Add instructions'). The oracle for those blocks is the post-decode AAR/BAR/IAR, not the arithmetic result.",
+      "source": "https://raw.githubusercontent.com/cube1us/1410/master/note1410.txt (INSTRUCTION DECODE/LENGTH TESTS and INDEX REGISTER TESTS sections)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "note1410.txt's insttest.cor annotations are cycle-level expected traces, not just expected results - each case lists the A-cycle/B-cycle fetch and store characters plus the latch states (Scan 1/Scan 3, Units/Body/Extension, Zero Balance, A Complement, B Complement, Carry In/Out, Overflow). It explicitly documents the chained-instruction cases (02368/02379 add, 02473/02484 subtract, 02550/02561 zero-and-add) with the D-cycle behaviour, and the zones-in-A-and-B cases (02380, 02485) - exactly the ambiguous areas the project needs.",
+      "source": "https://raw.githubusercontent.com/cube1us/1410/master/note1410.txt (INSTRUCTION TESTS section, addresses 02300-02968)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The standard IBM 1410/7010 diagnostic program card format is fully documented and could be used to synthesise a deck: col 1 = word separator character; cols 2-6 = initial (leftmost) address of data to be stored; col 7 = word separator; cols 8-12 = number of storage positions required; cols 13-72 = instructions/data; cols 73-77 = test title; cols 78-80 = card number. A complete card-form test = 7-card L1 loader + 1 diagnostic core-clear execute card + data cards numbered from 001 + a final execute card that branches out of the load routine to the diagnostic's first instruction (address 02000).",
+      "source": "http://www.bitsavers.org/pdf/ibm/1410/diagnostics/DIAGV100/1410_7010_Introduction_to_Diagnostics.pdf (4/15/64) pages 003-004 (PDF pp.7-8)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Execute-card format: col 1 must contain the character 'E' immediately followed by an instruction starting in column 2; the L1 loader detects the E and transfers control to column 2. The last instruction on an execute card must be a branch to an existing instruction in memory. Example given: E ~J02000b~. The L1 loader can read cards from the E channel, the F channel, or the E channel using the load-button feature, and successive diagnostic decks can be stacked in the hopper without removing the loader or core-clear cards.",
+      "source": "http://www.bitsavers.org/pdf/ibm/1410/diagnostics/DIAGV100/1410_7010_Introduction_to_Diagnostics.pdf pages 003-005 (PDF pp.7-9), sections II.B, II.C and IV",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The CC01A listing pages are a full Autocoder assembly listing with columns PGLIN / LABEL / OPCOD / OPERAND / comment / CT (character count) / ADDRS (core address) / INSTRUCTION (generated object text) and named routines (e.g. 'ROUTINE 05.00 TYPE IDENT, CK TYPEWR BUSY, HALT, HALT/BR.', 'ROUTINE 06.00 CHECK OPERATION OF SAR AND SBR INSTRUCTIONS', with in-line notes 'BR TO 00000 INDICATES SBR FAILURE' / 'BR TO 00001 INDICATES SAR FAILURE'). That makes it a usable halt-address-to-failing-test lookup table once transcribed.",
+      "source": "http://www.bitsavers.org/pdf/ibm/1410/diagnostics/DIAGV100/CC01A_1410_Limited_CPU_Instruction_Test.pdf listing PAGE 3 (PDF p.11)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The IBM 1410's real envelope is 10,000/20,000/40,000/60,000/80,000 positions (1411 Models 1-5 and 1A-5A) with one standard data channel (channel 1) plus channel 2 as a special feature requiring the processing-overlap feature - so '<=80K, 2 channels' is the correct strict-1410 target and SIMH's SET CPU 80K hits it exactly.",
+      "source": "IBM 1410 Principles of Operation A22-0526-3 - http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (storage models; channel 2 as special feature), as recorded in this project's find-arch.json and find-io.json",
+      "confidence": "verified"
+    }
+  ],
+  "tables": [
+    {
+      "title": "Pinning rcornwell/sims i7010 to a strict 1410 - what works and what does not",
+      "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_cpu.c, i7010_chan.c, i7000_defs.h, i7010_sys.c, tests/i7010_test.ini",
+      "markdown": "| Strict-1410 requirement | SIMH command | Compiled default | Achievable? | Notes |\n|---|---|---|---|---|\n| 1410 instruction set | `set cpu 7010` | MODEL(2) = 7010 | Partly | No `1410` keyword exists; help text says `7010` = \"IBM 1410/7010 emulation\". All `CPU_MODEL` tests are `== 1` (1401) vs not, so 1410 and 7010 are one code path. |\n| <= 80,000 positions | `set cpu 80k` | 100K (MEMAMOUNT(9)) | Yes | `cpu_set_size` sets capac = 80000 exactly; MAXMEMSIZE for I7010 is 100000. Do it before loading anything or SIMH prompts \"Really truncate memory [N]?\". |\n| No floating point | `set cpu nofloat` | FLOAT ON | Yes | OPTION_FLOAT gates the FP ops at i7010_cpu.c:1950-1956 and 2425. |\n| No priority interrupts | `set cpu nopri` | PRIORITY ON | Yes | Prefix-matches NOPRIORITY (MATCH_CMD is strncasecmp over the typed length). |\n| No storage protection | `set cpu noprot` | PROT OFF | Yes | Already off by default; setting it explicitly is still correct. STATUS.txt says protection mode has bugs anyway. |\n| Only 2 data channels | *(none)* | CH1-CH4 always present | **No** | `NUM_CHAN 5` is compile-time. `chan_unit[1..4]` lack UNIT_DISABLE, so `SET CH3 DISABLED` is refused. Best available approximation: attach no devices to CH3/CH4. |\n| Printer output for diffing | `att lp out.lst` + `set ch1 urec=lp` | LP detached | Yes | Exactly what `I7000/tests/i7010_test.ini` does. |\n| Console log for diffing | `set console -n -q log=test.log` | off | Yes | Also from the shipped test .ini; needed because CC01A output is console, not printer. |\n| Load a core image | *(none)* | - | No | `sim_load()` returns SCPE_NOFNC. Use generated `d <addr> <val>` lines, or `att cdr0` + `boot cdr0` (cdr_boot = 1402 Load key: one card, load mode, into 00001, IAR=1). |\n\nSuggested one-liner: `set cpu 7010 80k nofloat nopri noprot`"
+    },
+    {
+      "title": "Jaeger .cor core-image file format (cube1us/1410)",
+      "source": "https://raw.githubusercontent.com/cube1us/1410/master/UI1410CPUT.cpp T1410CPU::LoadCore lines 1663-1770; ubcd.h",
+      "markdown": "| Offset | Size | Content |\n|---|---|---|\n| 0 | 5 bytes | Core size, ASCII decimal, zero-padded (`%05d`). e.g. `10000`, `80000`. |\n| 5 | coresize x W | One little-endian integer per storage position. W = (filesize - 5) / coresize, and must be 2 or 4. The four committed files all use W = 4 (old format); current DumpCore writes W = 2. |\n\nBit layout of each value (`BCD::c`, comment in ubcd.h reads `WM C B A 8 4 2 1`):\n\n| Bit | Mask | Meaning |\n|---|---|---|\n| 7 | 0x80 | BITWM - word mark |\n| 6 | 0x40 | BITC - odd-parity check bit |\n| 5 | 0x20 | BITB - B zone |\n| 4 | 0x10 | BITA - A zone |\n| 3-0 | 0x0F | numeric bits 8 4 2 1 |\n\nBlank storage = `0x00000040` (BCD_SPACE = 0 \\| BITC). Conversion to a SIMH i7010 memory byte: `(v & 0x3F) | (v & 0x80)` - identical code table, identical WM bit, parity bit simply dropped."
+    },
+    {
+      "title": "Jaeger core-image inventory (cube1us/1410 Core/)",
+      "source": "https://api.github.com/repos/cube1us/1410/git/trees/master?recursive=1 plus direct decode",
+      "markdown": "| File | Bytes | Header (coresize) | Word size | Occupied range | Non-blank positions | What it is |\n|---|---|---|---|---|---|---|\n| `cc01.cor` | 40,005 | 10000 | 4 | 01000-09618 | 7,671 | IBM diagnostic **CC01A** loaded and ready to run. Self-identifies: `CC01A` at 01250, `CC01 COMPLETE` at 08921. No tape, no cards; 5 console-printer I/O instructions only. |\n| `insttest.cor` | 320,005 | 80000 | 4 | 00000-79998 | 2,755 | Jaeger's own instruction tests: length/decode block 00100-02100, index-register block 02200-02288, annotated arithmetic/move block 02300-02968. Needs a full 80K machine. |\n| `ilentest.cor` | 320,005 | 80000 | 4 | 00000-33335 | 1,061 | Instruction length/decode test (same layout, smaller). |\n| `ilentst2.cor` | 320,005 | 80000 | 4 | - | - | Backup copy of ilentest.cor per note1410.txt (\"Both should ordinarily be the same or very similar\"). |"
+    },
+    {
+      "title": "CC01A card-only deck as documented (does NOT survive as data)",
+      "source": "http://www.bitsavers.org/pdf/ibm/1410/diagnostics/DIAGV100/CC01A_1410_Limited_CPU_Instruction_Test.pdf cover page and page 003",
+      "markdown": "| Group | Count | Purpose |\n|---|---|---|\n| L1 Loader | 7 cards | Seven-card bootstrap loader; reads from E channel, F channel, or E channel with the load-button feature. |\n| Core Clear | 1 card | Diagnostic core-clear execute card. |\n| Program cards | 160 cards | Numbered 001-160, cols 78-80. |\n| Execute card | 1 card | Branch to 01972 to operate TC50. |\n| **Total** | **169 cards** | Cover page phrasing: \"Card Deck for CARD ONLY SYSTEMS (as punched by UP51)\". |\n\nStatus: **no card image survives**. bitsavers `/bits/IBM/1410/` holds only `1410-PR-108/jpr108-2024.bcd` (a tape image). The CC01A PDF is 48 scanned pages with no OCR layer (`pdftotext` returns 0 bytes), of which ~38 are the Autocoder listing."
+    },
+    {
+      "title": "IBM 1410/7010 standard diagnostic program card format",
+      "source": "http://www.bitsavers.org/pdf/ibm/1410/diagnostics/DIAGV100/1410_7010_Introduction_to_Diagnostics.pdf (4/15/64) page 004, section III",
+      "markdown": "| Columns | Field | Content |\n|---|---|---|\n| 1 | 1st | Word separator character |\n| 2-6 | 1st | Initial (leftmost) address of data to be stored |\n| 7 | 2nd | Word separator character |\n| 8-12 | 2nd | Number of storage positions required |\n| 13-72 | 3rd | Instructions / data |\n| 73-77 | 4th | Test title (the 5-char diagnostic id, e.g. `CC01A`) |\n| 78-80 | 4th | Card number within the deck |\n\nExecute card: column 1 = `E`, instruction starts in column 2, last instruction must branch to an existing instruction in memory (example given: `E ~J02000b~`). A diagnostic's first instruction is conventionally at address 02000. All program cards are normally loaded before execution starts."
+    },
+    {
+      "title": "note1410.txt address map, with the Multiply correction applied",
+      "source": "https://raw.githubusercontent.com/cube1us/1410/master/note1410.txt, corrected against the decoded bytes of insttest.cor / ilentest.cor",
+      "markdown": "| Address | Test | Op character in the file | note1410.txt says |\n|---|---|---|---|\n| 00000 | Tape load instruction (boot) | - | - |\n| 00100 | Add | `A` | (A) - correct |\n| 00200 | Subtract | `S` | (S) - correct |\n| 00300 | Zero and Add | `?` | (?) - correct |\n| 00400 | Zero and Subtract | `!` | (!) - correct |\n| 00500 | Multiply | **`@`** | **(M) - WRONG.** M is the Autocoder mnemonic, not the op char. Verified: BCD 12 (bits 8-4) at 00500 in both files. |\n| 00600 | Divide | `%` | (%) - correct |\n| 00700 | Move | `D` | (D) - correct |\n| 00800 | Move Chars and Suppress Zeros | `Z` | (Z) |\n| 00900 | Edit | `E` | (E) |\n| 01000 | Compare | `C` | (C) |\n| 01100 | Table Lookup | `T` | (T) |\n| 01200 | Branches | `J`, `X`, `R` | (J, X, R) - decoded as `J 11111 A`, `X 22222 B`, `R 33333 D` |\n| 01300 | Branch Character Equal | `B` | (B) |\n| 01400 | Branch if Bit Equal | `W` | (W) |\n| 01500 | Branch on Word Mark or Zone Equal | `V` | (V) |\n| 01600 | Store Address Register | `G` | (G) |\n| 01700 | Set Word Mark | `,` | (,) |\n| 01800 | Clear Word Mark | lozenge | (Lozenge) |\n| 01900 | Clear Storage | `/` | (/) |\n| 02000 | Halt | `.` | (.) |\n| 02100 | I/O instructions | `M`, `L`, `U`, `K`, `F`, `4`, `2` | correct - and here `M` genuinely IS an op character (`M %B0 11111 D`). Includes a channel-2 lozenge form. |\n| 02200-02288 | Index register tests, all 15 registers | `A` | 02200 unindexed, then 02211/02222/.../02288 with X1..X15 |\n| 02300-02968 | Annotated add / subtract / ZA / ZS / multiply / divide / move tests | various | cycle-by-cycle expected latch states, incl. chained (02368+02379, 02473+02484, 02550+02561) and zoned (02380, 02485) cases |"
+    },
+    {
+      "title": "Every I/O instruction in cc01.cor (proof it needs no tape)",
+      "source": "exhaustive decode of https://raw.githubusercontent.com/cube1us/1410/master/Core/cc01.cor; device codes per IBM 1410 PrincOps A22-0526-3 p.45-46 Fig 44 (console) and p.85-86 (tape)",
+      "markdown": "| Address | Instruction | Device | Purpose |\n|---|---|---|---|\n| 01807 | `M %T0 00000 W` | console printer | loader/monitor block at 01800-01912 |\n| 01852 | `M %T0 01887 R` | console printer | read console |\n| 01883 | `L %T0 00000 R` | console printer | read console with word marks |\n| 02194 | `M %T0 01250 W` | console printer | types the `CC01A` ident (matches listing ADDRS 02194) |\n| 08890 | `M %T0 08921 W` | console printer | types `CC01 COMPLETE` |\n\nNo `%Ux` / `%Bx` (tape), no `%10/%11/%12` (card reader), no `%20/%21` (printer) instruction exists anywhere in the image. After the completion message the program executes `J 01972`, which is blank in this image - that address is the TC50 entry the physical Execute card targeted."
+    }
+  ],
+  "open_questions": [
+    "Has anyone actually run cc01.cor to completion under Jaeger's simulator (or any other) and recorded the pass/fail transcript? The repo ships the image but no expected-output file, and README/note1410.txt never mention cc01.cor at all - note1410.txt documents only ilentst/insttest. Confirm the correct starting IAR (02000 is the documented diagnostic convention and cc01.cor contains a `J 02000`, but I have not executed it).",
+    "The 38-page CC01A listing has no OCR layer. Transcribing the halt-address-to-routine table (ROUTINE nn.mm headings plus the ADDRS column) is the remaining manual work needed to turn a halt into a diagnosis. Is there an OCR'd or re-keyed copy anywhere (1401restorationproject, CHM, or the DIAGV100/listings.pdf which is only 248K and was not opened here)?",
+    "DIAGV100 also contains C020/C021 (the full CPU tests CC01 was cut down from) - are C020B/C021 write-ups present in DIAGV200-V601 on bitsavers, and do any of them also ship a card-only deck? CC01A page 004 explicitly says TC50 can bring in C020/C021 'to completely check out CPU instructions'.",
+    "Does rcornwell's i7010 accept a 169-card synthesised deck in the documented L1 loader format? cdr_boot reproduces the 1402 Load key, but the L1 loader's word-separator/load-mode handling and its E-channel dependence were not tested here.",
+    "Character-code edge case: Jaeger's table has 0 = true blank and 16 = 'b' substitute blank, while SIMH names 000 CHR_ABLANK and 020 CHR_BLANK. Confirm which of the two SIMH treats as the printable blank before diffing printer output between the two.",
+    "SIMH i7010's own `expect`/`send` harness (see i7010_test.ini) drives the console. Confirm the inquiry/console-printer model is faithful enough that CC01A's two typeouts appear where expected, since the two simulators must agree on %T0 semantics for a console-log diff to be meaningful."
+  ],
+  "sources": [
+    {
+      "title": "rcornwell/sims - I7000/i7010_cpu.c",
+      "url": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_cpu.c",
+      "note": "cpu_unit defaults (line 182), cpu_mod model/memory/option table (lines 207-233), cpu_set_size (3884-3906), cpu_help text naming '7010' as 1410/7010 emulation (3995-4020). 4,026 lines."
+    },
+    {
+      "title": "rcornwell/sims - I7000/i7010_chan.c",
+      "url": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_chan.c",
+      "note": "chan_unit[] (91-96) shows CH1-CH4 without UNIT_DISABLE; CHAN_DEF defined at line 43 and unused; chan_mod UREC modifier (106-111); urec_devs CR/LP/CP/NONE (138-148); chan_boot (217-234)."
+    },
+    {
+      "title": "rcornwell/sims - I7000/i7000_defs.h",
+      "url": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7000_defs.h",
+      "note": "`#ifdef I7010 /* Includes 1410 and 7010 */` block, lines 46-58: NUM_CHAN 5, MAXMEMSIZE 100000. CHR_* 6-bit character codes at lines 561-625."
+    },
+    {
+      "title": "rcornwell/sims - I7000/i7010_defs.h",
+      "url": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_defs.h",
+      "note": "AMASK 0x1ffff, `#define WM 0200` (line 33), OP_M = CHR_QUOT (@), OP_D = CHR_RPARN (%)."
+    },
+    {
+      "title": "rcornwell/sims - I7000/i7010_sys.c",
+      "url": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_sys.c",
+      "note": "sim_devices list (CPU, CH, CDR, CDP, LP, INQ, MTA/MTB/MTC, DSK, COM); sim_load stub returning SCPE_NOFNC at lines 220-223."
+    },
+    {
+      "title": "rcornwell/sims - I7000/STATUS.txt",
+      "url": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/STATUS.txt",
+      "note": "i7010 section: protection-mode errors, T020 tape diags fail, PR108 not tested."
+    },
+    {
+      "title": "rcornwell/sims - I7000/tests/i7010_test.ini",
+      "url": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/tests/i7010_test.ini",
+      "note": "The only shipped i7010 test harness. `set cpu 80k prot float pri`, `att lp -n -q diag.lst`, `set ch1 urec=lp`, `bo mta0` against tests/i7010/diag.bin (2.9 MB tape image) - entirely tape-driven, which is why it is unusable for a card-only project."
+    },
+    {
+      "title": "rcornwell/sims - scp.c (SIMH command layer)",
+      "url": "https://raw.githubusercontent.com/rcornwell/sims/master/scp.c",
+      "note": "MATCH_CMD definition at line 463 and its use for device modifiers at 5996-5997 - proves SET modifier keywords are prefix-matched, so `nopri` reaches NOPRIORITY."
+    },
+    {
+      "title": "cube1us/1410 - note1410.txt",
+      "url": "https://raw.githubusercontent.com/cube1us/1410/master/note1410.txt",
+      "note": "Jay Jaeger's project notepad: the address map for the instruction-length, index-register and instruction tests, with cycle-by-cycle expected latch states for the arithmetic and move cases. 19,714 bytes. Contains the '(M)' Multiply slip."
+    },
+    {
+      "title": "cube1us/1410 - UI1410CPUT.cpp (T1410CPU::LoadCore / DumpCore)",
+      "url": "https://raw.githubusercontent.com/cube1us/1410/master/UI1410CPUT.cpp",
+      "note": "Lines 1663-1830. Authoritative definition of the .cor file format including the 2-vs-4 byte word-size compatibility rule."
+    },
+    {
+      "title": "cube1us/1410 - ubcd.h / ubcd.cpp",
+      "url": "https://raw.githubusercontent.com/cube1us/1410/master/ubcd.h",
+      "note": "BCD class bit layout 'WM C B A 8 4 2 1', BITWM 0x80, BITC 0x40, BCD_SPACE = 0|BITC. ubcd.cpp lines 36-100 hold the 64-entry bcd_ascii table used to decode the core images."
+    },
+    {
+      "title": "cube1us/1410 - Core/ (cc01.cor, insttest.cor, ilentest.cor, ilentst2.cor)",
+      "url": "https://github.com/cube1us/1410/tree/master/Core",
+      "note": "Raw files at https://raw.githubusercontent.com/cube1us/1410/master/Core/<name>. GPLv3 (COPYING), Copyright 1998-2000, 2019 Jay R. Jaeger."
+    },
+    {
+      "title": "IBM Diagnostic Engineering Publication - CC01A, 1410/7010 Limited CPU Instruction Test, 11/15/63",
+      "url": "http://www.bitsavers.org/pdf/ibm/1410/diagnostics/DIAGV100/CC01A_1410_Limited_CPU_Instruction_Test.pdf",
+      "note": "48 PDF pages, image-only (no OCR text layer). Cover page = card-only deck contents; page 003 = test description, equipment, card deck; page 004 = loading procedures (1410 E/F channels, 7010 E/F/G/H) and operating hints; page 005 = program stops / typeouts; page 006 = flow chart; listing begins PDF p.9."
+    },
+    {
+      "title": "IBM 1410/7010 Introduction to Diagnostics, 4/15/64",
+      "url": "http://www.bitsavers.org/pdf/ibm/1410/diagnostics/DIAGV100/1410_7010_Introduction_to_Diagnostics.pdf",
+      "note": "42 PDF pages, image-only. TOC on PDF p.5. Sections II (card deck form, p.003), III (standard program card format, p.004), IV (execute card, p.005), V (card sequence, p.006), VI (the seven card loader L1, p.007), VIII (core clear card, p.009), IX (load routine), X (function of TC50)."
+    },
+    {
+      "title": "bitsavers /pdf/ibm/1410/diagnostics/DIAGV100/ directory listing",
+      "url": "http://www.bitsavers.org/pdf/ibm/1410/diagnostics/DIAGV100/",
+      "note": "Contains CC01A (3.0M), CC01A-Part (3.0M), 1410_7010_Diagnostics_Summary_Pages (2.7M), 1410_7010_Introduction_to_Diagnostics (2.8M), listings.pdf (248K), m003e Program Addressable Clock Test, M014B 1410/7010/1401 Compatibility, TC50C Diagnostic Tape Control Program (8.4M). Twelve DIAGVxxx volumes exist in the parent directory."
+    },
+    {
+      "title": "bitsavers /bits/IBM/1410/ directory listing",
+      "url": "http://www.bitsavers.org/bits/IBM/1410/",
+      "note": "The complete machine-readable 1410 software holdings: one directory, 1410-PR-108, containing jpr108-2024.bcd (1.3M tape image), jpr108-2024.zip and four JPEGs. No card decks, no diagnostic images."
+    },
+    {
+      "title": "IBM 1410 Principles of Operation, A22-0526-3",
+      "url": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "note": "Storage models 1-5/1A-5A (10K-80K); channel 2 as a special feature requiring processing overlap; console printer I/O M/L %T0 bbbbb R/W at p.45-46 Figure 44; tape I/O %Ux/%Bx at p.84-91. Used here to identify %T0 as the console printer, not tape."
+    }
+  ]
+}

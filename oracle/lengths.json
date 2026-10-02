@@ -1,0 +1,41 @@
+{
+  "source": "opcodes.md §1.1 / 223-2589 p.53 (OP CODE / FUNCTION / ACCEPTABLE LENGTHS)",
+  "note": "The ONLY 1410 op-code length table that includes the 1-character chained form; the CE Handbook 223-2588-2 p.16 chart omits it. Sourcing lengths from anywhere else (e.g. the tier-2 ilentest inventory) Instruction-Checks every legal chained J. `N` is 'any (no operands)' and is carried as the string \"any\", which isa/table.ts encodes as the empty ANY_LENGTH array. Ops Y, P, Q, $ and = are absent because §1.1 does not list them; their lengths come from opcodes.md §2 and §9.",
+  "lengths": {
+    "A": [1, 6, 11],
+    "S": [1, 6, 11],
+    "?": [1, 6, 11],
+    "!": [1, 6, 11],
+    "@": [1, 6, 11],
+    "%": [1, 6, 11],
+    "Z": [1, 6, 11],
+    "E": [1, 6, 11],
+    "C": [1, 6, 11],
+    ",": [1, 6, 11],
+    "⌑": [1, 6, 11],
+    "/": [1, 6, 11],
+    "D": [1, 6, 12],
+    "T": [1, 6, 12],
+    "B": [1, 6, 12],
+    "W": [1, 6, 12],
+    "V": [1, 6, 12],
+    "G": [7],
+    ".": [1, 6],
+    "F": [2],
+    "2": [2],
+    "K": [2],
+    "4": [2],
+    "J": [1, 7],
+    "R": [7],
+    "X": [7],
+    "M": [10],
+    "L": [10],
+    "U": [5],
+    "N": "any"
+  },
+  "negatives": {
+    "R and X have no chained 1-character form": "A22-0526-3 p.96, A22-0530-1 Figure 1 p.4, 223-2589 p.53 — three independent sources. An emulator that accepts a chained R/X executes instructions the real 1411 rejects on the length check.",
+    "D and T reject 2, 7 and 11": "SimH's 7010 accepts D/T at 1, 2, 6, 7, 11 and 12. The 1410 documents 1, 6, 12 only (opcodes.md §3.3).",
+    "a 1-character chained J is legal": "opcodes.md §1.1 J = 1 or 7; A22-0526-3 p.96 'BRANCH UNCONDITIONALLY … L = 1 or 7'."
+  }
+}

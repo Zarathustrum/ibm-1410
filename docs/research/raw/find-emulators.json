@@ -1,0 +1,329 @@
+{
+ "topic": "Survey of IBM 1410 / 1401 emulators, simulators, test software, and reference material for a TypeScript browser 1410 emulator",
+ "summary": "There is no standalone \"i1410\" in Richard Cornwell's sims repo; the 1410 lives inside the I7000 family as the i7010 simulator (I7000/i7010_cpu.c, i7010_chan.c, i7010_sys.c, i7010_defs.h, plus shared i7000_cdr.c/cdp/lpr/con/mt/dsk/chan). The CPU unit has `set CPU 1401` (MODEL 1, \"Emulate a 1401\") and `set CPU 7010` (\"sets IBM 1410/7010 emulation\"); there is no separate 1410-vs-7010 model flag, so it is really a 7010 with 1401 mode, and 1410 behaviour is the subset (2 channels, 80K). Each source file carries an MIT-style permission notice (Cornwell copyright, 2006); the repo has no top-level LICENSE detected by GitHub. It ships a real regression test: I7000/tests/i7010_test.ini boots tests/i7010/diag.bin (2,930,826 bytes, byte-identical in size to sky-visions.com/ibm/7010/d90_1410.bin, the recovered 1410/7010 diagnostic tape) and drives it with `expect \"OPTION?\"` sending C0 (CPU), CU, T0 (tape), W0, and ST02 (card deck st02.txt in SimH ~raw format). STATUS.txt says: protection mode has errors, T020 tape diags fail, \"PR108 not tested\". Cornwell's sky-visions site hosts the 1410 software corpus: PR-155 master tape (pr155_mst.bcd, 4.1 MB), a pre-generated PR-155 system tape sof.tp, PR-108 tape (pr108.bcd, 4.6 MB) with Autocoder/IOCS/Fortran/COBOL/RPG, sample .job decks (a.job Autocoder, c.job COBOL, f.job Fortran hello world, f108.job primes, pi.job, prime.job, laplace.job), .ini scripts for SimH, and d90_1410.bin diagnostics. This is the best cross-check oracle: run the same tape/deck under SimH i7010 and diff printer output (SimH lp attach to a text file).\n\nJay Jaeger (github cube1us) has three relevant repos. (a) cube1us/1410: a cycle-level 1410 simulator in Borland C++ Builder/VCL (Windows only), GPL-3.0 (COPYING + Copyright.txt, 1998-2000, 2019), with units for 1415 console (UI1415L/IO/CE), 1402 reader/punch, 1403 printer, 729 tape, channels, and a Core/ directory of .cor core images (cc01.cor 40,005 bytes; ilentest.cor, ilentst2.cor, insttest.cor 320,005 bytes each — instruction-length and index-register hand tests described in note1410.txt, plus cc01 = the CC01 limited CPU instruction test). Repo still active (updated 2026-08-08). Not easily runnable on macOS/Linux, but the C++ instruction implementations and the 1415 console fonts (fontlib) are readable reference. (b) cube1us/IBM1410FPGA: VHDL generated from the 1410/1415 ALDs (10,596 logic blocks, 14,021 signals), ~1000+ files under VHDL/ (ALD_*.vhdl with _tb testbenches), no LICENSE file on GitHub; the companion IBM1410SMS (C#, ALD database tool) is GPL-3.0 and IBM1410Console (C#, lights/switches/console/I-O for the FPGA) has no license file. Per his site (mid-2026) the FPGA passes CPU diagnostics CU01 (1410 mode) and M011A (1401 compatibility mode), runs I/O diagnostics, boots PR-108 and full PR-155 including sysgen, with tape over UDP and 1414 unit-record I/O. It is the most faithful reference in existence for cycle-level questions, but as a diff oracle it needs hardware (Digilent Nexys 4).\n\nBrowser/JavaScript 1401 or 1410 emulators: none found. Searches (web + GitHub API for \"1401 ibm language:javascript/typescript\") turned up only aarjavchauhan/IBM1401_generative (JS, not an emulator) and PCjs (no 1401/1410 machine). Existing 1401 emulators are SimH I1401 (C, Supnik, MIT-style, i1401_cpu/cd/lp/mt/dp/iq/sys; simh.trailing-edge.com kits ceo1401.zip diagnostics+SPS, 1401_fortran_autocoder.tgz, 1401koans.zip), ROPE (Java IDE, GPL-2.0, wraps Van Snyder's Fortran-90 Autocoder and SimH), Swift (sanzaru/ibm-1401, incomplete), C++ (ApoorvaJ, incomplete), BAL360 (moshix), Rob Storey's Windows emulator, and the Unreal \"VDC\" 3D datacenter. The 1401-side test corpus (ibm-1401.info, GitHub org IBM-1401: autocoder, disasm, Fortran-II, dump) is useful for the 1410's 1401-compatibility mode only with care: Van Snyder's code chart notes that 1410 does not interpret 1401 op codes #, H, P, Q, Y or 1-9, that G/J/R are 1410-only ops, and that on the 1410 M and L are I/O only — i.e. native 1401 object decks are NOT binary-compatible with native 1410 mode; they only make sense with the 1401-compat switch, which SimH i7010 models (`set CPU 1401`, op_1401[] table, instruction translation at i7010_cpu.c ~line 941-999). The real diagnostic for that mode is IBM's M014B \"1410/7010 1401 Compatibility\" test (bitsavers /pdf/ibm/1410/diagnostics/DIAGV100/, 5.6 MB PDF listing).\n\nReference material: bitsavers /pdf/ibm/1410/ has the Principles of Operation (A22-0526, -2, -3, May63), A22-1407-2 reference, the Oct-61 CE manual, 1414 I/O synchronizer OEM info (A22-6701), Autocoder manuals (C28-0309, C28-0326), and a diagnostics/ tree (DIAGV100..DIAGV601) with scanned listings incl. CC01A limited CPU test, TC50C tape diagnostic control program, M014B 1401 compat, and an Introduction to Diagnostics. bitsavers /bits/IBM/1410/ has only 1410-PR-108/ (jpr108-2024.bcd 1.3 MB, jpr108-2024.zip 308 KB, four photos; direct curl of the zip returns 403, needs a browser/referrer). Ken Shirriff's posts give visual/physical facts (1401 core: 4,000 chars base, 14 planes 50x80, 8 bits per location = 6 BCD + word mark + parity, 11.5 us cycle; 1403: 132 columns, chain of 48 chars x5, 600 lpm, hammers, 11.1 us/0.001 in chain step; boot/word-mark/card code explanation) — all 1401-specific, but the 1402/1403/729 peripherals and card/BCD codes are shared with the 1410. Van Snyder's \"IBM 1401/1440/1460/1410/7010 Character Code Chart\" (ibm-1401.info/Van1401-CodeChart.pdf, 2 pages) is the single best card-code/BCD/ASCII mapping table, including SimH and Pierce ASCII conventions and the 1410-specific notes.",
+ "facts": [
+  {
+   "claim": "Cornwell's sims repo has no I1410 directory; the 1410 is emulated by the i7010 simulator under I7000/ (files i7010_cpu.c, i7010_chan.c, i7010_defs.h, i7010_sys.c plus shared i7000_cdr.c, i7000_cdp.c, i7000_lpr.c, i7000_con.c, i7000_mt.c, i7000_dsk.c, i7000_chan.c, i7000_com.c, i7000_chron.c, i7000_ht.c).",
+   "source": "https://api.github.com/repos/rcornwell/sims/contents/I7000 (and 404 on /tree/master/I1410)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "i7010_cpu.c help text: 'The CPU can be set to a IBM 1401 or IBM 1410/7010'; `set CPU 1401` = 1401 emulation (MODEL(1)), `set CPU 7010` = 1410/7010 emulation (MODEL(2)); options prot, float, pri; there is no distinct 1410 model setting.",
+   "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_cpu.c (lines ~208-209, ~3998-4001)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "i7010_cpu.c has a 1401 opcode table op_1401[64] and translates 1401 instructions to 1410 form in 1401 mode (comments 'Handle 1401 emulation mode', 'Translate instruction from 1401 to 1410', 'Handle 1401 I/O opcodes').",
+   "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_cpu.c lines ~317, 797, 941, 999",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Cornwell i7010 source files carry an MIT-style permission notice, Copyright (c) 2006 Richard Cornwell; GitHub reports no top-level license for rcornwell/sims.",
+   "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_cpu.c header; https://api.github.com/repos/rcornwell/sims (license: null)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "rcornwell/sims ships I7000/tests/i7010_test.ini which boots tests/i7010/diag.bin (2,930,826 bytes) on mta0 with `set cpu 80k prot float pri`, answers the diagnostic monitor prompt 'OPTION?' with C0, CU, T0, W0 and ST02, attaches the printer to diag.lst, and feeds card deck st02.txt (SimH ~raw format, 494,247 bytes) to cdr0.",
+   "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/tests/i7010_test.ini; https://api.github.com/repos/rcornwell/sims/contents/I7000/tests/i7010",
+   "confidence": "verified"
+  },
+  {
+   "claim": "The test diag.bin is the same size (2,930,826 bytes) as sky-visions.com/ibm/7010/d90_1410.bin, described there as 'Diagnostics for the 1410 and 7010 and most of the peripherals'.",
+   "source": "HEAD https://sky-visions.com/ibm/7010/d90_1410.bin; https://sky-visions.com/ibm/ibm7010_soft.shtml",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Cornwell's STATUS.txt for i7010: 'Protection mode has some errors left', 'T020 tape diags fail', 'Disks may work', 'PR108 not tested'.",
+   "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/STATUS.txt",
+   "confidence": "verified"
+  },
+  {
+   "claim": "i7010_sys.c device table includes cpu, chan, cdr, cdp, stack, lpr, con, mta/mtb/mtc tape, hsdrm/drm drums, dsk, coml/com, chron.",
+   "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_sys.c",
+   "confidence": "verified"
+  },
+  {
+   "claim": "sky-visions.com hosts 1410/7010 software: PR-155 (7010/pr155/pr155_mst.bcd 4,105,577 bytes, sof.tp, gensgf.job/.ini, gensof.job/.ini, autotest.job, pi.job, prime.job, laplace.job, pr155.ini), PR-108 (7010/pr108/pr108.bcd 4,616,734 bytes, pr108_20k.tp, a.job, c.job, f.job, f108.job, s.job, s20k.job, a.ini), and diagnostics (7010/d90_1410.bin, d90_1410.ini).",
+   "source": "https://sky-visions.com/ibm/ibm7010_soft.shtml (href list) and HEAD requests",
+   "confidence": "verified"
+  },
+  {
+   "claim": "sky-visions says the PR-155 master tape comes from Paul Pierce's tape adc00036 with parity errors fixed; the site lacks a disk master tape.",
+   "source": "https://sky-visions.com/ibm/ibm7010_soft.shtml via search snippet",
+   "confidence": "likely"
+  },
+  {
+   "claim": "cube1us/1410 is a cycle-level IBM 1410 simulator in C++ (Borland C++ Builder + VCL, Windows), licensed GPL-3.0, copyright 1998-2000, 2019 Jay R. Jaeger; last updated 2026-08-08.",
+   "source": "https://api.github.com/repos/cube1us/1410; https://raw.githubusercontent.com/cube1us/1410/master/README; Copyright.txt",
+   "confidence": "verified"
+  },
+  {
+   "claim": "cube1us/1410 contains units for 1415 console (UI1415L, UI1415IO, UI1415CE), 1402 reader/punch/stacker (UI1402*), 1403 printer (UI1403, UIPRINTER), 729 tape (UI729TAPE, UITAPETAU, UITAPEUNIT), channel, arithmetic, branch, edit/data, debug window, power panel, and a BCD table (ubcd.cpp/.txt), plus fontlib with 1415 console and 1403 printer fonts (.FON/.FNT).",
+   "source": "https://api.github.com/repos/cube1us/1410/contents/ ; README",
+   "confidence": "verified"
+  },
+  {
+   "claim": "cube1us/1410/Core holds test core images: cc01.cor (40,005 bytes), ilentest.cor, ilentst2.cor, insttest.cor (320,005 bytes each). note1410.txt documents ilentst as instruction-length decode tests at addresses 00100-02100 (one per opcode A S ? ! M % D Z E C T J X R B W V G , lozenge / . and I/O ops) and index-register tests at 02200-02288 using all 15 index registers at 00025+.",
+   "source": "https://api.github.com/repos/cube1us/1410/contents/Core; https://raw.githubusercontent.com/cube1us/1410/master/note1410.txt",
+   "confidence": "verified"
+  },
+  {
+   "claim": "cube1us/1410 README TODO: no disk support (130x/1311); PR-155 OS cannot reside on a 1311.",
+   "source": "https://raw.githubusercontent.com/cube1us/1410/master/README",
+   "confidence": "verified"
+  },
+  {
+   "claim": "cube1us/IBM1410FPGA is a VHDL implementation of the 1410 generated from the ALDs (directories VHDL/ and dbModel/, >1000 files in VHDL/ named ALD_<sheet>_*.vhdl with *_tb.vhdl testbenches); GitHub detects no license file; last updated 2026-08-21.",
+   "source": "https://api.github.com/repos/cube1us/IBM1410FPGA and /contents/VHDL",
+   "confidence": "verified"
+  },
+  {
+   "claim": "cube1us/IBM1410SMS (C#, ALD capture database) is GPL-3.0; cube1us/IBM1410Console (C#, lights/switches/console/I-O for the FPGA) has no license file detected.",
+   "source": "https://api.github.com/repos/cube1us/IBM1410SMS ; https://api.github.com/repos/cube1us/IBM1410Console",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Jaeger's FPGA status page: CPU diagnostics CU01 (1410 mode) and M011A (1401 mode) pass; I/O diagnostics run; boots PR-108 and full PR-155 including Autocoder and PR-155 sysgen; tape via UDP with PC-side support (late 2025); 1414 unit-record I/O (mid-2026); board is Digilent Nexys 4.",
+   "source": "https://www.computercollection.net/index.php/ibm-1410-fpga-implementation/ ; https://www.computercollection.net/index.php/2021/05/02/ibm-1410-fpga-posted-to-github/",
+   "confidence": "likely"
+  },
+  {
+   "claim": "The 1410's 1401 compatibility mode was a hardwired (not microcoded) feature enabled by a console switch.",
+   "source": "https://www.computercollection.net/index.php/the-ibm-1410-data-processing-system/ ; https://ibm-1401.info/IBM1410FPGA.html",
+   "confidence": "likely"
+  },
+  {
+   "claim": "No JavaScript/TypeScript/WebAssembly browser emulator of the IBM 1401 or 1410 was found; GitHub searches for '1401 ibm language:javascript' return only aarjavchauhan/IBM1401_generative (not an emulator) and for language:typescript nothing; PCjs has no 1401/1410 machine.",
+   "source": "https://api.github.com/search/repositories?q=1401+ibm+language:javascript ; https://www.pcjs.org/ ; https://retrocomputingforum.com/t/ibm-1401-emulators/3143",
+   "confidence": "likely"
+  },
+  {
+   "claim": "Other 1401 emulators: SimH I1401 (C, Robert Supnik, MIT-style notice, files i1401_cpu.c, i1401_cd.c, i1401_lp.c, i1401_mt.c, i1401_dp.c, i1401_iq.c, i1401_sys.c, i1401_defs.h, i1401_dat.h; simulates 1402, 1403, 1311, 729, inquiry); sanzaru/ibm-1401 (Swift, incomplete); ApoorvaJ/IBM-1401 (C++, incomplete); moshix/IBM1401 (S/360 BAL for MVS 3.8); Rob Storey Windows emulator (2002); Unreal 'VDC' 3D datacenter (Mac).",
+   "source": "https://raw.githubusercontent.com/simh/simh/master/I1401/i1401_cpu.c ; https://github.com/simh/simh/tree/master/I1401 ; GitHub search API; https://retrocomputingforum.com/t/ibm-1401-emulators/3143",
+   "confidence": "verified"
+  },
+  {
+   "claim": "SimH 'Classic' software kits for the 1401: ceo1401.zip (diagnostics + SPS assembler; bootable diagnostics tape circa 1962), 1401_fortran_autocoder.tgz (courtesy Van Snyder), 1401koans.zip (three single-card programs). No 1410 kits there.",
+   "source": "https://simh.trailing-edge.com/software.html",
+   "confidence": "verified"
+  },
+  {
+   "claim": "ROPE (Ron's Own Programming Environment) is a Java IDE for the 1401, GPL-2.0, wrapping Van Snyder's Fortran-90 Autocoder (v3.13) and SimH; current source github.com/lucaseverini/ROPE (Luca Severini), older github.com/jpf/ROPE; includes sample lincoln.s. Autocoder binaries are 32-bit (macOS/Windows compatibility issues).",
+   "source": "https://github.com/lucaseverini/ROPE ; https://ibm-1401.info/1401SoftwDevel.html",
+   "confidence": "verified"
+  },
+  {
+   "claim": "ibm-1401.info resources: Van1401-CodeChart.pdf ('IBM 1401/1440/1460/1410/7010 Character Code Chart', BCD order and collating order, with print glyph, three ASCII conventions (SimH, Pierce primary, Pierce alternative), op code, card punch code, BCD bits), 1401-CardDeckFormats.html (three object-deck loader styles; word-separator char sets word mark on next char), 1403-CarriageControl.html, sample programs (99 bottles, Mandelbrot, Bitcoin, Hexapawn), Van Snyder utilities, 1401-FORTRAN-SIMH.html.",
+   "source": "https://ibm-1401.info/ ; https://ibm-1401.info/Van1401-CodeChart.pdf (read both pages) ; https://ibm-1401.info/1401-CardDeckFormats.html",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Van Snyder code chart 1410-specific notes: 'D, T and X have different meanings in 1401, 1460 and 1410. 1410 does not interpret #, H, P, Q, Y or 1-9. G, J and R are 1410 only. M and L on 1410 are only for I/O.' '% and @ are standard on 1410. 7010 and 1410 are compatible.' Card code 2-8 prints as cent sign on 1410. Word Separator = CA841 (0-5-8), Record Mark = A82 (0-2-8), Group Mark = CBA8421 (12-7-8).",
+   "source": "https://ibm-1401.info/Van1401-CodeChart.pdf (read)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "ibm-1401.info '1401 REPAIR QUIZ' (1401-test-0001.html) is a technician study quiz, not a diagnostic program.",
+   "source": "https://ibm-1401.info/1401-test-0001.html",
+   "confidence": "verified"
+  },
+  {
+   "claim": "GitHub org IBM-1401 hosts autocoder (Fortran), disasm (Fortran), autocoder_1401 (the real Autocoder in 1401 assembly), Fortran-v3m0/v3m4 sources, dump, tpdump (SimH tape dumper), 3to5/5to3 address converters; lkesteloot/1401 has 1401 programs in C.",
+   "source": "https://api.github.com/search/repositories?q=1401+ibm",
+   "confidence": "verified"
+  },
+  {
+   "claim": "bitsavers /pdf/ibm/1410/ includes A22-0526-2, -3, A22-0526 and May63 1410 Principles of Operation, A22-1407-2 1410 reference (Nov61), 1410_CE_Manual_Oct61, 223-2589 System Fundamentals (Nov63), A22-6701 1414 I/O Synchronizer OEM information, A22-0530-1 priority feature, C28-0309(-1) Autocoder, C28-0326-1/-2 OS Autocoder, IOCS, COBOL, Fortran, sysgen, sort, utility manuals, and subdirs CE_Instruction_Reference_Maintenance/, diagnostics/, drawings/.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/ directory listing",
+   "confidence": "verified"
+  },
+  {
+   "claim": "bitsavers /pdf/ibm/1410/diagnostics/ has DIAGV100, V200, V201, V202-K2, V300, V301, V400, V500, V500-K2, V600, V601, V601-K2; DIAGV100 contains 1410_7010_Diagnostics_Summary_Pages.pdf, 1410_7010_Introduction_to_Diagnostics.pdf, CC01A_1410_Limited_CPU_Instruction_Test.pdf, m003e_1410_Program_Addressable_Clock_Test.pdf, M014B_1410_7010_1401_Compatibility.pdf (5,642,919 bytes), TC50C_1410_7010_Diagnostic_Tape_Control_Program.pdf, listings.pdf.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/diagnostics/ and /DIAGV100/ listings; HEAD on M014B",
+   "confidence": "verified"
+  },
+  {
+   "claim": "bitsavers /bits/IBM/1410/ has only 1410-PR-108/ containing jpr108-2024.bcd (1.3 MB), jpr108-2024.zip (308 KB) and four JPGs (1410_1..4.jpg), dated 2024-03-24; a plain curl of the zip returns HTTP 403.",
+   "source": "http://bitsavers.org/bits/IBM/1410/1410-PR-108/ listing; curl result",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Ken Shirriff 1401 core memory post: 4,000 characters base (expandable to 16K), 14 core planes each 50x80, 8 bits per location (6 BCD + word mark + parity), X select/inhibit and Y select/sense wires, 5x10 X and 8x10 Y matrix switches, memory cycle 11.5 us, 6 sparse I/O planes of 297 cores for brush/hammer checks. (1401 facts; 1410 differs.)",
+   "source": "https://www.righto.com/2015/08/examining-core-memory-module-inside.html",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Ken Shirriff 1403 posts: chain of 48 characters repeated 5 times, 132 hammers each with an electromagnet, chain moves 0.001 inch every 11.1 us giving a vernier alignment so only one hammer lines up at a time, 600 lpm on 1403 (10 lines/s), 100/120/132-column widths at 10 cpi, 14 7/8 x 11 in green-bar paper; interactive print-chain animation at static.righto.com/ibm1401/printchain.html.",
+   "source": "https://www.righto.com/2019/01/accounting-machines-ibm-1403-and-why.html ; http://www.righto.com/2018/12/hammer-time-fixing-printer-on-vintage.html ; https://ibm-1401.info/KenShirriff-1403Animation.html",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Ken Shirriff 1401 boot post: Load button reads first card into 1-80, sets word mark at 1 and executes; bootstrap cards set word marks and clear storage; program cards carry code left and loader instructions right; word marks cannot be punched on cards so loaders set them with Set Word Mark (',') instructions; Clear Storage is '/'. (1401 facts; 1410 load path differs.)",
+   "source": "https://www.righto.com/2021/02/an-ibm-1401-mainframe-computer-at.html",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Other Shirriff 1401 posts: germanium transistor/SMS logic (2021/03), Christmas card (2017/12), line printer music (2019/09), Mandelbrot (2015/03), 'The printer that wouldn't print' (2018/09); label index at righto.com/search/label/ibm1401. shirriff/groupmark repo proposes Unicode group mark.",
+   "source": "http://www.righto.com/search/label/ibm1401 ; GitHub search",
+   "confidence": "verified"
+  }
+ ],
+ "tables": [
+  {
+   "title": "Emulator / simulator survey — oracle suitability",
+   "markdown": "| Project | URL | Machine | Language / platform | License | Test material shipped | Oracle usefulness for a TS 1410 |\n|---|---|---|---|---|---|---|\n| Cornwell sims, i7010 (in I7000/) | https://github.com/rcornwell/sims/tree/master/I7000 | 1410/7010 + 1401 mode (`set CPU 1401`/`7010`) | C, SimH, builds on macOS/Linux | MIT-style per-file notice | tests/i7010_test.ini + diag.bin (1410/7010 diag tape) + st02.txt card deck | Best. Run same tape/deck, attach lp to file, diff. Caveats: STATUS says prot mode errors, T020 fails, PR108 untested |\n| sky-visions 1410/7010 software | https://sky-visions.com/ibm/ibm7010_soft.shtml | 1410/7010 | tape images (.bcd/.tp/.bin), .job decks, SimH .ini | not stated | PR-155 master + sof.tp, PR-108, d90_1410.bin diagnostics, sample Autocoder/COBOL/Fortran jobs | The test corpus to feed both emulators |\n| cube1us/1410 (Jaeger) | https://github.com/cube1us/1410 | 1410 (cycle level) | C++ Borland C++ Builder/VCL, Windows | GPL-3.0 | Core/*.cor hand tests (cc01, ilentest, insttest) + note1410.txt | Reference reading only unless you have Windows + C++ Builder; core images reusable |\n| cube1us/IBM1410FPGA (+IBM1410Console, IBM1410SMS) | https://github.com/cube1us/IBM1410FPGA | 1410 from ALDs | VHDL (+C# console) | none detected (SMS is GPL-3.0) | passes CU01, M011A, boots PR-108/PR-155 (per author's site) | Ground truth for cycle-level questions; needs Nexys 4 hardware, not a diff oracle |\n| SimH I1401 | https://github.com/simh/simh/tree/master/I1401 | 1401 only | C | MIT-style | ceo1401.zip diagnostics+SPS, Autocoder/Fortran kit, koans (simh.trailing-edge.com/software.html) | Oracle for 1401-compat mode only; not a 1410 |\n| ROPE | https://github.com/lucaseverini/ROPE | 1401 | Java + Fortran Autocoder + SimH | GPL-2.0 | lincoln.s sample | Assembler for 1401-compat test programs |\n| Browser/JS 1401 or 1410 | — | — | — | — | — | None found |",
+   "source": "Compiled from GitHub API queries, https://sky-visions.com/ibm/ibm7010_soft.shtml, https://simh.trailing-edge.com/software.html, https://www.computercollection.net/index.php/ibm-1410-fpga-implementation/"
+  },
+  {
+   "title": "1410-relevant BCD/card codes for control characters (from Van Snyder chart)",
+   "markdown": "| IBM character | Card code | BCD bits | Notes |\n|---|---|---|---|\n| Record Mark (‡) | 0-2-8 | A82 | prints as ‡; SimH ASCII ' or || |\n| Group Mark | 12-7-8 | CBA8421 | SimH ASCII \" or } |\n| Word Separator (=) | 0-5-8 | CA841 | on tape indicates next char has word mark |\n| Tape Segment (\") | 0-7-8 | CA8421 | |\n| Mode Change (Δ) | 11-7-8 | B8421 | |\n| ¢ (cent) | 2-8 | A | 1410 glyph; ⌑ on 1401 |\n| Blank | none | C | |\n| ! (minus zero) | 11-0 | B82 | |\n| ? (plus zero) | 12-0 | CBA82 | |",
+   "source": "https://ibm-1401.info/Van1401-CodeChart.pdf (pages 1-2, read directly)"
+  }
+ ],
+ "open_questions": [
+  "Exact license of cube1us/IBM1410FPGA and IBM1410Console (no LICENSE file detected; author's site does not state one) — ask Jay Jaeger before reusing VHDL-derived tables.",
+  "Whether Cornwell's i7010 in '7010' mode can be constrained to a strict 1410 configuration (2 channels, 80K, no float) for diffing — the CPU has MEMAMOUNT/OPTION flags but no separate 1410 model; needs a read of i7010_defs.h/channel code.",
+  "Which diagnostics on d90_1410.bin correspond to bitsavers listings (CC01A, M014B, TC50C) and which fail under SimH (T020C per STATUS/test.ini) — needs running the test.ini locally.",
+  "Contents of bitsavers jpr108-2024.zip (403 to curl; likely readable with browser) and how it differs from sky-visions pr108.bcd.",
+  "No 1410-mode 1415 console character set / print behaviour was verified from a primary source here — read A22-0526 PrincOps console chapter for that.",
+  "1403 chain character set on the 1410 (A chain vs H chain; the 1410 also supported 1403 model 2/3) — verify in 1410 PrincOps or the 1403 component description, not covered in this pass."
+ ],
+ "sources": [
+  {
+   "title": "rcornwell/sims I7000 directory (i7010 = 1410/7010 simulator)",
+   "url": "https://github.com/rcornwell/sims/tree/master/I7000",
+   "note": "i7010_cpu.c, tests/i7010_test.ini, STATUS.txt"
+  },
+  {
+   "title": "Sky Visions IBM 7010/1410 software (PR-155, PR-108, diagnostics)",
+   "url": "https://sky-visions.com/ibm/ibm7010_soft.shtml",
+   "note": "Richard Cornwell; d90_1410.bin, pr155_mst.bcd, pr108.bcd, .job samples"
+  },
+  {
+   "title": "Sky Visions IBM 1410 & 7010 info",
+   "url": "https://sky-visions.com/ibm/ibm1410.shtml"
+  },
+  {
+   "title": "Sky Visions 1410/7010 programmer's model",
+   "url": "https://sky-visions.com/ibm/ibm7010_instr.shtml",
+   "note": "not read in this pass"
+  },
+  {
+   "title": "cube1us/1410 cycle-level simulator (GPL-3.0, C++ Builder)",
+   "url": "https://github.com/cube1us/1410"
+  },
+  {
+   "title": "cube1us/IBM1410FPGA (VHDL from ALDs)",
+   "url": "https://github.com/cube1us/IBM1410FPGA"
+  },
+  {
+   "title": "cube1us/IBM1410SMS (GPL-3.0, C#)",
+   "url": "https://github.com/cube1us/IBM1410SMS"
+  },
+  {
+   "title": "cube1us/IBM1410Console (C#)",
+   "url": "https://github.com/cube1us/IBM1410Console"
+  },
+  {
+   "title": "The Computer Collection — IBM 1410 FPGA Implementation (status)",
+   "url": "https://www.computercollection.net/index.php/ibm-1410-fpga-implementation/"
+  },
+  {
+   "title": "The Computer Collection — IBM 1410 Simulator",
+   "url": "https://www.computercollection.net/index.php/ibm-1410-simulator/"
+  },
+  {
+   "title": "The Computer Collection — IBM 1410 Data Processing System",
+   "url": "https://www.computercollection.net/index.php/the-ibm-1410-data-processing-system/"
+  },
+  {
+   "title": "ibm-1401.info — A developing IBM 1410 FPGA implementation",
+   "url": "https://ibm-1401.info/IBM1410FPGA.html"
+  },
+  {
+   "title": "bitsavers IBM 1410 manuals",
+   "url": "http://bitsavers.org/pdf/ibm/1410/"
+  },
+  {
+   "title": "bitsavers IBM 1410 diagnostics listings",
+   "url": "http://bitsavers.org/pdf/ibm/1410/diagnostics/"
+  },
+  {
+   "title": "bitsavers 1410 DIAGV100 (CC01A, M014B, TC50C)",
+   "url": "http://bitsavers.org/pdf/ibm/1410/diagnostics/DIAGV100/"
+  },
+  {
+   "title": "bitsavers /bits/IBM/1410/1410-PR-108",
+   "url": "http://bitsavers.org/bits/IBM/1410/1410-PR-108/"
+  },
+  {
+   "title": "simh/simh I1401",
+   "url": "https://github.com/simh/simh/tree/master/I1401"
+  },
+  {
+   "title": "SimH Classic software kits (1401 diagnostics, Autocoder, koans)",
+   "url": "https://simh.trailing-edge.com/software.html"
+  },
+  {
+   "title": "SimH IBM 1401 Simulator Usage",
+   "url": "https://simh.trailing-edge.com/pdf/i1401_doc.pdf"
+  },
+  {
+   "title": "ROPE IDE (GPL-2.0)",
+   "url": "https://github.com/lucaseverini/ROPE"
+  },
+  {
+   "title": "ibm-1401.info home",
+   "url": "https://ibm-1401.info/"
+  },
+  {
+   "title": "ibm-1401.info 1401 Software Development",
+   "url": "https://ibm-1401.info/1401SoftwDevel.html"
+  },
+  {
+   "title": "Van Snyder 1401/1440/1460/1410/7010 Character Code Chart",
+   "url": "https://ibm-1401.info/Van1401-CodeChart.pdf",
+   "note": "read both pages"
+  },
+  {
+   "title": "ibm-1401.info Card Deck Formats",
+   "url": "https://ibm-1401.info/1401-CardDeckFormats.html"
+  },
+  {
+   "title": "ibm-1401.info Tricks for Simulation",
+   "url": "https://ibm-1401.info/TricksForSimulation.html"
+  },
+  {
+   "title": "Ken Shirriff — 1401 core memory",
+   "url": "https://www.righto.com/2015/08/examining-core-memory-module-inside.html"
+  },
+  {
+   "title": "Ken Shirriff — Booting the IBM 1401",
+   "url": "https://www.righto.com/2021/02/an-ibm-1401-mainframe-computer-at.html"
+  },
+  {
+   "title": "Ken Shirriff — Accounting machines, the IBM 1403, and 132 columns",
+   "url": "https://www.righto.com/2019/01/accounting-machines-ibm-1403-and-why.html"
+  },
+  {
+   "title": "Ken Shirriff — Hammer time: fixing the 1403",
+   "url": "http://www.righto.com/2018/12/hammer-time-fixing-printer-on-vintage.html"
+  },
+  {
+   "title": "Ken Shirriff — 1403 print chain animation",
+   "url": "https://static.righto.com/ibm1401/printchain.html"
+  },
+  {
+   "title": "Ken Shirriff ibm1401 label index",
+   "url": "http://www.righto.com/search/label/ibm1401"
+  },
+  {
+   "title": "retrocomputingforum — IBM 1401 emulators thread",
+   "url": "https://retrocomputingforum.com/t/ibm-1401-emulators/3143"
+  },
+  {
+   "title": "GitHub org IBM-1401 (autocoder, disasm, Fortran II sources)",
+   "url": "https://github.com/IBM-1401"
+  }
+ ]
+}

@@ -1,0 +1,66 @@
+{
+ "topic": "IBM 1410 core architecture (storage, character format, addressing, indexing, registers, instruction formats, chaining, word marks, arithmetic/compare model, Priority feature, 1401 compatibility)",
+ "refuted": [
+  {
+   "claim": "Storage protection existed as a feature on the IBM 7010, not on the 1410 (asserted from memory, unverified)",
+   "why": "Partially wrong as stated. The 7010 Principles of Operation A22-6726 table of contents (pp.3, read this session) has no storage-protection section either — it lists System Concepts, Arithmetic, Data Ops, Branch, I/O, Channel Interlock, Processing Overlap, Priority Processing, Console, Reference. The only source found that treats storage protection as a 7010 feature is Richard Cornwell's SimH i7010 emulator (SET CPU PROT 'enables memory protection feature', listed under 'For the IBM 7010 the following options can be enabled', implemented as low_addr/high_addr bounds + reloc flag in i7010_cpu.c). That is a secondary source; no IBM primary for it was located.",
+   "correction": "Neither the 1410 PrincOps (A22-0526-3, A22-0526 May-63) nor the base 7010 PrincOps (A22-6726) documents storage protection. Treat 7010 storage protect as 'likely, secondary-source only' (SimH), not as a documented base feature. For a 1410 emulator: no storage protection, period.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/A22-6726_7010_PrincOps.pdf p.3 (TOC); https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_cpu.c (OPTION_PROT, cpu_help)"
+  },
+  {
+   "claim": "1401-mode BAR after print: '1401 333 vs 1410 335'",
+   "why": "Manual's chart reads '333*' for the 1401 with footnote '*335 for an unbuffered printer'; i.e. the 1401 value itself depends on whether the 1401 has print storage. Minor, but an emulator that hard-codes 333 for the 1401 side would be wrong for unbuffered-printer 1401s.",
+   "correction": "1401: 333 (buffered / print storage) or 335 (unbuffered printer); 1410 in 1401 mode: 335 always. Read: 081 vs 082; Punch: 181 vs 183; ops 5/6/7: 181 vs 183.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.99 'B-Address Register' chart"
+  }
+ ],
+ "upgraded": [],
+ "additions": [
+  {
+   "claim": "Priority interrupt has an extra precondition the finder omitted: the main-routine interrupt occurs only when (a) the op code being read is interruptible, (b) 'the channel to be used is not busy', (c) system is in priority alert mode, and (d) a priority request indicator is on. Also: if an overlap priority request arrives too late during read-out of an interruptible instruction and the NEXT instruction is a Branch-if-I/O-Channel-Status-On (R/X), the request indicator is reset by that R/X and NO interrupt occurs; otherwise the interrupt fires at the read-out of the next interruptible instruction.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf pp.3–4, 6",
+   "confidence": "verified"
+  },
+  {
+   "claim": "A priority request indicator turning on turns OFF the priority-alert-mode indicator (if on) and causes the branch to 00101; the attention priority request indicator is only temporarily reset by program/computer reset and re-asserts at the next instruction read-out. Inquiry request indicator is turned off automatically when all inquiry requests are serviced by a read directed to the causing unit (console release key resets console-caused ones); seek request turns off automatically when seek-complete status of all access mechanisms is reset by a read/write/I-O NOP to those units.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf pp.4–5 Figure 2, p.7",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Channel interlock removal rule (Priority bulletin wording): the channel-1 interlock is removed by an R(I)‡ (group-mark d, tests all six) OR by any R(I)d that results in a branch; likewise X(I)‡ / branching X(I)d for channel 2. An R/X test that does NOT branch (and is not the group-mark form) does not release the interlock.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf p.8",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Write Tape Mark (U x T x M) is the only short-form (2-char) I/O instruction that can actually be overlapped; a following J(I)1/2 reports overlap in process because it uses the same circuits as an M/L with a zero-length field. Any other short-form I/O instruction coded in overlap mode runs as non-overlap. No two I/O devices can operate simultaneously on the same channel.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.94 'Processing Overlap' (OCR lines ~10740–10760)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Compare/indicator reset detail: computer reset turns OFF the zero-result (zero balance) indicator and turns ON the low-compare and unequal-compare indicators; overflow and divide-overflow indicators are reset only by the testing branch (J(I)Z / J(I)W), computer reset, or power-on reset. Zero-balance light is set/reset only by A, S, ZA, ZS, @ (multiply) — never by divide.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.36 (Branch Conditionally, indicator reset paragraph) and p.53 (Overflow / Divide Overflow / Zero Balance lights)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "ZA one-field sign rule precisely: numeric data unchanged, zones stripped from all but the sign position, sign polarity kept; a plus sign NOT composed of B+A (i.e. no-zone or A-only) is rewritten as B+A. Example: A-field '#b&-bn%' zero-added to itself becomes 300004D; ABCD5 becomes 1234E. Registers after: NSI, A-LA, A-LA.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.18 'Zero and Add (One Field)'",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Divide result placement: units position of the quotient = address of units of dividend − length of divisor − 1; remainder sign = sign of original dividend; quotient sign per algebraic rules placed over the quotient units. Divisor with no zone bits in units is assumed positive; the dividend MUST carry a B+A or B sign in its units (the sign stops the division). Quotient positions must be zero at start.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf pp.20–21 'Divide'",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1401-mode card code difference in detail: in 1410 (both modes) an A-bit-only core character (substitute blank) is punched as 8-2 and an 8-2 column reads as A-bit; the 1401 punches it as a 0 and reads 8-2 as invalid (no-charge RPQ 898148 makes a 1401 behave like the 1410). MLP-coded cards cause a 1402 validity check on the 1410: in 1401 mode it is a reader check in the 1411; in 1410 mode it sets the data-check channel status indicator.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.99 'Card Read-Punch Character Set' / 'Card Read-Punch Operations'",
+   "confidence": "verified"
+  },
+  {
+   "claim": "SimH i7010 (Cornwell) is the only existing open-source 1410/7010 CPU emulator found; it is a combined 1401/1410/7010 model (SET CPU 1401 | 7010), memory 10K–100K in 10K steps, options PRIORITY, FLOAT (7010 decimal floating point), PROT (7010 memory protection with low/high bounds and relocation). Useful as a behavioral cross-check for compare/arith edge cases but its 1410-vs-7010 distinctions are not always explicit in code.",
+   "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_cpu.c (header comment, cpu_mod table, cpu_help)",
+   "confidence": "verified"
+  }
+ ],
+ "notes": "Method: used a text-layer OCR of A22-0526-3 already present in the scratchpad (princops_a22-0526-3.txt, 348 KB; page numbering per the finder) plus fresh image reads of A22-0530-1 (Priority) pp.3–9 and A22-6726 (7010 PrincOps) pp.1–6, and Cornwell's SimH i7010_cpu.c. Direct bitsavers HTTPS fetches return 403 without a browser User-Agent; use curl -A with a Mozilla UA over http.\n\nIndependently re-confirmed in the primary source (all were already marked 'verified' by the finder, so not listed under 'upgraded'): address bounds (00000 always valid incrementing; 00000 decrementing = address check, no exceptions; top address rules incl. console display/alter and 'to end of core' exceptions); index register block 00025–00099 and Figure 10 tag table (all 15 rows match); indexing semantics (algebraic add after entering address register, WMs ignored, zones ignored except sign position, overflow latch NOT set, 10K high-order-must-be-zero note, 34.5 µs / 30.67 µs with Accelerator); IAR behaviour incl. reset to 00001 and branch-address+1; CAR/DAR/EAR/FAR/STAR descriptions; chaining incl. op-modifier blanking after 11-char instructions; branch register effects (two-address no-branch BAR = B−1; one-address no-branch AAR=BAR=BI; branch: NSIB→BAR, AAR→STAR, IAR=+1); Figure 11 sign table incl. A-only = plus; digit coding (blank/&/−/substitute-blank → 0, others drop 8-bit, GM → G or 7, # → 3); Figure 12 add-cycle table; overflow and zero-balance rules; compare rule that a shorter A-field turns on HIGH and reset-by-compare/table-lookup/BCE; divide addressing (B = leftmost of dividend, length = Ldivisor+Ldividend+1, BAR after = tens of quotient); MCS registers NSI/A-LA/B+1; G stores at C-address without touching AAR; clear-storage ends with BAR at bbb00−1; computer reset vs program reset lists; 1401 compat feature lists, 8K/16K rule, parity-→'*', quotient-blank→zero, two-word-separator tape behaviour; sense-bit switches act as sense switches only in 1401 mode; Priority Figure 1 interruptible-length table (every row matches), 00101 interrupt address, Y(I)d table, I/O NOP Q/V, R/X d-bit meanings; EAR ends two positions right of last character read on overlapped tape write.\n\nNot testable this session: the open questions on 1401-mode 3-character address decoding (PrincOps compat section indeed does not describe it; needs 1410 CE manual or TNL N22-0030), exact IAR/BAR snapshot at interrupt (bulletin only says 'store BAR and subtract 6'), and Move-and-Edit (E) rules. No 1401-vs-1410 confusion was found in the finder's claims; the one soft spot is the 1401-side print-BAR value (333 vs 335 depends on 1401 print storage)."
+}

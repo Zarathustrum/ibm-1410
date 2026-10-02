@@ -1,0 +1,212 @@
+{
+  "topic": "gap-dcw-dc-ds-word-mark-placement",
+  "summary": "The gap is closed and the answer is explicit in primary sources, not an inference from 1401 practice. IBM 1410 Autocoder (C28-0309-1, p.12) states flatly: \"Symbolic labels address the low-order position of the constant. Word marks are set in the high-order positions of all constants.\" The OS Autocoder (C28-0326-2, p.28) repeats it and adds the indent rule precisely: \"The processor places a word mark over the high-order position of the defined constant. The label of the dcw statement makes reference to the address of the low-order position of the constant. The high-order position will be referenced if the label is indented one column in the label field; that is, if it begins in column 7.\" So a DCW's word mark goes on the LEFTMOST (high-order) character and the symbol resolves to the RIGHTMOST (low-order) character unless the label starts in column 7. This is the same convention as the DA sub-entry rule already found in the research (C28-0309-1 p.14 / C28-0326-2 p.24: \"The processor places a word mark over the high-order position of each field thus defined\"), and it matches the machine-level rule in Principles of Operation A22-0526-3 p.7 that a word mark \"is usually associated with the high-order (leftmost) character in a data field.\"\n\nDC is identical to DCW in every respect except that no word mark is emitted: C28-0309-1 p.13 (\"the processor does not cause a word mark to be set at the high-order position of the constant when the constant is produced in the object deck\") and C28-0326-2 p.30 (\"The only difference is that the word mark is absent when the constant is assigned to core storage\"). Neither manual says DC clears a pre-existing word mark, and the loading mechanism makes it clear it cannot: the condensed card carries word marks as word-separator characters (0-5-8 punch) punched immediately BEFORE the character that is to get the mark (C28-0309-1 Figure 2, p.7), and load-mode input \"is stored in core storage as a word mark over the next incoming character\" (A22-0526-3 p.41). There is no mechanism in that format for expressing \"clear the word mark here\", and A22-0526-3 p.7 rule 2 says word marks persist \"unless cleared or set by a positive action - such as a clear storage, clear word mark, or set word mark instruction.\" So a DC leaves any word mark already in those positions standing.\n\nDS is the strongest \"warm start\" hazard and it is explicitly documented, in the OS Autocoder only. C28-0326-2 p.30: \"The ds statement is used to label and define an area within the subprogram. No information is entered into the area, no word mark is assigned by the processor, and the area is not cleared prior to reservation.\" The earlier tape Autocoder C28-0309-1 p.13 says only the weaker \"no information (constant) is loaded into this area at program load time.\" A DS therefore contributes NOTHING to the condensed deck - no data characters, no word separators, no clear - and the reserved area retains whatever bytes and word marks were in core beforehand. Note the contrast with DA: DA does emit load-time action (C28-0309-1 p.15: \"Result: At object program load time: 1. Word marks are set for field definition as noted previously. 2. A group mark and record marks are loaded as specified in the heading line\"), and in the OS Autocoder the DA area is additionally \"normally cleared to blanks before setting word marks and/or record marks\", suppressible with the ,N no-clear parameter (C28-0326-2 p.25). That clearing behaviour is documented only for OS Autocoder DA, not for C28-0309-1 DA and never for DS.\n\nPooled literals, area-defining literals (WKAREA#6) and address constants (+LABEL) are all emitted as processor-generated DCW cards with their own high-order word marks, and they are placed at the LTORG point, not where they were written. C28-0309-1 p.8: \"The processor produces a new card that puts a word mark in the high-order position of a literal when it is stored at program load time.\" p.9 for the area-defining literal: \"A word mark is placed over the high-order position of the area\" and \"Six blanks will be loaded in storage at object program load time by a dcw card automatically produced by the processor.\" p.10 for the address-constant literal: \"The address constant is assigned a core-storage address, as are all constants, and a dcw card is created automatically by the processor. The address constant literal is unsigned in core storage.\" Placement: LTORG \"direct[s] the processor to assign storage locations to previously encountered literals and closed library routines, beginning with the address written in the operand field\"; \"If no LTORG statement appears in the source program, the processor begins assigning addresses to literals and closed library routines when it encounters an ex or end statement\" (C28-0309-1 pp.18-19). The assembled sample listing in C28-0326-2 Appendix C p.57 confirms all of this numerically: after LTORG at 00302 the pool is emitted in encounter order (IDENT#5 -> ADDRS 00306, a 3-char literal -> 00309, a 1-char literal -> 00310, CNT#4 -> 00314), every literal's ADDRS is its low-order position, and the object-deck CARD column shows they were punched as cards 012.",
+  "facts": [
+    {
+      "claim": "IBM 1410 Autocoder DCW: the word mark goes on the HIGH-ORDER (leftmost) position of the constant, and the symbolic label resolves to the LOW-ORDER (rightmost) position. Verbatim: \"Symbolic labels address the low-order position of the constant. Word marks are set in the high-order positions of all constants.\"",
+      "source": "IBM 1410 Autocoder, C28-0309-1, p.12 - https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 Autocoder DCW label-indent override: \"If a symbolic label is indented one position, the address of the high-order position of the constant will be assigned to the [label].\" C28-0326-2 makes the column explicit: \"The high-order position will be referenced if the label is indented one column in the label field; that is, if it begins in column 7.\"",
+      "source": "C28-0309-1 p.12 and C28-0326-2 p.28 - https://bitsavers.org/pdf/ibm/1410/C28-0326-2_1410_OS_Autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 OS Autocoder restates the DCW rule independently: \"The processor places a word mark over the high-order position of the defined constant. The label of the dcw statement makes reference to the address of the low-order position of the constant.\"",
+      "source": "IBM 1410/7010 Operating System Autocoder, C28-0326-2, p.28 - https://bitsavers.org/pdf/ibm/1410/C28-0326-2_1410_OS_Autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 DCW blank constant (#n form): \"This permits the programmer to reserve a field of blanks with a word mark in the high-order position of the field.\" Same placement as any other DCW.",
+      "source": "C28-0309-1, p.12 - https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 DCW alphamerical constant followed by \",G\": the processor puts a group-mark-word-mark in storage following the last character of the constant, and \"The associated label, if any, will refer to the last character of the constant, not the group-mark word-mark.\"",
+      "source": "C28-0309-1, p.13 (also C28-0326-2 p.28) - https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 DC is DCW minus the word mark and nothing else: \"This statement has the same characteristics as the dcw statement. The only difference is that the processor does not cause a word mark to be set at the high-order position of the constant when the constant is produced in the object deck.\" C28-0326-2 p.30: \"The only difference is that the word mark is absent when the constant is assigned to core storage.\"",
+      "source": "C28-0309-1 p.13 and C28-0326-2 p.30 - https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 DS emits nothing and disturbs nothing: \"The ds statement is used to label and define an area within the subprogram. No information is entered into the area, no word mark is assigned by the processor, and the area is not cleared prior to reservation.\" This is the definitive answer to the warm-start question - a DS-reserved area keeps whatever data AND word marks were in core before the load.",
+      "source": "IBM 1410/7010 OS Autocoder, C28-0326-2, p.30 - https://bitsavers.org/pdf/ibm/1410/C28-0326-2_1410_OS_Autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The earlier tape Autocoder states the DS load-time behaviour more weakly: a DS \"differs from a dcw or dc statement in that no information (constant) is loaded into this area at program load time.\" It does not mention word marks or clearing; C28-0326-2 p.30 is the source that settles both.",
+      "source": "C28-0309-1, p.13 - https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 DS label follows the same low-order default / column-7 indent override as DCW: \"The label refers to the low-order position of the area. However, if the label is indented one place, that is, if it begins in column 7, the label will refer to the high-order position. A label is not mandatory.\"",
+      "source": "C28-0326-2, p.30 - https://bitsavers.org/pdf/ibm/1410/C28-0326-2_1410_OS_Autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 DA sub-entry word mark rule (the statement already in the research, now cited): \"The processor causes word marks to be set in the high-order position of each defined field, but does not so identify subfields. If a word mark is desired in a one-position field, the relative position number must be written twice with the two numbers separated by a comma.\" C28-0326-2 p.24 restates it: \"The processor places a word mark over the high-order position of each field thus defined. If no word mark is desired, it is necessary to place only the relative low-order position in the operand field. The label will refer to this low-order position, and no word mark will be assigned by the processor.\"",
+      "source": "C28-0309-1 p.14 and C28-0326-2 p.24 - https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 DA does emit load-time action, unlike DS: \"Result: At object program load time: 1. Word marks are set for field definition as noted previously. 2. A group mark and record marks are loaded as specified in the heading line.\" The DA header label addresses the high-order position of the whole area; sub-entry labels address their field's low-order position.",
+      "source": "C28-0309-1 pp.13 and 15 (also C28-0326-2 p.23) - https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Under the 1410/7010 OS Autocoder (NOT documented for C28-0309-1) a DA area is cleared: \"The area reserved by the da statement is normally cleared to blanks before setting word marks and/or record marks.\" Writing \",N\" as a DA parameter suppresses the clear; the no-clear option \"is not effective when the program is loaded from the sof.\"",
+      "source": "C28-0326-2, p.25 - https://bitsavers.org/pdf/ibm/1410/C28-0326-2_1410_OS_Autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Pooled literals are emitted as processor-generated cards that set a high-order word mark: \"The processor allocates storage for literals and inserts their addresses in the operand or operands of the instructions in which they appear. The processor produces a new card that puts a word mark in the high-order position of a literal when it is stored at program load time.\"",
+      "source": "C28-0309-1, p.8 - https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The area-defining literal (e.g. WKAREA#6) is emitted as a processor-generated DCW of blanks with a high-order word mark: \"A word mark is placed over the high-order position of the area\" and \"Six blanks will be loaded in storage at object program load time by a dcw card automatically produced by the processor.\" C28-0326-2 p.18 confirms: the generated field \"has a word mark in its high-order position\" and \"Ten successive blanks will be loaded into storage at object program load time.\"",
+      "source": "C28-0309-1 p.9 and C28-0326-2 p.18 - https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "An area-defining literal's label resolves to the LOW-ORDER position of the generated area. C28-0326-2 p.18 worked example: \"buffertwo refers to location 00596 (the low-order position of the field)\", and MLC AMOUNT,BUFFERTWO#10 assembles to D0079600596C.",
+      "source": "C28-0326-2, p.18 - https://bitsavers.org/pdf/ibm/1410/C28-0326-2_1410_OS_Autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The address-constant literal (+LABEL) is also emitted as a processor-generated DCW: \"The address constant is assigned a core-storage address, as are all constants, and a dcw card is created automatically by the processor. The address constant literal is unsigned in core storage.\" It occupies a five-position area holding the machine address assigned to the label.",
+      "source": "C28-0309-1 p.10 and C28-0326-2 p.18 - https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Address adjustment / indexing on an address-constant literal modifies the ADDRESS of the literal, not the literal's value: \"If address adjustment and/or indexing occur, they modify the address of the literal, not the literal itself. If the literal itself is to be modified, it must be defined by a dcw statement.\"",
+      "source": "C28-0309-1, p.10 - https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Emission point in the deck: LTORG statements \"direct the processor to assign storage locations to previously encountered literals and closed library routines, beginning with the address written in the operand field of the ltorg statement. LTORG statements can appear anywhere in the source program. If no LTORG statement appears in the source program, the processor begins assigning addresses to literals and closed library routines when it encounters an ex or end statement.\" EX \"Incorporates closed library routines, literals, and address constants\"; XFR does NOT.",
+      "source": "C28-0309-1, pp.18-19 - https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Area-defining-literal labels are scoped to the current literal pool: \"Area-defining literals must be redefined after each ltorg entry.\" C28-0326-2 p.18: on encountering LTORG or SPEND the processor \"terminates the availability of previously defined labels that were created by means of area defining literals\"; such a symbol must never appear in the label field; the area is limited to 500 positions (\"F\" flag if exceeded).",
+      "source": "C28-0309-1 p.9 and C28-0326-2 p.18 - https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Word marks travel in the condensed object deck as word-separator characters (0-5-8 punch) punched in the column IMMEDIATELY PRECEDING the character to be marked, and are NOT counted in the card's character count (columns 11-12). Two adjacent word separators load one literal word-separator character; \"Word separator characters can not be loaded with an associated word mark.\" Card cols 2-6 = high-order position of the area loaded, cols 13-72 = data, cols 73-75 = card sequence number, 76-80 = identification.",
+      "source": "C28-0309-1, p.7, Figure 2 \"Condensed Card Format\" - https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 machine rule confirming the assembler convention: \"A word mark must be associated with the first character of each instruction (op code position) and is usually associated with the high-order (leftmost) character in a data field.\" Also: \"Word marks remain in their original locations unless cleared or set by a positive action - such as a clear storage, clear word mark, or set word mark instruction - or by a data move operation that specifies that they should be altered.\"",
+      "source": "IBM 1410 Principles of Operation, A22-0526-3, p.7 - https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 load-mode card input sets word marks but never clears them: \"A single word separator in incoming data is stored in core storage as a word mark over the next incoming character. Two consecutive word separators enter core storage as a single word separator.\" The Read-a-Card description (L op code) says \"word separators are read into storage as word marks\" with no statement that unmarked positions are cleared. This is a real divergence from 1401 load-mode behaviour and the implementer must not copy the 1401 rule.",
+      "source": "A22-0526-3, p.41 (Load Mode) and p.62 (Read a Card) - https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Consequence for an emulator: DC and DS leave any pre-existing word mark in the target positions untouched, because (a) neither manual says the assembler emits a clear, and (b) the condensed-card / load-mode format has no encoding for 'clear the word mark here'. Only an explicit CW / CS instruction or an OS-Autocoder DA clear can remove one.",
+      "source": "Inference from C28-0309-1 p.7+p.13, C28-0326-2 p.30, A22-0526-3 p.7+p.41 - https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "confidence": "likely"
+    },
+    {
+      "claim": "Assembly-listing column semantics that let the sample listing be used as evidence: \"CT - Character Count: The length in characters of the assembled imperative statement, or the number of core-storage locations reserved for a constant defined in a declarative statement.\" \"ADDRS: The relative address assigned by the processor to the instruction or constant.\" \"CARD - Card Number: The sequence number of the card in which the associated constants or instructions appear in the object deck.\"",
+      "source": "C28-0326-2, p.11 - https://bitsavers.org/pdf/ibm/1410/C28-0326-2_1410_OS_Autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The assembled sample listing arithmetically confirms low-order addressing for constants and high-order for instructions: BXPA at ADDRS 00192 CT 7 occupies 00192-00198; the following DCW #5 CT 5 occupies 00199-00203 and is listed at ADDRS 00203 (low-order); the next DCW AREA CT 5 occupies 00204-00208 at ADDRS 00208 (low-order); the next instruction B CT 7 is at ADDRS 00209 (high-order) and the following EQU * resolves to 00216 = 00209+7.",
+      "source": "C28-0326-2, Appendix C, p.57 (Exhibit IV) - https://bitsavers.org/pdf/ibm/1410/C28-0326-2_1410_OS_Autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The same listing shows the indent rule in action: the two DC statements whose labels EOJ and ERR are indented to column 7 are listed at ADDRS 00396 and 00402 - the HIGH-order positions of their 6-position constants (00396-00401 and 00402-00407) - while unindented constants are listed at their low-order position.",
+      "source": "C28-0326-2, Appendix C, p.57 - https://bitsavers.org/pdf/ibm/1410/C28-0326-2_1410_OS_Autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The same listing shows the literal pool emitted at the LTORG point in encounter order, each with a CARD number (012) proving object-deck cards are punched for them: LTORG * assigns from 00302; IDENT#5 (area-defining literal, CT 5) -> ADDRS 00306; a CT 3 literal -> 00309; a CT 1 literal -> 00310; CNT#4 (area-defining literal, CT 4) -> 00314. The earlier instruction MLCB AR80,IDENT#5 assembled to D 00394 00306 L, i.e. the area-defining literal's symbol resolved to 00306, its low-order position.",
+      "source": "C28-0326-2, Appendix C, pp.56-57 - https://bitsavers.org/pdf/ibm/1410/C28-0326-2_1410_OS_Autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "In that same listing the DA statement (AREA DA 1X80,G) is listed at ADDRS 00315 with CT 81 (80 + group mark) and its sub-entry labels AR04 -> 00318 and AR80 -> 00394 are the low-order addresses of relative positions 4 and 80 within the area (00315+n-1). The DA header label is the area's high-order address.",
+      "source": "C28-0326-2, Appendix C, p.57 - https://bitsavers.org/pdf/ibm/1410/C28-0326-2_1410_OS_Autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 DCW numeric/address constant sign placement: for a signed address constant \"The units position of the constant will have the sign which the user placed before the operand\"; for a numeric literal \"The processor puts the sign over the units position of the number when it is assigned a storage location\" (i.e. sign is a zone on the low-order digit, not a separate character). An unsigned number must be coded as an alphameric literal.",
+      "source": "C28-0309-1, pp.8 and 12 - https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Literal pooling rules that determine how many DCWs the processor generates: a numeric literal of <=9 digits plus sign, or an alphameric literal of 1-9 characters, is assigned storage only once per program (program section); longer literals are assigned a location every time they are encountered. A program section is bounded by LTORG, END or EX.",
+      "source": "C28-0309-1, pp.8-9 (also C28-0326-2 p.18) - https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Restriction worth encoding in an assembler: \"The word separator character (0-5-8 punch) must never be coded as the first character of an alphameric literal\", and the same restriction on an initial word separator applies to a DCW defining an alphameric constant but NOT to a DC.",
+      "source": "C28-0326-2, pp.18 and 30 - https://bitsavers.org/pdf/ibm/1410/C28-0326-2_1410_OS_Autocoder.pdf",
+      "confidence": "verified"
+    }
+  ],
+  "tables": [
+    {
+      "title": "1410 Autocoder declaratives: word-mark placement, label anchor, and object-deck emission",
+      "markdown": "| Statement | Word mark set? | Where | Label resolves to | Emits into condensed deck? | Clears the area? |\n|---|---|---|---|---|---|\n| DCW | Yes | High-order (leftmost) position of the constant | Low-order (rightmost); high-order if label begins in col 7 | Yes - data chars + word-separator before the high-order char | N/A (data is written) |\n| DC | No | - | Same rule as DCW | Yes - data chars only, no word separator | No; pre-existing word marks survive |\n| DS | No (\"no word mark is assigned by the processor\") | - | Low-order; high-order if label begins in col 7 | No - nothing is emitted | No (\"the area is not cleared prior to reservation\") |\n| DA header | (see fields) | - | High-order position of the whole reserved area | Yes - word marks for defined fields, plus record marks / group-mark-word-mark if requested | OS Autocoder: yes, cleared to blanks unless ,N. C28-0309-1: not documented |\n| DA field sub-entry (hi,lo form) | Yes | High-order position of that field | Low-order position of the field | Yes (word-separator only) | - |\n| DA subfield (lo only form) | No | - | That low-order position | No word mark emitted | - |\n| EQU | No | - | Whatever the operand resolves to | No | No |\n| Pooled literal (numeric/alphameric) | Yes | High-order position of the literal | Low-order position | Yes - processor-generated DCW card, at the LTORG/EX/END point | - |\n| Area-defining literal (WKAREA#6) | Yes | High-order position of the area | Low-order position | Yes - processor-generated DCW of blanks, at the LTORG/EX/END point | Loaded as blanks, so effectively yes |\n| Address-constant literal (+LABEL) | Yes | High-order of the 5-position constant | Low-order position | Yes - processor-generated DCW card, at the LTORG/EX/END point; value is unsigned | - |",
+      "source": "C28-0309-1 pp.7-15, 18-19; C28-0326-2 pp.18, 23-25, 28, 30"
+    },
+    {
+      "title": "Assembled evidence from C28-0326-2 Appendix C p.57 (Exhibit IV) - ADDRS is low-order for constants, high-order for instructions",
+      "markdown": "| SEQNO | LABEL | OPCOD | OPERAND | CT | ADDRS | INSTRUCTION | CARD | Occupies | ADDRS is |\n|---|---|---|---|---|---|---|---|---|---|\n| 37 | | BXPA | /PCH/ | 7 | 00192 | Y /PCH/ | 007 | 00192-00198 | high-order (instruction) |\n| 38 | | DCW | #5 | 5 | 00203 | | 008 | 00199-00203 | low-order (constant) |\n| 39 | | DCW | AREA | 5 | 00208 | 00315 | 009 | 00204-00208 | low-order (address constant) |\n| 40 | PCH | B | | 7 | 00209 | J 00000 | 009 | 00209-00215 | high-order (instruction) |\n| 43 | EOF | EQU | * | | 00216 | | | - | = 00209+7, confirms the chain |\n| 58 | | LTORG | * | | 00302 | | | - | literal pool origin |\n| 59 | IDENT | | #0005 | 5 | 00306 | | 012 | 00302-00306 | low-order (area-defining literal) |\n| 60 | | | (alpha literal) | 3 | 00309 | | 012 | 00307-00309 | low-order |\n| 61 | | | (1-char literal) | 1 | 00310 | | 012 | 00310 | low-order |\n| 62 | CNT | | #0004 | 4 | 00314 | | 012 | 00311-00314 | low-order (area-defining literal) |\n| 64 | AREA | DA | 1X80,G | 81 | 00315 | | (blank) | 00315-00395 | high-order (DA header) |\n| 65 | AR04 | | (subentry) | | 00318 | | | - | 00315+4-1, low-order of field |\n| 66 | AR80 | | (subentry) | | 00394 | | | - | 00315+80-1, low-order of field |\n| 68 | (col 7) EOJ | DC | @EOJ@,G | 6 | 00396 | | 015 | 00396-00401 | high-order - label indented to col 7 |\n| 69 | (col 7) ERR | DC | @ERROR@,G | 6 | 00402 | | 015 | 00402-00407 | high-order - label indented to col 7 |",
+      "source": "C28-0326-2, Appendix C, p.57 (column definitions: C28-0326-2 p.11)"
+    },
+    {
+      "title": "Condensed card format (C28-0309-1 Figure 2, p.7) - how word marks reach core",
+      "markdown": "| Card columns | Contents |\n|---|---|\n| 1 | Word separator character (0-5-8 punch) |\n| 2-6 | High-order position of the area into which cols 13-72 are loaded |\n| 7 | Word separator character |\n| 11-12 | Number of characters to be loaded from this card (word separators NOT counted) |\n| 13-72 | Instructions and/or data, starting in col 13 |\n| 70-72 | Relocation indicators if required (ignored by the Load Program) |\n| 73-75 | Card sequence number placed by the Autocoder processor |\n| 76-80 | Program identification |\n\nNote from the same figure: \"To enter a word mark into storage during loading, punch a word separator character in the columns preceding the character with which the word mark is to be associated. The word separator characters are not included in the character count entered in Columns 11-12. To enter a word separator character into core storage, punch two adjacent columns with this character. Word separator characters can not be loaded with an associated word mark.\"",
+      "source": "C28-0309-1, p.7, Figure 2"
+    }
+  ],
+  "open_questions": [
+    "Does the Autocoder-produced loading routine (the LOAD control card that makes 'a load program precede the object deck', C28-0309-1 p.17) clear core storage / word marks before loading? Neither C28-0309-1 nor C28-0326-2 says. Fallback for the implementer: assume it does NOT clear, per A22-0526-3 p.7 rule 2 ('word marks remain in their original locations unless cleared or set by a positive action'), and expose a cold-start option that zeroes storage and word marks so tests are deterministic.",
+    "For an OS-Autocoder DA with the clear-to-blanks behaviour (C28-0326-2 p.25), what does the processor actually punch - a run of blank characters into the deck, or a loader directive? The manual describes the effect, not the encoding. If your emulator loads condensed cards literally, the safest model is that DA emits blanks as data plus word separators for the defined fields.",
+    "In the C28-0326-2 Appendix C listing, the DA line (SEQNO 64, CT 81, ADDRS 00315) has a BLANK card-number column even though the operand requests a group-mark-word-mark. Either the group mark card is punched elsewhere in the deck or the listing/OCR omits it. Do not conclude from this alone that DA emits nothing.",
+    "Whether a DCW/DC constant that is longer than one card's worth of data is split across condensed cards, and how the word separator is handled at the split. Not addressed in either Autocoder manual.",
+    "C28-0309-1 does not document DA area clearing at all. It is unresolved whether the earlier tape Autocoder cleared the DA area (undocumented behaviour) or whether clearing was introduced with the OS Autocoder. If your target is the tape Autocoder, model DA as setting word marks only and leaving data untouched."
+  ],
+  "sources": [
+    {
+      "title": "IBM 1410 Data Processing System, Autocoder, C28-0309-1",
+      "url": "https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "note": "Primary. Bitsavers copy has no text layer; the OCR'd text edition is at https://archive.org/download/bitsavers_ibm1410C28_4785472/C28-0309-1_1410_autocoder_text.pdf (PDF page number == printed page number). Key pages: p.7 Figure 2 condensed card format; pp.8-10 literals; pp.12-15 DCW/DC/DS/DA/EQU; pp.18-19 LTORG/EX. Bitsavers requires a browser User-Agent on curl."
+    },
+    {
+      "title": "IBM 1410/7010 Operating System, Autocoder, C28-0326-2",
+      "url": "https://bitsavers.org/pdf/ibm/1410/C28-0326-2_1410_OS_Autocoder.pdf",
+      "note": "Primary. OCR'd text edition at https://archive.org/download/bitsavers_ibm1410C28r_7278631/C28-0326-2_1410_OS_Autocoder_text.pdf. Key pages: p.11 listing column definitions; p.18 literals incl. area-defining and address-constant; pp.23-25 DA incl. the ,N no-clear option; p.28 DCW; p.30 DC/DS/EQU; pp.56-57 Appendix C assembled sample listing."
+    },
+    {
+      "title": "IBM 1410 Principles of Operation, A22-0526-3",
+      "url": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "note": "Primary. OCR'd text edition at https://archive.org/download/bitsavers_ibm1410A22_14511698/A22-0526-3_1410_princOps_text.pdf. p.7 word-mark rules; p.41 move mode vs load mode word-separator handling; p.62 Read a Card / Punch a Card word-mark notes."
+    },
+    {
+      "title": "IBM 1410/7010 Operating System, Autocoder, C28-0326-1 (earlier OS edition, not read in detail)",
+      "url": "https://bitsavers.org/pdf/ibm/1410/C28-0326-1_1410_OS_Autocoder.pdf",
+      "note": "Text edition at https://archive.org/download/bitsavers_ibm1410C28r_7340037/ . Not consulted; -2 was used as the OS cross-check."
+    },
+    {
+      "title": "Bitsavers IBM 1410 document index",
+      "url": "https://bitsavers.org/pdf/ibm/1410/",
+      "note": "Directory listing used to locate the manuals. Requires a browser User-Agent; a bare curl gets HTTP 403."
+    }
+  ]
+}

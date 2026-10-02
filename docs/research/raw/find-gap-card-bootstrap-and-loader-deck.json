@@ -1,0 +1,234 @@
+{
+  "topic": "gap-card-bootstrap-and-loader-deck",
+  "summary": "(a) is fully answered by primary sources and the answer is yes on both counts. A 1410 has no Load key (that is a 7010-only console toggle switch, A22-6726 p.58); on a 1410 the operator hand-keys an 11-character I/O instruction into 00001-00011 (plus a one-character system status byte at 00000) and presses COMPUTER RESET then START, because computer/program reset loads 00001 into the IAR (A22-0526-3 p.9). C28-0351-5 Table II p.8 gives the card case explicitly as ALcde00012$r, where c = channel symbol (% / lozenge / ? / !), d = 1 for card reader (B for tape), e = 0 for card reader (0-9 = tape unit), and r = R for channel 1, X for channel 2, 3 for channel 3, 1 for channel 4. The printed page carries inverted-circumflex word-mark marks over the L at 00001 and over the r at 00011; the A at 00000 optionally has one. For a channel-1 1402 that is literally A L % 1 0 0 0 0 1 2 $ R, i.e. \"AL%1000012$R\", with word marks at 00001 and 00011. So yes: the d-character really is '$' even for a card reader, and 00011 really is the op code of a Branch-if-I/O-Channel-Status-Indicator-On instruction (R = channel 1, X = channel 2).\n\nThe '$' is IBM re-using one template across tape and card. The 1402 read instruction as documented in A22-0526-3 Figure 61 (pp. 61-62) is 'M or L | %1x | bbbbb | R' with d = R only, and the 1402 unconditionally transfers exactly 80 characters from the read buffer. There is no card-reader '$' variant in the instruction list, so an emulator should decode the 1402 read on op code + x-control field alone and ignore the d-character (accept both '$' and 'R'). The R at 00011 is not decoration: A22-0526-3 p.42 (\"Results of Omitting the Status Test\") says every I/O instruction sets an interlock that stops the machine if it is still on when the next I/O instruction is read out, and only an X/R branch that actually branches, or an X/R(I) with the group-mark d-character (BA8421 bits, tests all six indicators, no branch required), clears it. The R is 7 characters (op + 5-char I-address + d), so it consumes 00011-00017 - which are the first six characters the card just delivered. That is the whole bootstrap trick: card columns 1-5 become the branch address at 00012-00016, column 6 becomes the status d-character at 00017, and execution reaches 00018 (= card column 7 if column 7 is not a word separator, or column 8 if it is) whether the branch is taken or not. The Monitor's Bootstrap 1 card printed in C28-0351-5 p.8 confirms the layout exactly: columns 1-5 punched 00018, column 6 a group/record-mark glyph, column 7 a word separator, column 8 onward 'L xF0 00066 R ...'. The tape variant uses N (NOP) at 00011 instead of R, which works because the 1410 NOP has unbounded length (A22-0526-3 p.24, 'L = 1, 2, 3 No Limit') and therefore runs to the first word mark inside the just-loaded record - a self-locating entry point that a fixed-length 80-column card does not need.\n\n(b) is NOT documented and does not appear to survive. C28-0309-1 documents only the effect of the LOAD control card in one sentence (p.17: 'used to signal the processor that a load program should precede the object deck') and the EX/XFR semantics with the standard re-entry point 00281 (p.19). No edition on bitsavers prints the loader's card images or a listing. Two independent primary sources do pin down its size and shape: J28-0249 (1410 Utility Programs Part III, PAT, 1962) p.12 and p.26 instruct the user to 'remove the first five cards from the assembled object deck' when a load program was requested from the Autocoder Processor, and p.35 calls it 'the 1410 Standard Load Program (5-card loader)'. C20-1602-8 p. (1410-UT-106 entry) describes the separately distributed 'STANDARD 1410 LOAD PROGRAM' as a 9-card program that 'LOADS UP TO 60 CHARACTERS CONTAINED ON A LOAD CARD INTO SEQUENTIAL CORE STORAGE LOCATIONS', whose last two cards are a Clear Storage card and a Set Indexes card. 60 characters is exactly condensed-card columns 13-72. J28-0249 p.27 also gives two real, fully specified load cards that patch the standard re-entry point: col 1 word separator, cols 2-6 = 00281, col 7 word separator, cols 8-12 = 00001, col 13 word separator, col 14 = 'N' (first card) or ',' (second card), cols 15-80 blank. Those are the only published bytes of anything living at 00281.\n\nFallback for the implementer: build the console-keying path for real (it is fully specified and is the historically correct IPL for a 1410), and treat the loader deck as data you reconstruct rather than transcribe. Write a 5-card loader of your own that implements the published condensed card format (C28-0309-1 Figure 2, p.7) exactly, place its re-entry point at 00281, and make its first card a self-loading bootstrap card in the Bootstrap-1 shape so the keyed 'AL%1000012$R' picks it up. Then EX/XFR work: the processor-produced branch card halts loading, and user code returns by branching to 00281. If you want the authentic bytes, they are recoverable but only by execution - the PR-108 Autocoder on the recovered system tape (bitsavers /bits/IBM/1410/1410-PR-108/jpr108-2024.zip, or sky-visions pr108.bcd) will punch the real 5-card loader if you assemble any program with a LOAD control card and capture the punch file. Note that SimH's i7010 does not model the 1410 keyed path at all: chan_boot() in i7010_chan.c just reads one record in load mode into location 1 and starts at 1, which is the 7010 Load-key behaviour, so it is not a source for the 1410 procedure.",
+  "facts": [
+    {
+      "claim": "The Load key is a 7010-only feature. It is a toggle switch on the 7010 console with a home position, pushed right to load from tape or left to load from the card reader; only channel-1 devices may be selected. Pressing it forces computer reset, sets unoverlap + load mode for channel 1, selects the card reader with normal-read pocket (or tape unit 0), reads end-of-record into storage location 00001, then forces program reset and auto-starts at 00001.",
+      "source": "A22-6726 IBM 7010 Principles of Operation, 'LOAD KEY', p.58 - https://bitsavers.org/pdf/ibm/1410/A22-6726_7010_PrincOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The IBM 1410 (1411/1415) has no Load key. C28-0351-5 splits every initialization procedure into 'Using 7010 Load Key' and 'Not using 7010 Load Key', and p.32 states explicitly: 'The procedures above can be used on both the 1410 and the 7010. On the 7010, the Load key can be used instead of entering the read instruction into locations 00000-00011.' A22-0526-3's console section and index list start, stop, program reset and computer reset but no load key.",
+      "source": "C28-0351-5 IBM 1410/7010 Operating System Operator's Guide, pp.7-8 and p.32 - http://bitsavers.org/pdf/ibm/1410/C28-0351-5_1410_operGuide.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "A program reset or computer reset automatically loads 00001 into the IAR. This is why the hand-keyed I/O instruction starts at 00001 and location 00000 is free for a one-character system status byte.",
+      "source": "A22-0526-3 IBM 1410 Principles of Operation, 'Instruction Address Register', p.9 - http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "For a card Standard Input Unit the Operator's Guide Table II says: 'Enter ALcde00012$r into location 00000', where c = channel (% ch1, lozenge ch2, ? ch3, ! ch4), d = device (1 card reader, B tape), e = 0 for card reader (0-9 for tape unit), r = R for channel 1, X for channel 2, 3 for channel 3, 1 for channel 4. The printed page shows inverted-circumflex word-mark marks over the L and over the r; the note reads '\"A\" can have a word mark.'",
+      "source": "C28-0351-5, Table II 'Initialization with Disk System Operating File', p.8 (read from the page image; the OCR interleaves the three variable-character lists) - http://bitsavers.org/pdf/ibm/1410/C28-0351-5_1410_operGuide.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "For a channel-1 1402 the 12 characters keyed into 00000-00011 are therefore A L % 1 0 0 0 0 1 2 $ R (\"AL%1000012$R\"), with a required word mark on the L at 00001 and on the R at 00011, and an optional word mark on the A at 00000. The 'A' is the Monitor initialization status character (A = initialization, B = reinit with rewind, C = reinit without rewind, D = restart from checkpoint, blank = not in initialization status); it is not part of the instruction.",
+      "source": "C28-0351-5, 'Initialization Status Character' p.6 and Table II p.8 - http://bitsavers.org/pdf/ibm/1410/C28-0351-5_1410_operGuide.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Yes, the d-character is literally '$' even when the device is a card reader. The manual uses one template for both media; '$' is the documented tape 'read to IRG or end of core' modifier (appendix, p.103-104: 'Read Tape to IRG or End of Core (wo/w wm) RTG cu,b -> M or L x(5)Ux (B) $').",
+      "source": "C28-0351-5 Table II p.8; A22-0526-3 'Alphabetic Listing of 1410 Instructions' appendix, pp.103-104 - http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The documented 1402 read instruction has d-character R only: 'R or R1 (Ch 1) M ... %1x bbbbb R' / 'RW or R1W (Ch1) L ... %1x bbbbb R', where the units position x of the x-control field is the stacker (0, 1, 2 = feed and stack; 9 = transfer buffer with no feed or stacker select). The 1402 always transfers exactly 80 characters from the read buffer to core storage. There is no '$' variant for the card reader in the instruction list, so an emulator should dispatch on op code + x-control field and ignore the d-character on a 1402 read.",
+      "source": "A22-0526-3, Figure 61 'Instructions for 1402-2 Card Read Punch' and 'Read a Card' instruction form, pp.61-62 - http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Yes, 00011 holds the op code of a channel-status branch. R and X are 'Branch if I/O Channel Status Indicator On' for channels 1 and 2. Form: op + 5-character I-address + d-character = 7 characters. The d-character's BA8421 bit pattern selects which of the six channel indicators are tested; the group mark has all the bits needed to test all six.",
+      "source": "A22-0526-3, 'Branch if I/O Channel Status Indicator On' and Figure 36, pp.36-37 - http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The status branch is mandatory, not optional: each I/O instruction turns on an interlock indicator, and if it is still on when the next I/O instruction is read out the system stops. Only two things clear it - (1) any X/R-type branch that tests one or more indicators AND actually branches, or (2) an X/R(I) instruction with the group-mark d-character, with no requirement of an actual branch. This is why the card bootstrap puts R at 00011 while the tape bootstrap can use N.",
+      "source": "A22-0526-3, 'Results of Omitting the Status Test', p.42 - http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Because the R at 00011 is 7 characters long, its I-address occupies 00012-00016 and its d-character 00017 - i.e. the first six characters the card just delivered. Card columns 1-5 supply the branch target and column 6 the status d-character, and control reaches the same place whether the branch is taken or falls through (00018 = the character after the R instruction). The Monitor's 'Bootstrap 1 routine card for 1410 System' printed on p.8 has exactly this shape: cols 1-5 = 00018, col 6 = a group/record-mark glyph, col 7 = word separator, col 8 onward = 'L xF0 00066 R ...'.",
+      "source": "C28-0351-5, Bootstrap 1 routine card figure, p.8 (read from the page image at 600-1200 dpi) - http://bitsavers.org/pdf/ibm/1410/C28-0351-5_1410_operGuide.pdf",
+      "confidence": "likely"
+    },
+    {
+      "claim": "The tape variant of the same procedure uses N (NOP) at 00011 rather than R: Table I p.7 gives 'ALcBu00012$N' and p.32 gives 'Alter 00001 to LyBz00012$N'. This works because the 1410 NOP has no length limit ('L = 1, 2, 3 No Limit'; the op code can be substituted for the op code of any instruction to make it ineffective), so a word-marked N at 00011 runs to the first word mark inside the just-loaded record and execution resumes there - a self-locating entry point.",
+      "source": "C28-0351-5 Table I p.7 and p.32; A22-0526-3 'No Operation' p.24 - http://bitsavers.org/pdf/ibm/1410/C28-0351-5_1410_operGuide.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The 1410 I/O instruction layout that makes the 12-character string work: op code (1) + x-control field (3: channel symbol, device, unit/stacker) + B-address (5) + d-character (1) = 10 characters at 00001-00010, leaving 00011 for the status branch op code. The x-control hundreds position selects channel and overlap: % = channel 1 non-overlap, @ = channel 1 overlap, lozenge = channel 2 non-overlap, * = channel 2 overlap. Read/write-to-end-of-core instructions cannot be overlapped.",
+      "source": "A22-0526-3, 'Input-Output Instructions' / x-control field, pp.41 and 92-93 - http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Load mode (op code L) on input converts a single word separator character in the incoming data into a word mark over the NEXT incoming character, and the separator itself is not stored, so the record shortens by one position. Two consecutive word separators store as one word separator. Figure 61 repeats this for the 1402: 'If L op code is used, word separators are read into storage as word marks, and each is associated with the following character.' This is what puts a word mark on the loader's op codes as the boot card is read.",
+      "source": "A22-0526-3, 'Load Mode / Input', p.41 and Figure 61 p.61 - http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "In IBM 1410 manuals a word mark is printed as an inverted circumflex (v) above the character; the console I/O printer prints word marks the same way on a load-write, and word marks can be entered from the console keyboard during a load-read. Console entry uses the 1415 mode switch: a DISPLAY of the target location must be completed first, then rotate the mode switch to ALTER and press START; any previously displayed word mark must be re-entered.",
+      "source": "A22-0526-3, p.5 (character notation), 'Console Load Read and Write Operations' p.49, 'Alter' p.51 - http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "C28-0309-1 documents the LOAD control card in exactly one sentence and never shows the loader: 'The load control card is used to signal the processor that a load program should precede the object deck.'",
+      "source": "C28-0309-1 IBM 1410 Autocoder, 'LOAD - Load', p.17 - http://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The EX statement makes the processor assemble an unconditional branch that is not part of the object program but 'causes the processor-produced loading routine to halt the loading process at the appropriate time and execute the branch instruction. Note: To continue the loading process after the desired portion of the program has been executed, the programmer must provide re-entry to the load routine. (The IBM standard re-entry point is 00281.)' XFR has the same function except literals, closed library routines and address constants are not incorporated.",
+      "source": "C28-0309-1, 'EX - Execute' and 'XFR - Transfer', p.19 - http://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The load program that the LOAD control card prefixes to the object deck is FIVE cards. J28-0249 p.12: 'If the programmer requested a load program from the Autocoder Processor, he should remove the first five cards from the assembled object deck.' p.26: 'If the new object program was given a load program by the Autocoder Processor, the first five cards of the new deck MUST be discarded.' p.35: 'the 1410 Standard Load Program (5-card loader)'.",
+      "source": "J28-0249 IBM 1410 Utility Programs Part III (Program Assembly Test System), 1962, pp.12, 26, 35 - http://bitsavers.org/pdf/ibm/1410/J28-0249_1410_Utility_Programs_Part_III_1962.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The separately distributed standalone version is nine cards: 'THE STANDARD 1410 LOAD PROGRAM. THIS PROGRAM LOADS UP TO 60 CHARACTERS CONTAINED ON A LOAD CARD INTO SEQUENTIAL CORE STORAGE LOCATIONS. THIS IS A 9 CARD PROGRAM. THE LAST TWO CARDS ARE AS FOLLOWS - A. CLEAR STORAGE - THIS CARD CLEARS ALL STORAGE ABOVE LOCATION 00499 TO BLANKS. B. SET INDEXES - THIS CARD CLEARS ALL INDEX REGISTERS TO BLANKS AND SETS WORD MARKS AT THE HIGH ORDER POSITION.' It is distributed at the end of the 1410-UT-106 UPOS program deck. 60 characters = condensed-card columns 13-72.",
+      "source": "C20-1602-8 Catalog of Programs for IBM 1410 (Jun 1968), 1410-UT-106 Individual Utility Program entry - http://bitsavers.org/pdf/ibm/1410/C20-1602-8_1410_pgmCatJun68.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The card images of the Autocoder 5-card loader are not published in any 1410 manual on bitsavers. C28-0309 and C28-0309-1 (standalone Autocoder), C28-0326-x (OS Autocoder), J24-1433-2 (Autocoder Preliminary Specifications, 1961) and C28-0351-5 all describe the loader's effects without showing it. J28-0249 references 'PART I of this manual' for the standard load-card format, and Parts I and II of J28-024x are not on bitsavers. Web search surfaces no transcription.",
+      "source": "bitsavers directory http://bitsavers.org/pdf/ibm/1410/ ; C28-0309-1; J28-0249 p.12; J24-1433-2",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The only published concrete load cards touching 00281 are PAT's two 'Substitution' cards, which are ordinary standard-format load cards that store one word-marked character into 00281: col 1 word separator, cols 2-6 = 00281, col 7 word separator, cols 8-12 = 00001, col 13 word separator, col 14 = 'N' (first card, placed in front of the new object program) or ',' (second card, placed at the end of the new object deck but before the execute card), cols 15-80 blank. 'N' is the 1410 NOP op code and ',' is the Set Word Mark op code, so 00281 is a one-character instruction slot in the load program that is toggled between disabled and active.",
+      "source": "J28-0249, 'Substitution of a New Object Program', First/Second Substitution Card Format and Figure 6, p.27 - http://bitsavers.org/pdf/ibm/1410/J28-0249_1410_Utility_Programs_Part_III_1962.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Richard Cornwell's working SimH init file for the recovered PR-108 system tape deposits exactly this kind of hand-keyed boot instruction: 'dep -c 0 1~l(b000011$~N'. Stripping the '~' word-mark prefixes gives twelve characters '1','L','(','B','0','0','0','0','1','1','$','N' at 00000-00011, i.e. status character '1' at 00000, then L %B0 00011 $ at 00001-00010 with the word mark on L, and a word-marked N at 00011. SimH ASCII '(' is BCD 034 = CHR_RPARN, documented in i7000_defs.h as 'Also %' and used as the channel-1 selector in chan_char[]. Note PR-108 loads to 00011 (overwriting the N) rather than the Monitor's 00012.",
+      "source": "http://sky-visions.com/ibm/7010/pr108/a.ini and SimH i7000_defs.h / i7010_chan.c (chan_char[])",
+      "confidence": "verified"
+    },
+    {
+      "claim": "SimH's i7010 does not implement the 1410 keyed-console IPL. chan_boot() sets caddr[chan]=1, cmd = CHAN_NOREC|CHAN_LOAD and relies on reset having set IAR=1 - i.e. it reads one record in load mode into location 00001 and starts there, which is the 7010 Load-key behaviour, not the 1410 procedure.",
+      "source": "SimH i7010_chan.c, chan_boot() - https://github.com/simh/simh (sim source, i7010_chan.c)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Autocoder condensed card format (the format the 5-card loader consumes): col 1 = word separator character (0-5-8 punch); cols 2-6 = xxxxx, the high-order position of the area into which the data in columns 13-72 is to be loaded; col 7 = word separator character; cols 8-10 = 000; cols 11-12 = xx, the number of characters to be loaded from this card; cols 13-72 = instructions and/or data, which must begin in column 13; relocation indicators if required occupy cols 72, 71, 70; cols 73-80 are ignored by the Load Program (the processor puts a card sequence number in 73-75 and the program identification in 76-80). NOTE: to enter a word mark, punch a word separator in the column preceding the character; word separator characters are not included in the character count in cols 11-12. To store a word separator, punch two adjacent columns with it; a word separator cannot be loaded with an associated word mark.",
+      "source": "C28-0309-1, Figure 2 'Condensed Card Format', p.7 (read from the page image; the OCR drops the column numbers) - http://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "A second worked example of hand-keying a boot instruction on a 1410, from the PAT operating procedure: '6. Clear storage from the console. 7. Display location 00201. 8. Set mode switch to ALTER and enter \"L%B8 00000 $\" into storage. 9. SET Instruction ADDRESS Register to location 00201. 10. Set mode switch to RUN and press START.' This variant keys the instruction at 00201 and sets the IAR manually instead of relying on computer reset.",
+      "source": "J28-0249, 'Starting the Generation Pass', p.35 - http://bitsavers.org/pdf/ibm/1410/J28-0249_1410_Utility_Programs_Part_III_1962.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The bitsavers PR-108 artifact is a tape image only (jpr108-2024.bcd, 1,392,339 bytes, plus four JPEGs of the reel), not a card deck. Neither it nor the sky-visions PR-108 mirror contains a punched-card loader deck. The recovered PR-155 and PR-108 systems both boot from tape.",
+      "source": "http://bitsavers.org/bits/IBM/1410/1410-PR-108/ (directory listing and zip contents) ; http://sky-visions.com/ibm/ibm7010_soft.shtml",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1401 analogue, for contrast only (do not apply to the 1410): 1401 object decks come in three loader styles; the 'Load Mode' style executes instructions from card columns 1-39 that load the application image from columns 40-72, and the bootstrap assembles the main loader starting at location 201. The 1410's equivalent standard re-entry point is 00281 and the 1410 condensed card puts data in 13-72 with a 12-column header, so the layouts are analogous but not interchangeable.",
+      "source": "https://ibm-1401.info/1401-CardDeckFormats.html",
+      "confidence": "likely"
+    }
+  ],
+  "tables": [
+    {
+      "title": "The 12 characters keyed at the 1415 console for a card Standard Input Unit (1410, no Load key)",
+      "markdown": "| Address | Char (ch.1 1402) | Word mark | Role |\n|---|---|---|---|\n| 00000 | `A` | optional | System status character (Monitor: A=init, B=reinit w/ rewind, C=reinit w/o rewind, D=restart from checkpoint, blank=not in init status). NOT part of the instruction; a WM here requests a SOF/SIU reassignment prompt. |\n| 00001 | `L` | **required** | Op code: Load characters to/from storage (load mode - word separators become word marks). `M` would be move mode. |\n| 00002 | `%` | | x-control field, hundreds position = channel + overlap. `%`=ch1 non-overlap, lozenge=ch2, `?`=ch3, `!`=ch4 (7010). |\n| 00003 | `1` | | x-control tens position = device type. `1`=card reader, `B`=tape. |\n| 00004 | `0` | | x-control units position. Card reader: stacker (0,1,2 = feed & stack; 9 = no feed/no stacker select). Tape: unit number 0-9. |\n| 00005 | `0` | | B-address, high order |\n| 00006 | `0` | | B-address |\n| 00007 | `0` | | B-address |\n| 00008 | `1` | | B-address |\n| 00009 | `2` | | B-address, low order -> record is read into 00012 onward |\n| 00010 | `$` | | d-character. Documented for tape as 'read to IRG or end of core'. Used verbatim for the card reader too; the 1402's documented d is `R`. Emulator: ignore d on a 1402 read. |\n| 00011 | `R` | **required** | Op code of Branch if I/O Channel Status Indicator On. `R`=ch1, `X`=ch2, `3`=ch3, `1`=ch4. Its I-address (00012-00016) and d-character (00017) come from the card just read. |\n\nWhole string, channel 1: **`AL%1000012$R`**  (word marks on the `L` and the `R`).\nTape equivalent, Table I: `ALcBu00012$N` -> e.g. `AL%B000012$N`.\nProcedure: ready the reader, key the 12 characters, press COMPUTER RESET then START.",
+      "source": "C28-0351-5 Tables I and II, pp.7-8; A22-0526-3 pp.9, 24, 36-37, 41-42, 61-62"
+    },
+    {
+      "title": "C28-0351-5 Table II variable characters, transcribed from the page image (p.8)",
+      "markdown": "| Position | Symbol | Meaning |\n|---|---|---|\n| c | `%` | channel 1 |\n| c | lozenge | channel 2 |\n| c | `?` | channel 3 |\n| c | `!` | channel 4 |\n| d | `1` | card reader |\n| d | `B` | tape |\n| e | `0` | card reader |\n| e | `0`-`9` | tape unit number |\n| r | `R` | channel 1 |\n| r | `X` | channel 2 |\n| r | `3` | channel 3 |\n| r | `1` | channel 4 |\n\nThe printed 'Installation standard for Standard Input Unit' line is `A L̆ __ __ __ 0 0 0 1 2 $ __̆` - IBM left c, d, e and r blank for the site to fill in, with the inverted-circumflex word marks printed over the `L` and over the `r` blank. Caption note: '\"A\" can have a word mark.'",
+      "source": "C28-0351-5 p.8 (page image; the bitsavers PDF has no text layer and the archive.org OCR interleaves the three columns of this list)"
+    },
+    {
+      "title": "Autocoder condensed card format (C28-0309-1 Figure 2, p.7) - what the 5-card loader consumes",
+      "markdown": "| Card columns | Contents |\n|---|---|\n| 1 | Word separator character (0-5-8 punch) |\n| 2-6 | `xxxxx` = high-order position of the area into which the data in columns 13-72 is to be loaded |\n| 7 | Word separator character |\n| 8-10 | `000` |\n| 11-12 | `xx` = number of characters to be loaded from this card |\n| 13-72 | Instructions and/or data, beginning in column 13 |\n| 72, 71, 70 | Relocation indicators, if required |\n| 73-80 | Ignored by the Load Program. Autocoder puts a card sequence number in 73-75 and the program identification in 76-80. |\n\nNOTE (verbatim): to enter a word mark into storage during loading, punch a word separator character in the column preceding the character with which the word mark is to be associated. The word separator characters are NOT included in the character count in columns 11-12. To enter a word separator character into core storage, punch two adjacent columns with it. Word separator characters cannot be loaded with an associated word mark.",
+      "source": "C28-0309-1 p.7 (page image)"
+    },
+    {
+      "title": "The only published load cards that touch the 00281 re-entry point (J28-0249 p.27)",
+      "markdown": "| Columns | First Substitution Card | Second Substitution Card |\n|---|---|---|\n| 1 | word separator character | word separator character |\n| 2-6 | `00281` | `00281` |\n| 7 | word separator character | word separator character |\n| 8-12 | `00001` | `00001` |\n| 13 | word separator character | word separator character |\n| 14 | `N` | `,` (comma) |\n| 15-80 | blank | blank |\n\nDeck order (Figure 6, bottom to top as read): first substitution card, new object deck, second substitution card, execute card. `N` = NOP op code, `,` = Set Word Mark op code. Both cards are ordinary standard-format load cards storing exactly one word-marked character at 00281.",
+      "source": "J28-0249 p.27 (page image, PDF page 25)"
+    },
+    {
+      "title": "1402 card read instruction, as documented (A22-0526-3 Figure 61, pp.61-62)",
+      "markdown": "| Mnemonic | Op code | x-control field | B-address | d | Operation |\n|---|---|---|---|---|---|\n| R / R1 (ch1), R2 (ch2) | `M` | `%10` / lozenge`10` | bbbbb | `R` | Initiate feed cycle. Transfer 80 characters from read buffer to core storage. Read card into read buffer. Stack in pocket 0. |\n| (same, pocket 1) | `M` | `%11` | bbbbb | `R` | as above, stacked in pocket 1 |\n| (same, pocket 2) | `M` | `%12` | bbbbb | `R` | as above, stacked in pocket 2 |\n| (buffer only) | `M` | `%19` | bbbbb | `R` | Transfer 80 characters from read buffer to core storage. NO card feed and NO stacker select. |\n| RW / R1W (ch1), R2W (ch2) | `L` | `%1x` | bbbbb | `R` | as above, but word separators are read into storage as word marks, each associated with the following character |\n\nTiming T = 49.5 + I/O. There is no `$` variant. A branch-if-I/O-channel-status instruction must be given between any 1402 instruction and the next I/O instruction on the same channel.",
+      "source": "A22-0526-3 pp.61-62"
+    },
+    {
+      "title": "Bootstrap 1 routine card for the 1410 System (C28-0351-5 p.8) - how a real card bootstrap card is laid out",
+      "markdown": "| Card columns | Punched | Loads to | Function |\n|---|---|---|---|\n| 1-5 | `00018` | 00012-00016 | I-address of the `R` instruction whose op code the operator keyed at 00011 |\n| 6 | group-mark glyph | 00017 | d-character of that `R` - tests all channel-1 indicators and clears the I/O interlock without requiring a branch |\n| 7 | word separator | (not stored) | sets a word mark on the next character |\n| 8 onward | `L`, `x`, `F`, `0`, `00066`, `R`, ... | 00018 onward | the actual bootstrap: a disk read (`x` = `%` ch1 or lozenge ch2 System Operating File; `F` = 1301 disk; then access mechanism, module and geometric record address `tttth2`), followed by more chained reads and a final `J 00138` branch |\n| 77-80 | `1410` | - | deck identification (the 7010 card carries `7010` and different addresses: `...00008`, `00056`, `00049`, `J 00128`) |\n\nEither way the `R` at 00011 lands execution on 00018, which is the word-marked `L` from column 8. Confidence: columns 1-6 read cleanly at 1200 dpi; the code beyond column 7 is a handwriting-style figure and the detailed transcription is best-effort.",
+      "source": "C28-0351-5 p.8 (page image)"
+    }
+  ],
+  "open_questions": [
+    "The exact card images of the Autocoder 5-card standard load program are not published in any surviving 1410 manual on bitsavers. Recovering them requires running the PR-108 (or PR-155) Autocoder with a LOAD control card in an emulator and capturing the punch file - nobody appears to have done this and posted the result.",
+    "J28-0249 refers to 'PART I of this manual' for the standard load-card format and presumably for the load program itself. Parts I and II of the 1410 Utility Programs series (J28-0247 / J28-0248, or equivalent) are not on bitsavers. C28-0325-1 is only a 4-page fragment. These are the most likely surviving home of the loader listing if a copy exists anywhere.",
+    "What the 5-card loader actually does at 00281 is inferable but not documented: PAT's substitution cards toggle 00281 between 'N' (NOP) and ',' (Set Word Mark), so it is a one-character instruction slot rather than the first byte of a subroutine. Whether the Autocoder loader uses 00281 the same way, or as a plain branch target, is unverified.",
+    "The glyph in column 6 of the Bootstrap 1 card is visually ambiguous between the record mark and the group mark in the scan. PrincOps p.42 says only the group-mark d-character clears the I/O interlock without a branch, so it is almost certainly the group mark, but this is inference, not a direct reading.",
+    "Whether a real 1402 accepts '$' as a read d-character silently, or sets a status indicator, is not documented. The instruction list shows only 'R'. C28-0351-5 prescribing '$' for the card path suggests it is harmless, but no manual states the behaviour.",
+    "Whether the 1410's card-reader load actually clears pre-existing word marks in the 80-character target area (as 1401 load mode does) is not stated in A22-0526-3; only the word-separator-to-word-mark conversion is described. This matters for whether a second boot attempt behaves identically.",
+    "The PR-108 boot in Richard Cornwell's a.ini reads into 00011 (overwriting the word-marked N there) while the Monitor reads into 00012. Whether the '1' status character at 00000 is meaningful to PR-108 or just padding from the deposit is unverified."
+  ],
+  "sources": [
+    {
+      "title": "C28-0351-5 IBM 1410/7010 Operating System Operator's Guide",
+      "url": "http://bitsavers.org/pdf/ibm/1410/C28-0351-5_1410_operGuide.pdf",
+      "note": "Table I p.7 (tape SIU), Table II p.8 (card/tape SIU + Bootstrap 1 card images), Initialization Status Character p.6, System Library Loader p.32. No text layer - pages must be rendered as images (pdftoppm -r 300..1200); the archive.org OCR mangles the Table II variable-character columns."
+    },
+    {
+      "title": "A22-0526-3 IBM 1410 Principles of Operation",
+      "url": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "note": "p.5 word-mark notation, p.9 reset->IAR=00001, p.24 NOP unbounded length, pp.36-37 R/X branch on channel status, p.41 load mode and word separators, p.42 Results of Omitting the Status Test, p.49/51 console load-read and ALTER, pp.61-62 Figure 61 1402 instructions, pp.92-93 x-control field, pp.103-104 alphabetic instruction listing."
+    },
+    {
+      "title": "A22-6726 IBM 7010 Principles of Operation",
+      "url": "https://bitsavers.org/pdf/ibm/1410/A22-6726_7010_PrincOps.pdf",
+      "note": "p.58 LOAD KEY - the definitive statement that the load toggle is a 7010 console feature and exactly what it does (read end of record into 00001, program reset, auto start at 00001)."
+    },
+    {
+      "title": "C28-0309-1 IBM 1410 Autocoder",
+      "url": "http://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "note": "p.7 Figure 2 Condensed Card Format (render the page - OCR drops the column numbers), p.17 LOAD control card, p.19 EX/XFR and 'The IBM standard re-entry point is 00281.'"
+    },
+    {
+      "title": "J28-0249 IBM 1410 Utility Programs Part III (Program Assembly Test System), 1962",
+      "url": "http://bitsavers.org/pdf/ibm/1410/J28-0249_1410_Utility_Programs_Part_III_1962.pdf",
+      "note": "Has a real text layer. p.12 and p.26 'first five cards' of an Autocoder deck with a load program; p.27 the two 00281 Substitution Card formats; p.35 '1410 Standard Load Program (5-card loader)' and a worked console-keying boot procedure."
+    },
+    {
+      "title": "C20-1602-8 Catalog of Programs for IBM 1410 (Jun 1968)",
+      "url": "http://bitsavers.org/pdf/ibm/1410/C20-1602-8_1410_pgmCatJun68.pdf",
+      "note": "1410-UT-106 entry: 'THE STANDARD 1410 LOAD PROGRAM ... THIS IS A 9 CARD PROGRAM', loads up to 60 characters per load card, last two cards are Clear Storage and Set Indexes."
+    },
+    {
+      "title": "Richard Cornwell, IBM 7010 Software (sky-visions.com)",
+      "url": "http://sky-visions.com/ibm/ibm7010_soft.shtml",
+      "note": "PR-155 and PR-108 recovered system tapes and SimH init files. http://sky-visions.com/ibm/7010/pr108/a.ini contains the working hand-keyed boot deposit 'dep -c 0 1~l(b000011$~N'."
+    },
+    {
+      "title": "bitsavers /bits/IBM/1410/1410-PR-108/",
+      "url": "http://bitsavers.org/bits/IBM/1410/1410-PR-108/",
+      "note": "jpr108-2024.zip (308K) contains only jpr108-2024.bcd, a 1.39 MB tape image, plus four reel photos. Needs a browser User-Agent; plain curl gets a 279-byte error page. No card deck."
+    },
+    {
+      "title": "SimH i7010 sources (i7010_chan.c, i7000_defs.h, i7010_sys.c)",
+      "url": "https://github.com/simh/simh",
+      "note": "chan_boot() implements 7010 Load-key semantics (load-mode record into 00001, IAR=1), not the 1410 keyed procedure. chan_char[] gives CHR_RPARN (034, 'Also %') as the channel-1 selector; CHR_GM=077, CHR_RM=032, CHR_WM=035 (word separator)."
+    },
+    {
+      "title": "IBM 1401 Card Deck Formats (ibm-1401.info)",
+      "url": "https://ibm-1401.info/1401-CardDeckFormats.html",
+      "note": "1401 ANALOGUE ONLY. Three object-deck loader styles; 'Load Mode' decks execute from columns 1-39 to load the image from 40-72; the bootstrap assembles the main loader starting at location 201. Useful shape reference, not 1410 fact."
+    },
+    {
+      "title": "J24-1433-2 IBM 1410 Autocoder Preliminary Specifications, 1961",
+      "url": "http://bitsavers.org/pdf/ibm/1410/J24-1433-2_1410_Autocoder_Preliminary_Specifications_1961.pdf",
+      "note": "Checked as a possible earlier source for the loader. It describes LOAD and EX/XFR in the same words but does NOT give the 00281 address or any loader card images."
+    }
+  ]
+}

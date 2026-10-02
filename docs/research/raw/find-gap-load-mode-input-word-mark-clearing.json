@@ -1,0 +1,162 @@
+{
+  "topic": "gap-load-mode-input-word-mark-clearing",
+  "summary": "ANSWERED DEFINITIVELY, and the answer is not in the Principles of Operation - it is in the 1411 CPU customer-engineering manual. IBM 1411 Input-Output Operations, CE Instruction-Reference Manual, Form 223-2692 (1963), section \"1411-1402 Reader Operation\", printed page 58, says in plain prose: \"If the op code character is an M, specifying move mode, the data in the reader buffer transfers as is to the CPU. That is, word separator characters are transferred, unchanged, just as any other character. Existing word marks in the input field are undisturbed. If the op code character is an L, specifying load mode, a single word separator character on the channel input lines is converted into a word mark and placed over the next input character. Two successive word separator characters from the reader buffer appear as a single word separator character in the 1411 core storage. In load mode operation, existing word marks in the input field are removed.\" The same manual's Figure 5, \"Word Separator Processing\", printed page 8, labels the two input paths of a 1402 card read explicitly: the move-mode arrow is annotated \"Existing Word Marks In Core Storage Are Not Disturbed\", the load-mode arrow is annotated \"Existing Word Marks Are Erased\". So a load-mode (op L) 1402 read does NOT OR in word marks. For every core position it actually stores, it writes a complete eight-bit character (BCD + C + WM) whose WM bit is 1 only if a word separator immediately preceded that character in the card image, and 0 otherwise. Pre-existing word marks in written positions are destroyed. The console rule quoted in io.md (RCPW: word marks in storage are erased and entered) DOES generalise: erasure is a property of the CPU input store cycle common to the channel, not a console peculiarity.\n\nGroup-mark-with-word-mark: it is neither consumed nor overwritten - it is preserved, and it is never written by a load-mode read. 223-2692 page 59 gives the gating: 'Input cycle' conditions the assembly controls and develops 'load memory'; \"If the B-channel is not a GM-WM, 'input cycle load' becomes active to gate the input character from E-2 into 1411 core storage (ALD 12.50.01).\" The target core position is read out onto the B-channel first; if it holds a GM-WM the store gate is suppressed, so the GM-WM survives the cycle and terminates the transfer. The B-address register is still stepped on that cycle. 223-2692 page 42 describes the normal (correct-length) path: after the device signals external end of transfer and the last input character has been stored, a special circuit forces one EXTRA E-cycle whose only job is to test the B-channel for a GM-WM; a GM-WM found there sets the end-of-record latch and the internal end-of-transfer latch, and the inverted end-of-record output blocks the wrong-length-record latch. Item 4 of the last-input-cycle latch function - \"Conditions the assembly controls to use the B-channel character (to regenerate the character read out on the extra E-cycle)\" - confirms the GM-WM is rewritten unchanged, not clobbered. Because BAR is stepped on that extra cycle, BAR after the operation is one PAST the GM-WM: with LB defined (A22-0526-3 page 12, Figure 8) as the number of characters in the B-field, the GM-WM sits at B+LB and the documented result B+LB+1 is measured AFTER it.\n\nImplementation consequences for the loader. (1) Load-mode store is a full replace of the target byte including the WM bit, so a reusable input buffer is self-cleaning for every position the current card actually fills - no stale word marks leak between cards. (2) It is self-cleaning only up to the length of the current card's record. Load mode shortens the record by one position per stored word mark and one per stored word separator, so a card with more separators fills fewer positions and leaves the tail of the buffer (word marks included) untouched. (3) The GM-WM test is per character and happens BEFORE the store, so any GM-WM already sitting inside the receiving area truncates the read at that point and turns on wrong-length record (A22-0526-3 page 62). The GM-WM must be planted once, at exactly B+LB for the card being read, and it is not disturbed by the read. (4) A load-mode read can never leave a word mark on a position it did not write, and can never write a word mark on the GM-WM position. The rcornwell/sims i7010 channel model implements exactly this and can be used as a behavioural oracle, with one caveat noted below.",
+  "facts": [
+    {
+      "claim": "1410 (1411 CPU): a load-mode (op L) card read from the 1402 buffer ERASES pre-existing word marks in the core positions it writes. Verbatim: \"In load mode operation, existing word marks in the input field are removed.\"",
+      "source": "IBM 1411 Input-Output Operations, CE Instruction-Reference Manual, Form 223-2692 (1963), section '1411-1402 Reader Operation', printed p.58 (PDF p.62). http://www.bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/223-2692_CE_Instruction_1411_Input-Output_Operations_1963.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 (1411 CPU): a move-mode (op M) card read leaves existing word marks alone and transfers word separators through as ordinary data characters. Verbatim: \"Existing word marks in the input field are undisturbed.\"",
+      "source": "Form 223-2692 (1963), '1411-1402 Reader Operation', printed p.58 (PDF p.62). http://www.bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/223-2692_CE_Instruction_1411_Input-Output_Operations_1963.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: Figure 5 'Word Separator Processing' shows a 1402 card read splitting into two annotated paths - move mode labelled \"Existing Word Marks In Core Storage Are Not Disturbed\", load mode labelled \"Existing Word Marks Are Erased\". Verified by reading the rendered page image, not just OCR.",
+      "source": "Form 223-2692 (1963), Figure 5, printed p.8 (PDF p.12). http://www.bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/223-2692_CE_Instruction_1411_Input-Output_Operations_1963.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: Figure 5 worked example. Card columns 1-7 = WS, A, WS, B, WS, WS, C. Load-mode core result = A(with WM), B(with WM), WS(no WM), C(no WM) in positions 1-4; positions 5-7 untouched. Note the stored word separator at position 3 carries NO word mark, so the erase applies to separator positions too. Move-mode core result = the seven characters one-for-one, no word marks added.",
+      "source": "Form 223-2692 (1963), Figure 5, printed p.8 (PDF p.12). http://www.bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/223-2692_CE_Instruction_1411_Input-Output_Operations_1963.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: the erase/enter behaviour is a property of the CPU's input store cycle and the channel data registers (E-1/E-2, F-1/F-2), described under the device-independent heading 'Data Transmission', not a per-device quirk. It therefore applies identically to 1402 reader, 729/7330 tape read-with-word-marks, 1011 paper tape and 1415 console in load mode.",
+      "source": "Form 223-2692 (1963), 'Data Transmission' / 'LOAD MODE' / 'Channel Data Registers', printed pp.8-9 (PDF pp.12-13). http://www.bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/223-2692_CE_Instruction_1411_Input-Output_Operations_1963.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: the only place the PrincOps states the erase is the console-printer row - RCP: \"WM in storage are undisturbed\"; RCPW: \"WM in storage are erased and entered\". The 1402 and tape descriptions omit it. The CE manual shows the console statement is the general rule, not a special case.",
+      "source": "IBM 1410 Principles of Operation, Form A22-0526-3, Figure 44 'Instructions for Console-I/O Printer', pp.46-47. http://www.bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf ; corroborated in IBM 1410 Data Processing System Reference Manual A22-1407-2 (Nov 1961), console I/O printer table: \"Word marks in storage are undisturbed in move. Word marks in storage are erased and entered during a load operation.\" http://www.bitsavers.org/pdf/ibm/1410/A22-1407-2_1410ref_Nov61.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: A22-0526-3 'Read a Card', p.62, Word Marks paragraph says only \"If the L Op code is used, word separators are read into storage as word marks. The character in the following card column is also stored in the core storage position that contains the word mark.\" It never says whether unmarked positions are cleared. Likewise the 'Move Mode / Load Mode' section on p.41. Confirmed absent - this is the documentation gap, and 223-2692 closes it.",
+      "source": "Form A22-0526-3, pp.41 and 62. http://www.bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: two consecutive word separators on input store as a single word separator character (C,A,8,4,1) with NO word mark. A word-mark-over-word-separator character cannot be read into the CPU from any seven-bit I/O device (which is every device except 1301/1311/1405 disk and the 1415 console).",
+      "source": "Form 223-2692 (1963), 'SEVEN-BIT DEVICES' / 'LOAD MODE', printed p.9 (PDF p.13). http://www.bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/223-2692_CE_Instruction_1411_Input-Output_Operations_1963.pdf ; and A22-0526-3 p.41. http://www.bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: the group-mark-with-word-mark that terminates an input transfer is PRESERVED, not consumed and not overwritten. The target position is read out to the B-channel before the store; the store gate is conditional: \"If the B-channel is not a GM-WM, 'input cycle load' becomes active to gate the input character from E-2 into 1411 core storage (ALD 12.50.01).\"",
+      "source": "Form 223-2692 (1963), 'I-Phase Sequence' / E-phase gating, printed p.59 (PDF p.63). http://www.bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/223-2692_CE_Instruction_1411_Input-Output_Operations_1963.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: on a correct-length input the GM-WM is not even reached by a data character - the device runs out of data first, and the CPU forces ONE EXTRA E-cycle purely to test the B-channel for the GM-WM. \"after external end of transfer occurs and the last input character is stored, E-cycle required is generated by a special circuit (Figure 38) forcing an extra E-cycle to test the B-channel for a GM-WM. During this E-cycle, a GM-WM on the B-channel sets both the end of record latch and the internal end of transfer latch. The inverted output of the end of record latch blocks the turn on of the E-channel WLR latch.\" That extra cycle regenerates the character it read: \"Conditions the assembly controls to use the B-channel character (to regenerate the character read out on the extra E-cycle).\"",
+      "source": "Form 223-2692 (1963), 'E-CHANNEL WRONG LENGTH RECORD' and 'last input cycle latch', printed p.42 (PDF p.46). http://www.bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/223-2692_CE_Instruction_1411_Input-Output_Operations_1963.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: BAR after a Read a Card is B + LB + 1, and LB is defined as \"The number of characters in the B-field\". Combined with the extra-E-cycle mechanism (BAR is stepped on the cycle that tests the GM-WM), BAR ends one position PAST the group-mark-word-mark. i.e. GM-WM lives at B+LB and the final BAR = address(GM-WM) + 1. The +1 is measured AFTER the GM-WM.",
+      "source": "Form A22-0526-3, 'Read a Card' p.62 (Address Registers after Operation: B-ADDRESS REG = B+LB+1) and Figure 8 'Address-Register Symbols' p.12. http://www.bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf ; mechanism from Form 223-2692 p.42. http://www.bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/223-2692_CE_Instruction_1411_Input-Output_Operations_1963.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: the GM-WM test is performed per character before each store, so a GM-WM anywhere inside the receiving area stops the transfer at that point. A22-0526-3 p.62: \"The operation is stopped by the first group-mark-word-mark sensed in core storage.\" and \"If the [GM-WM] is incorrectly positioned, the wrong-length record channel status indicator will turn on.\" WLR is only a status indicator; it does not stop the program.",
+      "source": "Form A22-0526-3, p.62. http://www.bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: in load mode the number of core positions consumed is variable per card - the record is shortened by one position for each stored word mark and one for each stored word separator. So core length = 80 - (word marks stored) - (word separators stored). A fixed GM-WM position therefore produces a correct-length read only for cards with exactly the expected separator count; otherwise WLR turns on (transfer still completes with all buffer data stored).",
+      "source": "Form A22-0526-3 p.41 ('the input record length is shortened one position in either of these operations: storing one word mark, or storing one word separator'); Figure 5 arithmetic check 7 - 2 WM - 1 WS = 4 in Form 223-2692 p.8. http://www.bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf ; http://www.bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/223-2692_CE_Instruction_1411_Input-Output_Operations_1963.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410: with the 51-column read feed feature, in 1410 mode only the 51 active positions are transferred from buffer to storage and a group-mark-word-mark is required in the 52nd position of the read-in area. (In 1401-compatibility mode all 80 positions transfer and no GM-WM is needed.)",
+      "source": "Form A22-0526-3, footnote to '57-Column Cards' under System Features, p.100. http://www.bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Behavioural oracle agrees. rcornwell/sims I7000/i7010_chan.c, chan_write_char(): after WM insertion from the separator flag it does 'cmd[chan] &= ~CHAN_WM; if ((cmd[chan] & CHAN_LOAD) == 0) ch |= M[caddr[chan]] & WM; M[caddr[chan]] = ch;'. The OR-in of the existing word mark is guarded to MOVE mode only; in LOAD mode the byte (WM bit included) is replaced outright. Exactly the 223-2692 rule.",
+      "source": "rcornwell/sims, I7000/i7010_chan.c, chan_write_char() ~lines 600-615. https://github.com/rcornwell/sims/blob/master/I7000/i7010_chan.c",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Behavioural oracle agrees on the GM-WM too. chan_write_char() tests 'M[caddr[chan]] == (WM|077)' BEFORE storing; on a hit it sets STA_WAIT and IO_CHS_WRL, does caddr[chan]++ WITHOUT storing, and returns END_RECORD - so the GM-WM survives and BAR lands one past it. The normal correct-length path in the DEV_REOR handler reads 'uint8 ch = M[caddr[chan]++]; if (ch != (WM|077)) ... IO_CHS_WRL' - a literal transcription of the extra E-cycle GM-WM test on p.42.",
+      "source": "rcornwell/sims, I7000/i7010_chan.c, chan_write_char() ~lines 578-586 and the EOR path ~lines 375-390. https://github.com/rcornwell/sims/blob/master/I7000/i7010_chan.c",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Oracle divergence to be aware of, do NOT copy: sims sets CHAN_WM in chan_cmd() for MOVE mode ('else cmd[chan] |= CHAN_WM; /* Force first char to have word mark set */'), which makes chan_write_char() force a word mark onto the first character of a move-mode input record. That contradicts 223-2692 p.58 ('Existing word marks in the input field are undisturbed') and Figure 5 p.8, which show move-mode input adding no word marks at all. Treat the manual as authoritative here.",
+      "source": "rcornwell/sims, I7000/i7010_chan.c, chan_cmd() ~line 470, vs Form 223-2692 p.58. https://github.com/rcornwell/sims/blob/master/I7000/i7010_chan.c ; http://www.bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/223-2692_CE_Instruction_1411_Input-Output_Operations_1963.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "IBM 7010 (the 1410's follow-on) PrincOps repeats the 1410 load/move mode text verbatim and is equally silent on erasure, so it adds nothing; it is not a counter-source. It does add the eight-bit load mode in which word marks travel as part of normal data transmission.",
+      "source": "IBM 7010 Principles of Operation, Form A22-6726, 'M or L Operation Code' / Figure 41 'Load Mode, Seven-Bit', p.41. http://www.bitsavers.org/pdf/ibm/1410/A22-6726_7010_PrincOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The 1410 CE Handbook (223-2588-2) I/O summary chart gives the load-mode word-separator rule for the card reader but, like the PrincOps, states erasure only on the I/O printer row ('L-mode: WMs erased and entered. M-mode: WMs in storage undisturbed'). It is a useful cross-check but not the source that closes the gap.",
+      "source": "IBM 1410 Customer Engineering Handbook, Form 223-2588-2 (April 1964), I/O instruction summary chart. http://www.bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/223-2588-2_1410_CE_Handbook_196404.pdf",
+      "confidence": "verified"
+    }
+  ],
+  "tables": [
+    {
+      "title": "1410 load vs move mode, input side - authoritative behaviour",
+      "source": "Form 223-2692 pp.8-9, 58-59; Form A22-0526-3 p.41. http://www.bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/223-2692_CE_Instruction_1411_Input-Output_Operations_1963.pdf",
+      "markdown": "| Situation (input, seven-bit device e.g. 1402) | Move mode (op M) | Load mode (op L) |\n|---|---|---|\n| Ordinary data character | stored; existing WM in that position **retained** | stored; WM bit **forced to 0** (existing WM erased) |\n| Single word separator in incoming data | stored as an ordinary data character (C,A,8,4,1); existing WM retained | consumed; **WM set on the NEXT stored character**; record shortened 1 position |\n| Two consecutive word separators | two separator characters stored | one separator character stored, **no word mark**; record shortened 1 position |\n| WM-over-WS character | not possible from a 7-bit device | not possible from a 7-bit device |\n| Core position holding GM-WM | store gate suppressed; GM-WM regenerated unchanged; transfer ends | store gate suppressed; GM-WM regenerated unchanged; transfer ends |\n| Positions past the end of the stored record | untouched | untouched (stale WMs there survive) |\n| BAR after operation | B + LB + 1 = address(GM-WM) + 1 | B + LB + 1 = address(GM-WM) + 1, with LB = the SHORTENED core length |"
+    },
+    {
+      "title": "Figure 5 worked example (223-2692 p.8) - the canonical test vector",
+      "source": "Form 223-2692, Figure 5 'Word Separator Processing', printed p.8 (PDF p.12). http://www.bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/223-2692_CE_Instruction_1411_Input-Output_Operations_1963.pdf",
+      "markdown": "| Card column | 1 | 2 | 3 | 4 | 5 | 6 | 7 |\n|---|---|---|---|---|---|---|---|\n| Card content | WS | A | WS | B | WS | WS | C |\n| Move mode -> core position | 1 | 2 | 3 | 4 | 5 | 6 | 7 |\n| Move mode -> core content | WS | A | WS | B | WS | WS | C |\n| Load mode -> core position | 1 | 2 | 3 | 4 | - | - | - |\n| Load mode -> core content | A with WM | B with WM | WS, no WM | C, no WM | (untouched) | (untouched) | (untouched) |\n\nLength check: 7 columns - 2 stored word marks - 1 stored word separator = 4 core positions. Output side of the same figure: core `A(wm) B(wm) WS C` punches as `A B WS C` in move mode and `WS A WS B WS WS C` in load mode."
+    },
+    {
+      "title": "Termination sequence an implementer should model for a load-mode 1402 read",
+      "source": "Form 223-2692 pp.42, 59; Form A22-0526-3 p.62. http://www.bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/223-2692_CE_Instruction_1411_Input-Output_Operations_1963.pdf",
+      "markdown": "| Step | Behaviour |\n|---|---|\n| 1 | BAR := B. For each character delivered by the 1414 buffer (80 columns), read core[BAR] to the B-channel first. |\n| 2 | If core[BAR] is a GM-WM: suppress the store, regenerate the GM-WM, set end-of-record + internal end of transfer, BAR := BAR+1, stop. Remaining buffer columns are discarded. Set WLR if this happened before the buffer was exhausted. |\n| 3 | Otherwise store the assembled character (BCD + WM-from-separator) into core[BAR], replacing the whole byte including the WM bit; BAR := BAR+1. |\n| 4 | Word separator characters do not produce a store of their own; they set the pending-WM flag (or, if the flag is already set, store one separator character with WM=0 and clear the flag). |\n| 5 | When the 1402 buffer is exhausted (external end of transfer) and no GM-WM has been seen, take ONE extra cycle: read core[BAR]; if it is a GM-WM set end-of-record and block WLR, else set WLR. Either way regenerate what was read (no store) and BAR := BAR+1. |\n| 6 | Final BAR = B + LB + 1 where LB is the number of core positions actually written; on a correct-length read that is address(GM-WM) + 1. |"
+    }
+  ],
+  "open_questions": [
+    "What happens if the 80th card column is a word separator with no following character? 223-2692 does not cover it. Both the manual's shortening rule and sims leave the pending word-mark flag set with nothing to apply it to; sims simply drops it (no store, BAR not stepped). No primary source found either way - treat as an error the loader must not produce.",
+    "Whether the load-mode WM erase also clears the C (parity) bit handling in a way an emulator could observe - not observable in a functional model, but 223-2692 p.9 notes the channel data registers perform 'parity correction during WM-WS conversion', so the C bit is recomputed, not carried from the old core byte.",
+    "Whether a group-mark data character (BCD 77, no WM) arriving from the card preceded by a word separator becomes a GM-WM in core and thus terminates the NEXT cycle's transfer. Mechanically it should (the WM comes from the separator, the store gate looks at the OLD core content, so the store succeeds and the following cycle then senses the freshly written GM-WM). Not stated in any manual read; worth an emulator test if the object-deck format can contain 77+WS.",
+    "223-2692 p.58 is written specifically for the 1402 reader. The generalisation to 729 tape read-with-word-marks and 1011 paper tape rests on the device-independent 'Data Transmission' / channel-data-register description on pp.8-9 plus the console statement in A22-0526-3 p.47. No per-device sentence for tape was found saying 'existing word marks are removed'; confidence high but one notch below the card case.",
+    "Whether the 1401-compatibility mode read on a 1410 follows the 1410 rule or the 1401 rule for word marks. 223-2597 (CE Instruction, 1410/1401 Compatibility, 1963) was not read; A22-0526-3 pp.99-100 discusses card movement, stacker timing and 51-column handling in 1401 mode but not word-mark erasure. Do not assume the 1410 rule carries into 1401 mode."
+  ],
+  "sources": [
+    {
+      "title": "IBM 1411 Input-Output Operations - Customer Engineering Instruction-Reference Manual, Form 223-2692 (1963)",
+      "url": "http://www.bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/223-2692_CE_Instruction_1411_Input-Output_Operations_1963.pdf",
+      "note": "THE source that closes this gap. Figure 5 'Word Separator Processing' p.8 (PDF p.12) with the 'Existing Word Marks Are Erased' / 'Not Disturbed' annotations; 'MOVE MODE'/'LOAD MODE'/'SEVEN-BIT DEVICES' p.9; WLR + extra-E-cycle GM-WM test p.42 (PDF p.46); '1411-1402 Reader Operation' prose p.58 (PDF p.62); 'If the B-channel is not a GM-WM, input cycle load becomes active' p.59 (PDF p.63). pdftotext -layout works; Figure 5's annotations need the page image to read cleanly."
+    },
+    {
+      "title": "IBM 1410 Principles of Operation, Form A22-0526-3",
+      "url": "http://www.bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "note": "p.12 Figure 8 (LB = number of characters in the B-field); p.41 Move Mode / Load Mode; pp.46-47 Figure 44 console RCP/RCPW ('WM in storage are erased and entered'); p.62 Read a Card (B+LB+1, GM-WM stops the operation, WLR on misplacement); p.87 tape with word marks; p.100 51-column footnote. Silent on load-mode erasure for 1402 and tape - the gap."
+    },
+    {
+      "title": "IBM 1410 Data Processing System Reference Manual, Form A22-1407-2 (Nov 1961)",
+      "url": "http://www.bitsavers.org/pdf/ibm/1410/A22-1407-2_1410ref_Nov61.pdf",
+      "note": "Earlier PrincOps-equivalent. Console I/O printer entry states both halves explicitly: word marks undisturbed in move, 'erased and entered during a load operation'. Independent corroboration of the console wording across editions."
+    },
+    {
+      "title": "IBM 1410 Customer Engineering Handbook, Form 223-2588-2 (April 1964)",
+      "url": "http://www.bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/223-2588-2_1410_CE_Handbook_196404.pdf",
+      "note": "I/O summary chart: card reader row gives the separator->word-mark rule only; I/O printer row gives 'L-mode: WMs erased and entered / M-mode: WMs in storage undisturbed'. Cross-check, not the closing source."
+    },
+    {
+      "title": "IBM 7010 Principles of Operation, Form A22-6726",
+      "url": "http://www.bitsavers.org/pdf/ibm/1410/A22-6726_7010_PrincOps.pdf",
+      "note": "p.41 'M or L Operation Code' and Figure 41 'Load Mode, Seven-Bit' - verbatim reuse of the 1410 text, equally silent on erasure. Adds the eight-bit load mode."
+    },
+    {
+      "title": "rcornwell/sims - I7000/i7010_chan.c (IBM 7010/1410 channel model)",
+      "url": "https://github.com/rcornwell/sims/blob/master/I7000/i7010_chan.c",
+      "note": "Behavioural oracle. chan_write_char() confirms load-mode full-byte replace vs move-mode 'ch |= M[caddr]&WM', and the GM-WM sense-before-store with BAR stepped past it. One divergence: chan_cmd() forces a word mark on the first character in MOVE mode, which contradicts 223-2692 p.58."
+    },
+    {
+      "title": "IBM 1410 CE Instruction-Reference / Maintenance directory listing on bitsavers",
+      "url": "http://www.bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/",
+      "note": "Where 223-2692 lives, alongside S223-2698 (1411 Instructions and Special Features, 1961). Note bitsavers.org returns 403 on directory listings without a browser User-Agent; www.bitsavers.org with -A 'Mozilla/5.0' works."
+    }
+  ]
+}

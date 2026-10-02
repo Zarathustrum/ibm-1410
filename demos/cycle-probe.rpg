@@ -1,0 +1,20 @@
+RG                                                                         02010
+CAA  001 CS                              010060300302                      03010
+DDEPT  003         CAA 006                                                 04010
+DPAGENO003         PAG                                                     04020
+ACOUNT 003                   PAGENO003A         D                          05010
+LHA1X  HA2    01    1P                                                     06010
+K                                 020          011CYCLE PROBE              06020
+F                           PAGENO030         Z                            06030
+LHA2X       02                                                             06040
+K                                 020          010DETAIL RUN               06050
+LHB1X  HB2    01    OF                                                     06060
+K                                 020          011CYCLE PROBE              06070
+F                           PAGENO030         Z                            06080
+LHB2X       02                                                             06090
+K                                 020          010DETAIL RUN               06100
+LD11X       01      01                                                     06110
+F                           DEPT  010                                      06120
+F                           PAGENO020         Z                            06130
+LT11X       02      LC                                                     06140
+K                                 020          009LAST CARD                06150

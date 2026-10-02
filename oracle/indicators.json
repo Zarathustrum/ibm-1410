@@ -1,0 +1,85 @@
+{
+  "source": "opcodes.md §8 / A22-0526-3 pp.15, 16, 36, 53 and §5.2; cross-checked against 223-2588-2 p.24",
+  "note": "SEVEN latches — three arithmetic, four compare. 'Six' in this project always means ChannelStatus, which is a different set and is not here. The carriage channel-9 / channel-12 indicators arrive with the 1403 in Phase 2 and are not latches of this set.",
+  "latches": [
+    {
+      "name": "arithOverflow",
+      "label": "Arithmetic overflow",
+      "setBy": "Add and Subtract ONLY (one-field or two-field), when the result exceeds the limit set by the B-field word mark — the carry is lost",
+      "testedBy": "J (I) Z (BAV)",
+      "resetBy": "the test that reads it, or computer reset",
+      "tag": "[verified]"
+    },
+    {
+      "name": "zeroBalance",
+      "label": "Zero balance",
+      "setBy": "Add, Subtract, Multiply, Zero and Add, Zero and Subtract producing a zero balance",
+      "testedBy": "J (I) V (BZ)",
+      "resetBy": "the next arithmetic op (any except Divide) that does not give a zero balance; computer reset; power-on reset",
+      "tag": "[verified]"
+    },
+    {
+      "name": "divideOverflow",
+      "label": "Divide overflow",
+      "setBy": "Divide — quotient field two or more positions too small, an improperly addressed dividend, or division by zero (always)",
+      "testedBy": "J (I) W (BDV)",
+      "resetBy": "the test that reads it, or computer reset",
+      "tag": "[verified]"
+    },
+    {
+      "name": "compareHigh",
+      "label": "Compare high (B > A)",
+      "setBy": "Compare, Table Lookup, Branch if Character Equal",
+      "testedBy": "J (I) U (BH)",
+      "resetBy": "the next Compare / Table Lookup / BCE",
+      "tag": "[verified]"
+    },
+    {
+      "name": "compareEqual",
+      "label": "Compare equal (B = A)",
+      "setBy": "Compare, Table Lookup, Branch if Character Equal",
+      "testedBy": "J (I) S (BE)",
+      "resetBy": "the next Compare / Table Lookup / BCE",
+      "tag": "[verified]"
+    },
+    {
+      "name": "compareLow",
+      "label": "Compare low (B < A)",
+      "setBy": "Compare, Table Lookup, Branch if Character Equal",
+      "testedBy": "J (I) T (BL)",
+      "resetBy": "the next Compare / Table Lookup / BCE; computer reset turns this ON",
+      "tag": "[verified]"
+    },
+    {
+      "name": "compareUnequal",
+      "label": "Compare unequal",
+      "setBy": "accompanies high or low",
+      "testedBy": "J (I) / (BU)",
+      "resetBy": "the next Compare / Table Lookup / BCE; computer reset turns this ON",
+      "tag": "[verified]"
+    }
+  ],
+  "rules": {
+    "arithOverflowSetBy": ["A", "S"],
+    "arithOverflowNeverSetBy": ["?", "!", "@", "%"],
+    "zeroBalanceSetBy": ["A", "S", "@", "?", "!"],
+    "multiplySetsZeroBalance": true,
+    "multiplySetsArithOverflow": false,
+    "divideSetsZeroBalance": false,
+    "divideSetsArithOverflow": false,
+    "divideSetsDivideOverflow": true,
+    "indexingSetsArithOverflow": false,
+    "compareLatchesSetBy": ["C", "T", "B"],
+    "compareLatchesResetAsAGroupBy": ["C", "T", "B"],
+    "computerResetTurnsOff": ["arithOverflow", "zeroBalance", "divideOverflow"],
+    "computerResetTurnsOn": ["compareLow", "compareUnequal"],
+    "equalOnceOffCannotComeBackOn": true
+  },
+  "citations": {
+    "arithOverflowSetBy": "A22-0526-3 p.53 (1415 Console, 'Overflow' light), identical wording in editions 2 and 3: 'The overflow condition can be detected only during an add or subtract operation, and not during a zero and add, zero and subtract, multiply or divide operation.'",
+    "divideSetsZeroBalance": "A22-0526-3 p.53 'Zero Balance' light text enumerates the setting ops as 'any add, subtract, zero and add, zero and subtract, or multiply operation' — divide is absent from both the set and the reset lists, matching the p.16 rule.",
+    "indexingSetsArithOverflow": "A22-0526-3 p.15 — indexing does not set arithmetic overflow even if the index addition overflows.",
+    "computerReset": "A22-0526-3 p.36 — computer reset turns off the overflow indicators and the zero-result indicator, and turns ON the low-compare and unequal-compare indicators.",
+    "equalOnceOffCannotComeBackOn": "opcodes.md §5.2, 223-2588-2 p.24 — once equal is turned off during an operation it cannot be turned back on."
+  }
+}

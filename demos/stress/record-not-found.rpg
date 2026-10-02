@@ -1,0 +1,7 @@
+RG                                                                         02010
+CAA  001 CC                              01                                03010
+DITEM  004         CAA 005004                                              04010
+DPAGENO003         PAG                                                     04020
+ACOUNT 003                   PAGENO003A         D                          05010
+LD11X       01      01                                                     06010
+F                           ITEM  008                                      06020

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>IBM 1410</title>
+    <style>
+      /* TWO SURFACES, TWO STYLESHEETS, and this block is the INTERNALS tab's (plan §10.3, the
+         wave-5 half of the split). `body` is the one selector that cannot be scoped, so the
+         page-wide default stays here; every other rule below is scoped under `#internals`, which
+         is what stops the period stylesheet restyling the panel and keeps the two tabs "visually
+         foreign to each other on purpose" (architecture.md §6). The MACHINE ROOM tab is drawn
+         entirely by `src/ui/styles/period.css`, scoped under `#machine-room`, and the four period
+         classes that used to live here — `.card-face`, `.deck-box`, `.deck-errors`, `.green-bar` —
+         moved there with their comments in the same step.
+         Still no styling worth the name on this tab, on purpose: a monospace font, a grid, and an
+         overline for word marks. */
+      body { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; margin: 1em; }
+      #internals hr { border: none; border-top: 1px solid #999; margin: 0 0 .4em; }
+      #internals .anachronism { color: #666; margin-bottom: 1em; }
+      #internals .grid { display: grid; grid-template-columns: repeat(3, max-content); gap: 1em 2em; align-items: start; }
+      #internals fieldset { border: 1px solid #ccc; padding: .4em .6em; }
+      #internals legend { color: #666; }
+      #internals table { border-collapse: collapse; }
+      #internals td { padding: 0 .5em 0 0; white-space: pre; }
+      #internals .off { color: #bbb; }
+      #internals .on { font-weight: bold; }
+      /* The word mark: an overline over the character it marks. On the real console it is an
+         inverted circumflex the Selectric backspaces and overstrikes (research/console-and-
+         physical.md §2, A22-0526-3 p.49); the log below uses that combining mark, the core
+         display uses an overline because 200 stacked circumflexes are unreadable. */
+      #internals .wm { text-decoration: overline; }
+      #internals pre { margin: 0; max-height: 18em; overflow: auto; border: 1px solid #ccc; padding: .4em; }
+      #internals #core { max-height: 16em; overflow: auto; border: 1px solid #ccc; padding: .4em; white-space: pre; }
+      #internals .wide { grid-column: 1 / -1; }
+      #internals input, #internals select, #internals button { font: inherit; }
+    </style>
+  </head>
+  <body>
+    <!-- The two tab containers Phase 4's shell switches between (plan §3.1, §10.1). main.ts
+         looks both up once at start-up and inserts the tab bar above them; the MACHINE ROOM is
+         the default and the INTERNALS tab keeps the scoped rules in the block above. -->
+    <div id="app">
+      <div id="machine-room"></div>
+      <div id="internals"></div>
+    </div>
+    <script type="module" src="/src/ui/main.ts"></script>
+  </body>
+</html>

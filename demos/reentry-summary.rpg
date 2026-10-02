@@ -1,0 +1,54 @@
+RG                                                                         02010
+CAA  001 CT                              01                                03010
+DTIME  005         CAAN006005                                              04010
+DALT   008         CAAN014008                                              04020
+DVEL   008         CAAN022008                                              04030
+DDECEL 008         CAAN046008                                              04040
+DQTOT  008         CAAN078008                                              04050
+DPAGENO003         PAG                                                     04060
+ACOUNT 005                   00001 005A         D                          05010
+LHA1X  HA2    01    1P                                                     06010
+K                                 043          017BALLISTIC REENTRY        06020
+K                                 062          018TRAJECTORY SUMMARY       06030
+K                                 076          004PAGE                     06040
+F                           PAGENO080         Z                            06050
+LHA2X  HA3  02                                                             06060
+K                                 045          016RECONSTRUCTION -         06070
+K                                 061          015NOT FLIGHT DATA          06080
+LHA3X       02                                                             06090
+K                                 020          004TIME                     06100
+K                                 041          008ALTITUDE                 06110
+K                                 060          008VELOCITY                 06120
+K                                 078          005DECEL                    06130
+K                                 097          009HEAT LOAD                06140
+LHB1X  HB2    01    OF                                                     06150
+K                                 043          017BALLISTIC REENTRY        06160
+K                                 062          018TRAJECTORY SUMMARY       06170
+K                                 076          004PAGE                     06180
+F                           PAGENO080         Z                            06190
+LHB2X  HB3  02                                                             06200
+K                                 045          016RECONSTRUCTION -         06210
+K                                 061          015NOT FLIGHT DATA          06220
+LHB3X       02                                                             06230
+K                                 020          004TIME                     06240
+K                                 041          008ALTITUDE                 06250
+K                                 060          008VELOCITY                 06260
+K                                 078          005DECEL                    06270
+K                                 097          009HEAT LOAD                06280
+LD11X       01      01                                                     07010
+F                           TIME  020             WORD01                   07020
+F                           ALT   041             WORD02                   07030
+F                           VEL   060             WORD03                   07040
+F                           DECEL 078             WORD04                   07050
+F                           QTOT  097             WORD05                   07060
+LT11X       02      LC                                                     08010
+K                                 034          014ROWS TABULATED           08020
+F                           COUNT 041         Z                            08030
+K                                 078          015FINAL HEAT LOAD          08040
+F                           QTOT  097             WORD05                   08050
+K                                 102          003***                      08060
+W                           WORD01             006 0 .                     09010
+W                           WORD02             011 ,   ,  0.               09020
+W                           WORD03             010   , 0 .                 09030
+W                           WORD04             009     0 .                 09040
+W                           WORD05             010   , 0 .                 09050

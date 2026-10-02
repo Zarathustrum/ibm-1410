@@ -1,0 +1,7 @@
+1403 Model 2 · chain A · 66-line form
+
+           CARD LIST
+
+APPLE      5   125
+BANANA    12    99
+WIDGET     1  1234

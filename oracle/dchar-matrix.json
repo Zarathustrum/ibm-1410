@@ -1,0 +1,585 @@
+{
+  "source": "opcodes.md §3.2 (A22-0526-3 Figure 19 p.25, Figure 21 p.26, Figure 22) and §3.3 (Figure 20, p.26)",
+  "note": "All 64 d-characters of op D are legal. Bits 4/2/1 pick the portion (none = scan); bits B/A/8 pick direction and terminator. Direction letters in the Figure 21 mnemonics are counter-intuitive but correct: L = right-to-Left, R = left-to-Right.",
+  "dCharacters": [
+    {
+      "dec": 0,
+      "glyph": " ",
+      "glyphNote": "true blank (000000, octal 00 — the ASCII space)",
+      "mnemonic": "SCNLS",
+      "direction": "R→L",
+      "portion": "scan",
+      "terminatesOn": "after one position"
+    },
+    {
+      "dec": 1,
+      "glyph": "1",
+      "mnemonic": "MLNS",
+      "direction": "R→L",
+      "portion": "numeric",
+      "terminatesOn": "after one position"
+    },
+    {
+      "dec": 2,
+      "glyph": "2",
+      "mnemonic": "MLZS",
+      "direction": "R→L",
+      "portion": "zone",
+      "terminatesOn": "after one position"
+    },
+    {
+      "dec": 3,
+      "glyph": "3",
+      "mnemonic": "MLCS",
+      "direction": "R→L",
+      "portion": "zone+numeric",
+      "terminatesOn": "after one position"
+    },
+    {
+      "dec": 4,
+      "glyph": "4",
+      "mnemonic": "MLWS",
+      "direction": "R→L",
+      "portion": "word mark",
+      "terminatesOn": "after one position"
+    },
+    {
+      "dec": 5,
+      "glyph": "5",
+      "mnemonic": "MLNWS",
+      "direction": "R→L",
+      "portion": "numeric+WM",
+      "terminatesOn": "after one position"
+    },
+    {
+      "dec": 6,
+      "glyph": "6",
+      "mnemonic": "MLZWS",
+      "direction": "R→L",
+      "portion": "zone+WM",
+      "terminatesOn": "after one position"
+    },
+    {
+      "dec": 7,
+      "glyph": "7",
+      "mnemonic": "MLCWS",
+      "direction": "R→L",
+      "portion": "all",
+      "terminatesOn": "after one position"
+    },
+    {
+      "dec": 8,
+      "glyph": "8",
+      "mnemonic": "SCNR",
+      "direction": "L→R",
+      "portion": "scan",
+      "terminatesOn": "first WM in either field"
+    },
+    {
+      "dec": 9,
+      "glyph": "9",
+      "mnemonic": "MRN",
+      "direction": "L→R",
+      "portion": "numeric",
+      "terminatesOn": "first WM in either field"
+    },
+    {
+      "dec": 10,
+      "glyph": "0",
+      "mnemonic": "MRZ",
+      "direction": "L→R",
+      "portion": "zone",
+      "terminatesOn": "first WM in either field"
+    },
+    {
+      "dec": 11,
+      "glyph": "#",
+      "mnemonic": "MRC",
+      "direction": "L→R",
+      "portion": "zone+numeric",
+      "terminatesOn": "first WM in either field"
+    },
+    {
+      "dec": 12,
+      "glyph": "@",
+      "mnemonic": "MRW",
+      "direction": "L→R",
+      "portion": "word mark",
+      "terminatesOn": "first WM in either field"
+    },
+    {
+      "dec": 13,
+      "glyph": ":",
+      "mnemonic": "MRNW",
+      "direction": "L→R",
+      "portion": "numeric+WM",
+      "terminatesOn": "first WM in either field"
+    },
+    {
+      "dec": 14,
+      "glyph": ">",
+      "mnemonic": "MRZW",
+      "direction": "L→R",
+      "portion": "zone+WM",
+      "terminatesOn": "first WM in either field"
+    },
+    {
+      "dec": 15,
+      "glyph": "√",
+      "glyphNote": "tape mark",
+      "mnemonic": "MRCW",
+      "direction": "L→R",
+      "portion": "all",
+      "terminatesOn": "first WM in either field"
+    },
+    {
+      "dec": 16,
+      "glyph": "ƀ",
+      "glyphNote": "substitute blank — octal 20, A bit only; NOT the ASCII space",
+      "mnemonic": "SCNLA",
+      "direction": "R→L",
+      "portion": "scan",
+      "terminatesOn": "A-field word mark"
+    },
+    {
+      "dec": 17,
+      "glyph": "/",
+      "mnemonic": "MLNA",
+      "direction": "R→L",
+      "portion": "numeric",
+      "terminatesOn": "A-field word mark"
+    },
+    {
+      "dec": 18,
+      "glyph": "S",
+      "mnemonic": "MLZA",
+      "direction": "R→L",
+      "portion": "zone",
+      "terminatesOn": "A-field word mark"
+    },
+    {
+      "dec": 19,
+      "glyph": "T",
+      "mnemonic": "MLCA",
+      "direction": "R→L",
+      "portion": "zone+numeric",
+      "terminatesOn": "A-field word mark"
+    },
+    {
+      "dec": 20,
+      "glyph": "U",
+      "mnemonic": "MLWA",
+      "direction": "R→L",
+      "portion": "word mark",
+      "terminatesOn": "A-field word mark"
+    },
+    {
+      "dec": 21,
+      "glyph": "V",
+      "mnemonic": "MLNWA",
+      "direction": "R→L",
+      "portion": "numeric+WM",
+      "terminatesOn": "A-field word mark"
+    },
+    {
+      "dec": 22,
+      "glyph": "W",
+      "mnemonic": "MLZWA",
+      "direction": "R→L",
+      "portion": "zone+WM",
+      "terminatesOn": "A-field word mark"
+    },
+    {
+      "dec": 23,
+      "glyph": "X",
+      "mnemonic": "MLCWA",
+      "direction": "R→L",
+      "portion": "all",
+      "terminatesOn": "A-field word mark"
+    },
+    {
+      "dec": 24,
+      "glyph": "Y",
+      "mnemonic": "SCNRR",
+      "direction": "L→R",
+      "portion": "scan",
+      "terminatesOn": "A-field record mark"
+    },
+    {
+      "dec": 25,
+      "glyph": "Z",
+      "mnemonic": "MRNR",
+      "direction": "L→R",
+      "portion": "numeric",
+      "terminatesOn": "A-field record mark"
+    },
+    {
+      "dec": 26,
+      "glyph": "‡",
+      "glyphNote": "record mark",
+      "mnemonic": "MRZR",
+      "direction": "L→R",
+      "portion": "zone",
+      "terminatesOn": "A-field record mark"
+    },
+    {
+      "dec": 27,
+      "glyph": ",",
+      "mnemonic": "MRCR",
+      "direction": "L→R",
+      "portion": "zone+numeric",
+      "terminatesOn": "A-field record mark"
+    },
+    {
+      "dec": 28,
+      "glyph": "%",
+      "mnemonic": "MRWR",
+      "direction": "L→R",
+      "portion": "word mark",
+      "terminatesOn": "A-field record mark"
+    },
+    {
+      "dec": 29,
+      "glyph": null,
+      "glyphNote": "word separator",
+      "mnemonic": "MRNWR",
+      "direction": "L→R",
+      "portion": "numeric+WM",
+      "terminatesOn": "A-field record mark"
+    },
+    {
+      "dec": 30,
+      "glyph": "\\",
+      "mnemonic": "MRZWR",
+      "direction": "L→R",
+      "portion": "zone+WM",
+      "terminatesOn": "A-field record mark"
+    },
+    {
+      "dec": 31,
+      "glyph": null,
+      "glyphNote": "segment mark",
+      "mnemonic": "MRCWR",
+      "direction": "L→R",
+      "portion": "all",
+      "terminatesOn": "A-field record mark"
+    },
+    {
+      "dec": 32,
+      "glyph": "-",
+      "mnemonic": "SCNLB",
+      "direction": "R→L",
+      "portion": "scan",
+      "terminatesOn": "B-field word mark"
+    },
+    {
+      "dec": 33,
+      "glyph": "J",
+      "mnemonic": "MLNB",
+      "direction": "R→L",
+      "portion": "numeric",
+      "terminatesOn": "B-field word mark"
+    },
+    {
+      "dec": 34,
+      "glyph": "K",
+      "mnemonic": "MLZB",
+      "direction": "R→L",
+      "portion": "zone",
+      "terminatesOn": "B-field word mark"
+    },
+    {
+      "dec": 35,
+      "glyph": "L",
+      "mnemonic": "MLCB",
+      "direction": "R→L",
+      "portion": "zone+numeric",
+      "terminatesOn": "B-field word mark"
+    },
+    {
+      "dec": 36,
+      "glyph": "M",
+      "mnemonic": "MLWB",
+      "direction": "R→L",
+      "portion": "word mark",
+      "terminatesOn": "B-field word mark"
+    },
+    {
+      "dec": 37,
+      "glyph": "N",
+      "mnemonic": "MLNWB",
+      "direction": "R→L",
+      "portion": "numeric+WM",
+      "terminatesOn": "B-field word mark"
+    },
+    {
+      "dec": 38,
+      "glyph": "O",
+      "mnemonic": "MLZWB",
+      "direction": "R→L",
+      "portion": "zone+WM",
+      "terminatesOn": "B-field word mark"
+    },
+    {
+      "dec": 39,
+      "glyph": "P",
+      "mnemonic": "MLCWB",
+      "direction": "R→L",
+      "portion": "all",
+      "terminatesOn": "B-field word mark"
+    },
+    {
+      "dec": 40,
+      "glyph": "Q",
+      "mnemonic": "SCNRG",
+      "direction": "L→R",
+      "portion": "scan",
+      "terminatesOn": "A-field GM-WM"
+    },
+    {
+      "dec": 41,
+      "glyph": "R",
+      "mnemonic": "MRNG",
+      "direction": "L→R",
+      "portion": "numeric",
+      "terminatesOn": "A-field GM-WM"
+    },
+    {
+      "dec": 42,
+      "glyph": "!",
+      "mnemonic": "MRZG",
+      "direction": "L→R",
+      "portion": "zone",
+      "terminatesOn": "A-field GM-WM"
+    },
+    {
+      "dec": 43,
+      "glyph": "$",
+      "mnemonic": "MRCG",
+      "direction": "L→R",
+      "portion": "zone+numeric",
+      "terminatesOn": "A-field GM-WM"
+    },
+    {
+      "dec": 44,
+      "glyph": "*",
+      "mnemonic": "MRWG",
+      "direction": "L→R",
+      "portion": "word mark",
+      "terminatesOn": "A-field GM-WM"
+    },
+    {
+      "dec": 45,
+      "glyph": "]",
+      "mnemonic": "MRNWG",
+      "direction": "L→R",
+      "portion": "numeric+WM",
+      "terminatesOn": "A-field GM-WM"
+    },
+    {
+      "dec": 46,
+      "glyph": ";",
+      "mnemonic": "MRZWG",
+      "direction": "L→R",
+      "portion": "zone+WM",
+      "terminatesOn": "A-field GM-WM"
+    },
+    {
+      "dec": 47,
+      "glyph": "Δ",
+      "mnemonic": "MRCWG",
+      "direction": "L→R",
+      "portion": "all",
+      "terminatesOn": "A-field GM-WM"
+    },
+    {
+      "dec": 48,
+      "glyph": "&",
+      "mnemonic": "SCNL",
+      "direction": "R→L",
+      "portion": "scan",
+      "terminatesOn": "first WM in either field"
+    },
+    {
+      "dec": 49,
+      "glyph": "A",
+      "mnemonic": "MLN",
+      "direction": "R→L",
+      "portion": "numeric",
+      "terminatesOn": "first WM in either field"
+    },
+    {
+      "dec": 50,
+      "glyph": "B",
+      "mnemonic": "MLZ",
+      "direction": "R→L",
+      "portion": "zone",
+      "terminatesOn": "first WM in either field"
+    },
+    {
+      "dec": 51,
+      "glyph": "C",
+      "mnemonic": "MLC",
+      "direction": "R→L",
+      "portion": "zone+numeric",
+      "terminatesOn": "first WM in either field"
+    },
+    {
+      "dec": 52,
+      "glyph": "D",
+      "mnemonic": "MLW",
+      "direction": "R→L",
+      "portion": "word mark",
+      "terminatesOn": "first WM in either field"
+    },
+    {
+      "dec": 53,
+      "glyph": "E",
+      "mnemonic": "MLNW",
+      "direction": "R→L",
+      "portion": "numeric+WM",
+      "terminatesOn": "first WM in either field"
+    },
+    {
+      "dec": 54,
+      "glyph": "F",
+      "mnemonic": "MLZW",
+      "direction": "R→L",
+      "portion": "zone+WM",
+      "terminatesOn": "first WM in either field"
+    },
+    {
+      "dec": 55,
+      "glyph": "G",
+      "mnemonic": "MLCW",
+      "direction": "R→L",
+      "portion": "all",
+      "terminatesOn": "first WM in either field"
+    },
+    {
+      "dec": 56,
+      "glyph": "H",
+      "mnemonic": "SCNRM",
+      "direction": "L→R",
+      "portion": "scan",
+      "terminatesOn": "A-field RM or GM-WM"
+    },
+    {
+      "dec": 57,
+      "glyph": "I",
+      "mnemonic": "MRNM",
+      "direction": "L→R",
+      "portion": "numeric",
+      "terminatesOn": "A-field RM or GM-WM"
+    },
+    {
+      "dec": 58,
+      "glyph": "?",
+      "mnemonic": "MRZM",
+      "direction": "L→R",
+      "portion": "zone",
+      "terminatesOn": "A-field RM or GM-WM"
+    },
+    {
+      "dec": 59,
+      "glyph": ".",
+      "mnemonic": "MRCM",
+      "direction": "L→R",
+      "portion": "zone+numeric",
+      "terminatesOn": "A-field RM or GM-WM"
+    },
+    {
+      "dec": 60,
+      "glyph": "⌑",
+      "glyphNote": "lozenge",
+      "mnemonic": "MRWM",
+      "direction": "L→R",
+      "portion": "word mark",
+      "terminatesOn": "A-field RM or GM-WM"
+    },
+    {
+      "dec": 61,
+      "glyph": "[",
+      "mnemonic": "MRNWM",
+      "direction": "L→R",
+      "portion": "numeric+WM",
+      "terminatesOn": "A-field RM or GM-WM"
+    },
+    {
+      "dec": 62,
+      "glyph": "<",
+      "mnemonic": "MRZWM",
+      "direction": "L→R",
+      "portion": "zone+WM",
+      "terminatesOn": "A-field RM or GM-WM"
+    },
+    {
+      "dec": 63,
+      "glyph": "⧧",
+      "glyphNote": "group mark",
+      "mnemonic": "MRCWM",
+      "direction": "L→R",
+      "portion": "all",
+      "terminatesOn": "A-field RM or GM-WM"
+    }
+  ],
+  "figure20RegisterEffects": [
+    {
+      "terminatingControl": "First word mark in either field",
+      "direction": "L→R",
+      "iar": "NSI",
+      "aar": "A+LW",
+      "bar": "B+LW"
+    },
+    {
+      "terminatingControl": "A-field record mark",
+      "direction": "L→R",
+      "iar": "NSI",
+      "aar": "A+LA",
+      "bar": "B+LA"
+    },
+    {
+      "terminatingControl": "A-field group-mark-with-word-mark",
+      "direction": "L→R",
+      "iar": "NSI",
+      "aar": "A+LA",
+      "bar": "B+LA"
+    },
+    {
+      "terminatingControl": "A-field record mark or GM-WM",
+      "direction": "L→R",
+      "iar": "NSI",
+      "aar": "A+LA",
+      "bar": "B+LA"
+    },
+    {
+      "terminatingControl": "After one storage position",
+      "direction": "R→L",
+      "iar": "NSI",
+      "aar": "A-1",
+      "bar": "B-1"
+    },
+    {
+      "terminatingControl": "A-field word mark",
+      "direction": "R→L",
+      "iar": "NSI",
+      "aar": "A-LA",
+      "bar": "B-LA"
+    },
+    {
+      "terminatingControl": "B-field word mark",
+      "direction": "R→L",
+      "iar": "NSI",
+      "aar": "A-LB",
+      "bar": "B-LB"
+    },
+    {
+      "terminatingControl": "First word mark in either field",
+      "direction": "R→L",
+      "iar": "NSI",
+      "aar": "A-LW",
+      "bar": "B-LW"
+    }
+  ],
+  "substituteBlankTrap": "BCD 16 / octal 20 (A bit only) is the substitute blank ƀ, a distinct 1410 graphic named in A22-0526-3 Figure 4 'Symbol Names' p.7 — SCNLA assembles as D (A)(B) ƀ while SCNLS assembles as D (A)(B) blank (true blank, octal 00). Emitting an ASCII space for SCNLA turns it into SCNLS, a different instruction. The same character is BNT1/BNT2's d in §6.2."
+}

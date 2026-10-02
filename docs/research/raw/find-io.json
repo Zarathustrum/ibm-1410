@@ -1,0 +1,288 @@
+{
+ "topic": "IBM 1410 input/output architecture (1411 CPU, 1414 synchronizers, channels, I/O instruction form, status/interlock, 1402/1403/1415/729/1311 device programming)",
+ "summary": "Architecture. The 1411 Processing Unit talks to peripherals through IBM 1414 Input-Output Synchronizers, which hold the device-side buffers: the 1414 Model 3 (and 8) contains the 80-character card-read buffer, the 80-character card-punch buffer and the 100/132-character print buffer between the 1402/1403 and the 1411; Models 1/2/7 control up to ten 729/7330 tape units per channel. The system has one standard data channel (channel 1); channel 2 is a special feature that requires the processing-overlap feature. Each channel has two single-character registers (E1/E2 for channel 1, F1/F2 for channel 2) and a five-character address register (E-address / F-address) that tracks the core location being transferred; overlapped transfers steal one 4.5 us cycle per character. Every I/O instruction (max 10 positions) is: Op code (M = move mode, L = load mode; U = unit control for tape; K/4 = select-stacker for ch1/ch2; F/2 = carriage control ch1/ch2), a 3-character X-control field, a 5-digit B-address, and a d-character. In the X-control field the hundreds (x1) character selects channel + overlap: % = ch1 non-overlap, @ = ch1 overlap, ⌑ (lozenge) = ch2 non-overlap, * = ch2 overlap; the tens (x2) character is the unit type: 1 = card reader, 2 = printer, 4 = card punch, U = tape even parity, B = tape odd parity, T = console printer, F = 1311 disk; the units (x3) character is the unit number or specific operation (tape unit 0-9, 1402 pocket 0/1/2 read or 0/4/8 punch, 9 = read no-stack/no-feed, printer 0/1, 0 for console). Move mode leaves word marks alone (input: word separators stored as-is; output: core word marks not transferred); load mode converts input word separators into word marks on the following character and output word marks into a word separator preceding the character (shortening/lengthening the record). Data transfers run left to right from the B-address until a group-mark-with-word-mark (GMWM) in core stops them (or for tape/disk, an IRG/end of data); a missing/misplaced GMWM produces a wrong-length-record indication.\n\nStatus and interlock model (the thing an emulator must get right). Each channel has six I/O channel status indicators: Not Ready (d=1), Busy (2), Data Check (4), Condition (8), Wrong Length Record (B-bit, d='-'), No Transfer (A-bit, d=blank/'b'); a d-character with all bits (the group mark) tests all six. Executing an I/O instruction: (1) test the interlock indicator, system stops if it is on; (2) reset all six status indicators for that channel; (3) test whether the device can execute (not ready / busy / condition set if not); (4) turn on the interlock; (5) if any indicator is on, skip execution and fall through to the next sequential instruction; else transfer data and set Data Check / WLR / No Transfer on errors. The interlock is cleared only by a subsequent \"Branch if I/O channel status indicator on\" instruction - op code R for channel 1, X for channel 2 - that either actually branches, or is R/X (I) with the all-bits d-character (in which case no branch is required). Consequently every I/O instruction on a channel must be followed by an R/X status test before the next I/O instruction on that channel (I/O ops are those with op codes M, L, U, F, 2, K, 4); otherwise the system stops. Testing does not reset the indicators; only the next I/O instruction does. Other I/O-related branches use op code J with d-characters: 9 / I = carriage channel 9 ch1/ch2, R / L = carriage busy ch1/ch2, @ / lozenge = carriage overflow (channel 12) ch1/ch2, Q / * = inquiry request ch1/ch2, 1 / 2 = overlap in process ch1/ch2. Overlap: an R or X issued while an overlapped op is running converts it to non-overlap and suspends processing until the transfer finishes; end-of-core ($ / X d-character) tape ops, select-stacker, carriage control and tape unit control (except write tape mark) cannot be overlapped; console printer ops can be overlapped but are channel-1 only. Only one device per channel can be active at a time.\n\nDevices. 1402-2 reader: read buffer holds an image; on Reader Start three cards feed and the first card's image enters the buffer. Read a Card (M/L %1x B R, x=0/1/2 selects pocket NR(0)/1/8-2(2)) transfers 80 columns from buffer to core from the B-address until GMWM, stacks the card and feeds the next, refilling the buffer; x=9 transfers without feed/stack; Select Stacker and Feed (K d / 4 d, d=0,1,2) then stacks it and feeds. Punch a Card (M/L %4x B W, x=0/4/8 = pocket NP/4/8-2) transfers 80 characters from core to punch buffer and punches. Reader indicators: Not Ready (jam, out of cards - not EOF - off line, power off, stacker full, cover open, clutch check, joggle switch, 1414 off line/power off), Busy (buffer filling, card stacking), Data Check (hole count, 1414 parity/timing, CPU parity), Condition = end-of-file (last card stacked; EOF latch turned off as indicator turned on), WLR, No Transfer (same image transferred twice, or two select-stacker-and-feeds / two x=9 reads with no intervening transfer). End-of-File key: sets the last-card condition after the last card's data transfer; the next read is a NO OP; with 3 cards left and no EOF key, the read sets Not Ready. Reader timing: 0-75 ms access + 880 us (80 x 11 us) buffer transfer + 65 ms read cycle. Invalid characters are transferred to storage (Validity light). 1403: Model 1 = 100 positions, Model 2/3 = 132; 48-character chain (26 alpha, 10 numeric, 12 special); Write a Line (M %20 B W, ch2 lozenge-20; L op = word marks print as blanks ahead of the character), Write Word Marks as 1s (M %21 B W). Data goes core -> print buffer serially until GMWM; then the printer starts; the printer is busy only after the transfer completes. If no carriage control follows, an automatic single space occurs after printing. Carriage Control (F d for ch1, 2 d for ch2, no X-field or B-address): d 1-9,0,#,@ = immediate skip to channel 1-12; A-I, ?, ., lozenge = skip to channel 1-12 after print; J/K/L = immediate 1/2/3 space; / S T = 1/2/3 space after print. Carriage tape has 12 channels; channels 9 and 12 set testable indicators when sensed and are cleared when any other channel is sensed; skipping to a channel already under the brushes goes to the next punch of that channel. Print status: Not Ready (1), Busy (2 = previous line printing), Data Check (4 = print buffer parity, line not printed), Condition (8 = timing/hammer-fire error, following line not printed), WLR; No Transfer never set. 1415 console: Selectric with 64 characters plus word-mark and underscore (invalid parity) symbols; instructions M/L %T0 B R (read console printer, L = word marks entered) and M/L %T0 B W (write); inquiry: operator presses Inquiry Request which sets the inquiry status latch in the 1411; program tests it with J (I) Q and executes the read; the console prints 'I', a space and unlocks the keyboard; the operator types (Word Mark key enters a word mark on the next char in load mode), then presses Release (must be exactly at the GMWM position or WLR is set) or Cancel (sets Condition, or No Transfer if pressed before any character). Write prints 'R', a space, then data until GMWM. Read status: Not Ready/Busy never set, Data Check = input validity error, Condition = cancel during inquiry, WLR, No Transfer = cancel before inquiry; write status: Busy = carriage returning, Data Check = output validity. Tape (729 II/IV/V/VI, 7330): 7-track, even-parity BCD (U in x2) or odd-parity binary (B in x2); Unit Control U %Ux d with d = B backspace, A move one record (CE), R rewind, U rewind-unload, E skip/erase 3.5 in, M write tape mark (tape mark = 8421 written as a single-character record, always even parity; reading it in odd-parity mode yields data check + EOF, stored as 8421, unchanged invalid char, or '*' depending on the asterisk-insert switch); Read M/L %Ux B R (stops at IRG or GMWM), $ = read to end of core (IRG or top of core only, cannot overlap), Write W (stops at GMWM, writes IRG), X = write to end of core; L op = word marks as word separators on tape. Tape status: Not Ready (unit not ready/no such unit/off line/TAU power), Busy (rewinding/TAU busy), Data Check (parity, tape mark in odd mode), Condition (R: first character was tape mark = EOF; W: foil strip/end of reel; U: never), WLR (read: usually only when d=$; write: zero-length record), No Transfer never set. 1311 disk (1410/7010 attachment): op M/L, X-field x1 = channel/overlap, F, then operation digit (0 seek, 1 sector mode, 2 track record, 3 write disk check, 4 store disk control field, 5 sector count overlay, 6 track sectors with addresses, 7/8/9 scan), B = address of a disk control field *AAAAASSS (5-digit sector address 000000-199999 across drives 0-4 at 20 sectors/track, plus 3-digit sector count) followed by GMWM, then data (100 chars/sector move mode, 90 chars load mode) terminated by GMWM; d = R/$ read, W/X write, Q/V = I/O no-op for priority feature. Drive/cylinder/head/sector = decompose sector address by /20 (first digit drive, next two cylinder, next head, remainder sector 0-19). The 1401/1440/1460 disk manual A24-3070 uses a different instruction form (M %F1 B R, unit character F1/F2, no per-channel X field) - do not confuse with 1410.",
+ "facts": [
+  {
+   "claim": "1410 instruction form: op code, optional A/I-address or 3-char X-control field, B-address (5 digits), d-character; valid lengths 1,2,5,6,7,10,11,12 positions. I/O instruction max length 10 (O xxx bbbbb d).",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.11 (Instruction Form / Instruction Length Validity)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "X-control field hundreds position = channel + overlap: % ch1 non-overlap, @ ch1 overlap, lozenge ch2 non-overlap, * ch2 overlap. Tens position = device type: 1 card reader, 2 printer, 4 punch, U tape even parity, B tape odd parity, T console I/O printer (F = 1311 disk per A22-6704). Units position = unit number / specific op: 0-9 tape unit, 0/1/2 1402 read pocket, 0/4/8 1402 punch pocket, 9 = read no-stack/no-feed, 0/1 printer op, 0 for console.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.11 and p.105 Figure 107; disk F from http://bitsavers.org/pdf/ibm/1410/A22-6704_1311_Disk_for_1410_7010.pdf p.7 Fig 6",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Move mode (op M): word separators in input stored unchanged; output writes core word separators unchanged and does not transfer word marks. Load mode (op L): a single input word separator becomes a word mark over the next input character; two consecutive word separators become one word separator in core (record shortens); on output a core word mark becomes a word separator preceding the character and a core word separator becomes two word separators. Disk units handle word marks directly in 8-bit mode.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.41 (Move Mode / Load Mode)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1414 models: Model 1 controls up to ten 729 II/IV/V per channel; Model 2 up to ten 7330; Model 7 like Model 1 plus 729 VI; Model 3 houses the 80-char card read and punch core buffers and the 100/132-char print buffer between 1402/1403 and 1411; Model 8 like 3 without card buffers; Models 4/5 add telecommunications (1011, 1009, up to 20 1014, telegraph).",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.40 (IBM 1414 Input-Output Synchronizer, Figure 39)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Six I/O channel status indicators per channel: Not Ready (d=1), Busy (d=2), Data Check (d=4), Condition (d=8), Wrong Length Record (B-bit, d='-'), No Transfer (A-bit, d=blank). Branch if any on uses d = group mark (all bits). Branch op code R (channel 1) or X (channel 2), form R/X iiiii d, timing 4.5(L+1+C). Indicators are reset at the beginning of the next I/O operation, not by testing.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.37 Figure 36; p.42 'Testing the I/O Channel Status Indicators'",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Interlock rule: during read-out of an I/O instruction an interlock indicator is turned on; if still on when the next I/O instruction on the same channel is read out the system stops. I/O instructions requiring the intervening test are op codes M, L, U, F, 2, K, 4. Only two things clear it: any R/X status branch that actually branches, or an R/X (I) with the all-bits (group mark) d-character with no branch required.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.37-38 and p.42 'Results of Omitting the Status Test'",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Automatic sequence on I/O instruction (Figure 40): 1 recognize I/O op; 2 test interlock (on -> system stop); 3 reset all six status indicators; 4 test device capable, set indicators if not; 5 turn on interlock; 6 if any indicator on, do not execute, skip to step 9; 7 transfer data; 8 test for errors, set indicators; 9 proceed to next sequential instruction (which can never legally be another I/O on that channel).",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.42-43 Figure 40",
+   "confidence": "verified"
+  },
+  {
+   "claim": "J-op conditional branch d-characters relevant to I/O: 9 = carriage channel 9 ch1, I = channel 9 ch2, R = carriage busy ch1, L = carriage busy ch2, @ = carriage overflow (channel 12) ch1, lozenge = overflow ch2, Q = inquiry request ch1, * = inquiry request ch2, 1 = overlap in process ch1, 2 = overlap in process ch2, K = tape indicator (CE use). Carriage 9 and 12 indicators turn on when the hole is sensed and off when any other carriage tape channel is sensed.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.36 Figure 35",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Channel 2 is a special feature that requires the processing-overlap feature. Each channel has two single-character registers (E1/E2 ch1, F1/F2 ch2) and a 5-char address register (E-address, F-address). Overlapped transfer suspends processing 4.5 us per character; at completion the E-address register holds the address two positions right of the last data character (because the GMWM after the record must be read). Channel 1 has priority if both channels request at once; max delay before yielding is 11.25 us.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.92-94",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Overlap exceptions: read/write to end of core ($ or X d-char) cannot be overlapped (automatically changed to normal read/write if written for overlap); overlap does not apply to carriage control, select stacker, or tape unit control except write tape mark; console printer ops can be overlapped but only on channel 1. An overlapped instruction on a system without the overlap feature stops the system. Only one I/O device per channel at a time. An R or X issued while an overlap operation is in progress suspends processing until the transfer completes (converted to non-overlap); program should test J (I) 1 / J (I) 2 first.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.38 note, p.92, p.95",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1402-2 with 1410: reader up to 800 cpm, 3000-card file feed, cards read 9-edge first face down past read-check and read brushes into the 80-position read buffer; punch up to 250 cpm, 12-edge first, punch-check brushes do hole-count check. Five stackers of 1000 cards; reader can direct to 0 (NR), 1, or 8/2; punch to 0 (NP), 4, or 8/2. Cards with validity errors or hole-count check go automatically to NP or NR.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.59-60",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Reader Start feeds three cards and fills the reader buffer with the first card's image (no I/O instruction needed). A Read a Card then (1) transfers the buffer image to core, (2) stacks that card, (3) reads the next card into the buffer.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.41-42, p.60",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Read a Card: M %1x bbbbb R (ch2: lozenge 1x), L for word marks; x=0,1,2 stacks in pocket 0(NR)/1/2(8-2); x=9 transfers buffer to core but no stacker select and no feed (buffer keeps the image). 80 characters transferred serially left to right from B until first GMWM in core; GMWM must be immediately right of the record; misplaced GMWM sets WLR. Timing 49.5 us + I/O. After op: IAR=NSI, AAR=Ap, BAR=B+LB+1.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.62 (Figure 61, Read a Card)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Select Stacker and Feed: op K (ch1) or 4 (ch2) with d = 0,1,2; no X-field or B-address; used only after a Read a Card with 9 in x3. Stacks the card in the pocket, feeds another card and refills the buffer. Timing 13.5 + I/O.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.62-63",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Punch a Card: M/L %4x bbbbb W (ch2 lozenge 4x), x = 0,4,8 selects pocket 0(NP)/4/8-2. Transfers 80 characters from core to punch buffer until GMWM, then punches. Load mode punches a word separator ahead of each word-marked character (lengthens the field). Timing 49.5 + I/O.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.63",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Reader status after Read/Select-Stacker (Figure 62): Not Ready = card jam, reader out of cards (not EOF), not on line, power off, stacker full, cover interlock open, feed clutch failure, joggle switch open, 1414 off line/power off. Busy = read buffer being filled or card being stacked. Data Check = hole count check, 1414 parity or timing error, CPU parity error (never for select-stacker). Condition = EOF (last card stacked; EOF latch turned off as indicator turned on; never for select-stacker). WLR = wrong length record. No Transfer = card transferred previously (two select-stacker-and-feed with no intervening x3=9 read, or two x3=9 reads with no intervening select-stacker-and-feed).",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.63 Figure 62",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Punch status (Figure 63): Not Ready = card jam, out of cards, stacker full, power off, not on line, chip basket full/missing, cover open. Busy = previous card still being punched. Data Check = 1414 detects parity error (card not punched). Condition = parity error detected during punching or hole-count check, error card goes to pocket 0. WLR = wrong length record (card not punched). No Transfer never set.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.63 Figure 63",
+   "confidence": "verified"
+  },
+  {
+   "claim": "End-of-File key (1402 on 1410): signals last-card condition; EOF latch turns on following data transfer of the last card and the next card-read instruction is a NO OP. With 4+ cards in hopper all are processed; with 3 cards remaining a read before EOF key sets the Not Ready indicator; pressing EOF then Start lets the last three be processed. Stop key or processing the last card resets the EOF condition.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.61 (End-of-File)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Validity light: an invalid character detected during a feed; during the read instruction the invalid character is transferred from buffer to storage. Reader Check light: hole-count, parity or buffer timing error during feed; during the read the data are transferred and the CPU sets the Data Check indicator.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.61",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1402 timing: read (x3 = 0/1/2) I/O = 0-75,000 us access + 880 us (80 positions at 11 us) + 65,000 us read cycle; read with x3=9: 880 us; select stacker and feed: 0-75,000 + 65,000 us; punch: 0-60,000 + 880 + 217,000 us punch cycle.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.64 'Timing Considerations for 1402'",
+   "confidence": "verified"
+  },
+  {
+   "claim": "51-column read feed feature: columns 1-51 of a 51-column card map to read-buffer positions 15-65; positions 1-14 and 66-80 are filled with valid blanks; GMWM must be at the 52nd position of the core read-in area; the 51 active positions but not the blanks are transferred.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.64-65",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1403 with 1410: Model 1 = 100 print positions, Model 2 = 132 (special feature 32 positions), Model 3 = 132 standard; 600 lpm alphameric, 1285 lpm numeric feature (Models 1/2), Model 3 1100 lpm. 48-character set: 26 alpha, 10 numeric, 12 special; chain of five 48-char sections; 10 chars/inch; 6 or 8 lpi manual. Print buffer (100 or 132) is in the 1414. Numeric print feature chain has 15 sets of 16 characters (0-9 and $ . , * - lozenge); other characters cause print check in numeric mode. Interchangeable chain cartridge adapter is a special feature.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.67, p.82",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Write a Line: M %20 bbbbb W (ch2 lozenge 20); L %20 = write a line, word marks create blanks in printing (word marks become word separators = blank space before the character). Write Word Marks as 1s: M %21 bbbbb W (word-marked positions print as 1, others blank). Transfer of 100/132 chars from core to print buffer left to right until GMWM; then printer starts. Timing 49.5 + I/O; IAR=NSI, AAR=Ap, BAR=B+LB+1. Word marks in storage are not transferred (M).",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.80 Figure 88 and text",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1403 status after Write a Line (Figure 89): Not Ready (1) = printer not ready, not on line, power off, out of forms; Busy (2) = previous line still being printed; Data Check (4) = print buffer parity error (line not printed); Condition (8) = buffer timing error or hammer fire check (line following error line is not printed); WLR = wrong length record (line not printed); No Transfer never set. After Carriage Control (Figure 91): Not Ready as above; Busy = forms in motion / forms instruction waiting; Data Check, Condition, WLR, No Transfer never set.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.80 Figure 89, p.81 Figure 91",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Carriage Control: op F (ch1) or 2 (ch2) with d-character only (mnemonic CC/CC1/CC2), timing 13.5 us. d 1-9,0,#,@ = immediate skip to channel 1..12; A-I, ?, ., lozenge = skip to channel 1..12 after print; J,K,L = immediate 1,2,3 spaces; /,S,T = 1,2,3 spaces after print. Numeric bits of d give the count, zone bits select the variant. If no carriage instruction is given after a print, an automatic single space occurs at the end of the buffer-to-printer transfer. A skip to a channel already positioned moves to the next punch of that channel. Word marks not affected.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.81 Figure 90 and 'Carriage Control'",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Tape-controlled carriage: 12 channels; channels 1-12 standard; channels 9-12 send special signals to the CPU; program testing of channels 9 and 12 is standard. Tape max 132 lines (22 inches); forms up to 22 in at 6 lpi or 16.5 in at 8 lpi; skips at 33 in/s (dual-speed: >8 lines at 75 in/s, last 8 at 33). Carriage Restore key positions carriage at channel 1 (home). Print Stop makes a subsequent print set Not Ready.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.68, p.71-72",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1403 timing: printer is not busy while data are transferred to the print buffer; becomes busy after transfer completes and printing starts. Max 100 ms per print+space (82 ms print + 18 ms space, 3 ms overlap between successive forms movements); 11 us per character transfer (1.1 ms for 100, 1.452 ms for 132).",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.81-82 Figure 92",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1415 console I/O printer: Selectric, 64 characters (10 numeric, 26 alpha, 28 special) plus a word-mark symbol and underscore (invalid parity), max 932 chars/min; vertical spacing, backspace and carrier return are inoperative from the keyboard. Operator can enter information, display core, read records from tape/disk; log of manual ops, display, alter, inquiry, programmed messages; prints IAR, A/B address regs, op reg, op modifier, A/B channel, assembly channel and unit select/unit number regs for both channels on stops (Figure 42).",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.45-46",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Console printer instructions (Figure 44): M %T0 bbbbb R = Read Console Printer without word marks (RCP); L %T0 bbbbb R = read with word marks (RCPW, word marks in storage erased and entered); M %T0 bbbbb W = Write (WCP, word marks not indicated); L %T0 bbbbb W = write with word marks (WCPW; word marks indicated; blanks print as small b, word mark as inverted circumflex over the character). GMWM printed with the message. Timing 49.5 + I/O; NSI, Ap, B+LB+1. Only channel 1.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.47 Figure 44, p.49",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Inquiry sequence: Inquiry Request key sends signal to 1411 (sets inquiry status latch); program tests with J iiiii Q and branches to a routine containing M/L %T0 bbbbb R; the console prints 'I', a space, unlocks keyboard; operator types characters into B, B+1, ...; Release key at the correct count (next position must hold a previously inserted GMWM) completes the record with carrier return/vertical space and locks the keyboard; releasing early sets WLR (program continues); excess characters are not accepted and pressing Release/Cancel then sets WLR. Cancel during message sets Condition; Cancel before the request is recognized resets the latch; Cancel before any character sets No Transfer. Word Mark key prints a word mark then backspaces; the next key enters both word mark and character (load-read only).",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.46-48",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Console status: after read (Figure 45): Not Ready never, Busy never, Data Check = input character validity error, Condition = cancel key during inquiry, WLR, No Transfer = no message request / cancel before inquiry. After write (Figure 46): Busy = carriage returning, Data Check = output validity error (error char printed and underlined, reply continues), others never set. Console reply routine prints 'R', space, data until GMWM, then carrier return.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.47 Figure 45, p.48-49 Figure 46",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Computer Reset resets program to 00001, timing clocks, all machine indicators; inquiry latches (except console inquiry latch) and tape density latch are not reset.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.49",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Tape: ten 729 (II, IV, V, VI) or 7330 per channel; 7-bit code (C check bit + B A 8 4 2 1), even parity for BCD, records separated by ~3/4 inch IRG; 729 II 200/556 cpi at 75 ips, 729 IV 200/556 at 112.5 ips, 729 V 200/556/800 at 75 ips, 729 VI 200/556/800 at 112.5 ips, 7330 200/556 at 36 ips. Figure 95 is the tape code chart. On even-parity tape a C+A combination is read into core as C only (blank on tape = A bit, in core = C bit) so programs written to tape should use odd parity.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.84-85 Figures 94, 95",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Unit Control: U %Ux d (x = unit 0-9; hundreds = channel/overlap; tens U or B) with d: B backspace one record (tape mark counts as a record; 1410 not interlocked), A move one record without reading (CE), R rewind (ready at load point after), U rewind and unload (unit disconnected), E skip and blank tape (erase 3.5 in; next instruction should be a write on the same unit), M write tape mark (single-character record, 1410 interlocked; can be overlapped). Timing 0.0045(L+1) + Tm ms.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.85-86 Figure 97",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Read/Write Tape: M %Ux bbbbb R/W (B in x2 for odd-parity/binary; RTB/WTB), L for word marks (RTW/WTW: word separators on tape become core word marks and vice versa, one tape position per word separator). R stops at IRG or GMWM (GMWM stops transfer but tape moves to IRG); W stops at GMWM and writes IRG. $ = read to end of core (IRG or top of core only; GMWM ignored); X = write to end of core (GMWM ignored). $/X ops cannot be overlapped; R/W ops can. Word marks do not affect M ops. Tape mark is always even parity; encountering it in odd-parity mode gives Data Check plus EOF; it enters storage as 8421 (no C), unchanged invalid, or '*' depending on asterisk insert switch; in even-parity mode it enters as C8421 with no data check.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.86-88 Figure 97, 98",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Tape status (Figure 99): Not Ready = unit not ready / no such unit selected / not on line / TAU power off; Busy = unit rewinding / TAU or unit busy (backspace or read-write not finished); Data Check (R) = CPU received wrong parity, TAU sent wrong parity, tape mark read in odd parity; (W) = TAU received wrong parity, unit detects read-back check error; (U) = set if write tape mark in odd parity. Condition (R) = first character of record was tape mark (EOF); (W) = foil strip (end of reel) detected; (U) never (unless tape mark read). WLR (R) = wrong length record, usually only when d=$; (W/U) never (unless zero-length record and first char GMWM). No Transfer never set.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.88 Figure 99",
+   "confidence": "verified"
+  },
+  {
+   "claim": "All tape units on a channel are under one Tape Adapter Unit (TAU); if one unit is busy no other unit on the channel can be used until all its operations except rewinding complete. Character times: 729 II 0.067 ms at 200 cpi / 0.024 at 556; 729 IV 0.044/0.016; 729 V 0.067/0.024/0.017 (800); 729 VI 0.044/0.016/0.011; 7330 0.139/0.050. 729 II/V read interlock 10.7 + CN ms, write 11.7 + CN; 729 IV/VI read 7.1 + CN, write 7.8 + CN; add 40.5 ms (II/V) or 27 ms (IV/VI) at load point when writing.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.88-90 Figure 100",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1311 on 1410/7010 (A22-6704): op M (7-bit) or L (8-bit, word marks stored directly), X-ctrl = [% @ lozenge *][F][op digit]: 0 seek, 1 sector mode, 2 track record (feature), 3 write disk check, 4 store disk control field, 5 sector count overlay, 6 track sectors with addresses, 7/8/9 scan low/equal/high (feature), @ track record with address. B-address = high-order of the disk control field; d = R or $ read, W or X write, Q/V I/O no-op (priority feature). Disk control field *AAAAASSS (or drive digit 0,2,4,6,8 in place of *, which overrides), followed by GMWM, then data followed by GMWM. Data written with M must be read with M, L with L.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-6704_1311_Disk_for_1410_7010.pdf p.7-9 (Figure 6, 8, 9)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1311 sector addressing on 1410: divide sector address by 20: first digit of quotient = drive, next two = cylinder, next = surface (head), remainder = sector 0-19 on the track (e.g. *27883 = drive 1, cylinder 39, surface 4, sector 3). Model 5 has a 3-digit sector count register (decremented per sector) and 5-digit sector address register (incremented per sector). Sector mode (XF1) transfers 1 to 200 sectors; transfer stops on GMWM in storage, sector count reaching 000, end of cylinder, or address mismatch (end + condition signal after two index pulses). Records shorter than 90 (load) / 100 (move) chars must be padded to avoid WLR and data check. Seek: XF0 with direct seek address *ncc#xxxx (n = drive, cc = 2 x cylinders to move, sign on 4th digit = direction, # in 5th digit) or a disk control field for return-to-home seek; avg direct seek 150 ms, home seek 250 ms; seek failure shows up as a condition on the following read/write.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-6704_1311_Disk_for_1410_7010.pdf p.6, 8, 9",
+   "confidence": "verified"
+  },
+  {
+   "claim": "The 1401/1440/1460 disk manual (A24-3070-1) uses a different instruction form (M %F1 bbb R / L %F1 bbb R etc.), a 6-digit sector address 000000-019999 for 1311, 200 chars/sector move / 180 load for 1301 vs 100/90 for 1311 - this is NOT the 1410 form and should not be used for a 1410 emulator.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A24-3070-1_1410_Disk_Storage_IO_Instructions.pdf p.10 (title is misleading; document is the 1401/1440/1460 disk instructions manual)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "The 1410 Principles of Operation A22-0526-3 index has no 'Column Binary' entry and the 1402 chapter (pp.59-66) describes no column-binary feature; the only 1402 special feature described is the interchangeable 51-column read feed.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.59-66, p.106-107 index",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Operating in overlap: the program should test J (I) 1 or J (I) 2 (overlap in process) before issuing any R/X status test, and again before the next I/O on that channel; an I/O encountered before physical completion of the previous op on the same channel causes a system stop if the status test was not programmed, or a failure of the second op to execute if it was.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.38, p.92, p.95",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1410 Autocoder I/O mnemonic conventions (Figure 107): R/R1/R2 read (0,b), RW load-mode read, P/P1/P2 punch, PW load-mode punch, SSF select stacker, W/W1/W2 write line, WW word-marks-as-blanks, WM write word marks as 1s, CC/CC1/CC2 carriage control, RCP/RCPW/WCP/WCPW console, RT/RTW/RTB/RTBW/RTG/RTGW read tape variants, WT/WTW/WTB/WTBW/WTE/WTEW write tape variants, BSP/SKP/WTM/RWD/RWU unit control, BNR/BCB/BER/BEF/BWL/BNT/BA/BEX status branches with suffix 1/2 for channel; suffix O = overlap, W = load mode.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.104-105 (Alphabetic listing, Figure 107)",
+   "confidence": "verified"
+  }
+ ],
+ "tables": [
+  {
+   "title": "X-control field encoding (IBM 1410, Figure 107)",
+   "markdown": "| Position | Char | Meaning |\n|---|---|---|\n| x1 (hundreds) | % | Channel 1, non-overlap |\n| x1 | @ | Channel 1, overlap |\n| x1 | lozenge (⌑) | Channel 2, non-overlap |\n| x1 | * | Channel 2, overlap |\n| x2 (tens) | 1 | Card reader (1402) |\n| x2 | 2 | Printer (1403) |\n| x2 | 4 | Card punch (1402) |\n| x2 | U | Magnetic tape, even parity (BCD) |\n| x2 | B | Magnetic tape, odd parity (binary) |\n| x2 | T | Console I/O printer (1415) |\n| x2 | F | 1311 disk storage (per A22-6704) |\n| x3 (units) | 0-9 | Tape unit number |\n| x3 | 0,1,2 | 1402 read: stack in pocket NR/1/8-2 |\n| x3 | 0,4,8 | 1402 punch: stack in pocket NP/4/8-2 |\n| x3 | 9 | 1402 read, no stack / no feed |\n| x3 | 0,1 | Printer: 0 = write line, 1 = write word marks as 1s |\n| x3 | 0 | Console printer (no meaning) |\n| x3 | 0-9,@ | 1311 disk operation (0 seek, 1 sector mode, 3 write disk check, 4 store DCF, 5 sector count overlay, 6 track sectors w/ addr, 2/7/8/9/@ features) |",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.105 Figure 107; http://bitsavers.org/pdf/ibm/1410/A22-6704_1311_Disk_for_1410_7010.pdf p.7 Figure 6"
+  },
+  {
+   "title": "I/O instruction summary (1410, channel-1 forms; replace % with lozenge for channel 2, @/* for overlap)",
+   "markdown": "| Operation | Autocoder | Actual form | Notes |\n|---|---|---|---|\n| Read a card, stack pocket 0/1/2 | R / R1 / R2 (RW load) | M or L %10/%11/%12 (B) R | 80 chars buffer->core to GMWM, stack, feed |\n| Read a card, no stack/no feed | R(#)9 | M or L %19 (B) R | buffer keeps image |\n| Select stacker 0/1/2 and feed | SSF / SSF1 / SSF2 | K d (ch1) or 4 d (ch2), d=0,1,2 | after a %19 read only |\n| Punch a card, pocket 0/4/8 | P / P1 / P2 (PW load) | M or L %40/%44/%48 (B) W | 80 chars core->punch buffer |\n| Write a line | W / W1 / W2 | M %20 (B) W | 100/132 chars to print buffer, auto single space if no CC |\n| Write a line, WM create blanks | WW | L %20 (B) W | |\n| Write word marks as 1s | WM | M %21 (B) W | |\n| Carriage control | CC / CC1 / CC2 | F d (ch1) or 2 d (ch2) | see d-char table |\n| Read console printer | RCP / RCPW | M or L %T0 (B) R | ch1 only; inquiry |\n| Write console printer | WCP / WCPW | M or L %T0 (B) W | ch1 only |\n| Read tape | RT / RTW / RTB / RTBW | M or L %Ux or %Bx (B) R | stops at IRG or GMWM |\n| Read tape to end of core | RTG / RTGW / RTBG | M or L %Ux (B) $ | not overlappable |\n| Write tape | WT / WTW / WTB / WTBW | M or L %Ux or %Bx (B) W | stops at GMWM, writes IRG |\n| Write tape to end of core | WTE / WTEW / WTBE | M or L %Ux (B) X | not overlappable |\n| Backspace / Skip-erase / Write TM / Rewind / Rewind-unload | BSP / SKP / WTM / RWD / RWU | U %Ux B / E / M / R / U | unit control |\n| Seek disk (1311) | - | M or L %F0 (B) R,$,W,X | B -> disk control field or direct seek address |\n| Read/write sector mode (1311) | - | M or L %F1 (B) R or W | 1-200 sectors, 100 (M) / 90 (L) chars each |\n| Branch if I/O status indicator on | BNR/BCB/BER/BEF/BWL/BNT/BA/BEX (1 or 2) | R (I) d (ch1), X (I) d (ch2) | d: 1,2,4,8,-,blank, group mark = all |",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.37, 62-63, 80-81, 47, 85-87, 104-105; A22-6704 p.7-9"
+  },
+  {
+   "title": "I/O channel status indicators and branch d-characters (Figure 36)",
+   "markdown": "| Indicator | d-char | Bit | Generic meaning |\n|---|---|---|---|\n| Not Ready | 1 | 1 | device/buffer not ready before transfer; op terminated, no data |\n| Busy | 2 | 2 | device/buffer busy before transfer; op terminated, no data |\n| Data Check | 4 | 4 | parity error detected during transfer |\n| Condition | 8 | 8 | device-specific (e.g. 1402 EOF, tape mark/EOF, foil strip, cancel key) |\n| Wrong Length Record | - (minus) | B | record read/written not correct length (GMWM misplaced) |\n| No Transfer | blank | A | no data available to transfer |\n| Any | group mark | BA8421 | tests all six; R/X (I) group-mark also clears interlock without branching |",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.37 Figure 36"
+  },
+  {
+   "title": "1403 carriage control d-characters (Figure 90)",
+   "markdown": "| d | Immediate skip to | d | Skip after print to | d | Immediate space | d | Space after print |\n|---|---|---|---|---|---|---|---|\n| 1 | Channel 1 | A | Channel 1 | J | 1 space | / | 1 space |\n| 2 | Channel 2 | B | Channel 2 | K | 2 spaces | S | 2 spaces |\n| 3 | Channel 3 | C | Channel 3 | L | 3 spaces | T | 3 spaces |\n| 4 | Channel 4 | D | Channel 4 | | | | |\n| 5 | Channel 5 | E | Channel 5 | | | | |\n| 6 | Channel 6 | F | Channel 6 | | | | |\n| 7 | Channel 7 | G | Channel 7 | | | | |\n| 8 | Channel 8 | H | Channel 8 | | | | |\n| 9 | Channel 9 | I | Channel 9 | | | | |\n| 0 | Channel 10 | ? | Channel 10 | | | | |\n| # | Channel 11 | . | Channel 11 | | | | |\n| @ | Channel 12 | lozenge | Channel 12 | | | | |",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.81 Figure 90"
+  },
+  {
+   "title": "J-op conditional branch d-characters relevant to I/O (Figure 35)",
+   "markdown": "| Condition | Mnemonic | d |\n|---|---|---|\n| Carriage channel 9 (ch1 / ch2) | BC9 or BC91 / BC92 | 9 / I |\n| Carriage busy (ch1 / ch2) | BCPB / BPCB2 | R / L |\n| Carriage overflow, channel 12 (ch1 / ch2) | BCV / BCV2 | @ / lozenge |\n| Inquiry request (ch1 / ch2) | BNQ / BNQ2 | Q / * |\n| Overlap in process (ch1 / ch2) | BOL1 / BOL2 | 1 / 2 |\n| Tape indicator (CE use) | - | K |",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.36 Figure 35"
+  },
+  {
+   "title": "Device-specific status indicator semantics (1410)",
+   "markdown": "| Device / op | Not Ready | Busy | Data Check | Condition | WLR | No Transfer |\n|---|---|---|---|---|---|---|\n| 1402 read / SSF | jam, hopper empty (not EOF), offline, power, stacker full, cover, clutch, joggle, 1414 offline | buffer filling, card stacking | hole count, 1414 parity/timing, CPU parity (never on SSF) | EOF: last card stacked (never on SSF) | GMWM misplaced | image already transferred (two SSF or two %19 reads) |\n| 1402 punch | jam, out of cards, stacker full, power, offline, chip basket, cover | previous card punching | 1414 parity (not punched) | parity during punching / hole count; card to pocket 0 | WLR, not punched | never |\n| 1403 write line | not ready/offline/power/out of forms | previous line printing | print buffer parity, line not printed | timing / hammer fire check, next line not printed | WLR, not printed | never |\n| 1403 carriage control | as above | forms in motion / forms instr waiting | never | never | never | never |\n| 1415 read | never | never | input validity | Cancel during inquiry | WLR | no request / Cancel before inquiry |\n| 1415 write | never | carriage returning | output validity | never | never | never |\n| Tape read | not ready/no unit/offline/TAU power | rewinding/TAU busy | parity, tape mark in odd mode | first char was tape mark (EOF) | usually only with $ | never |\n| Tape write | same | same | parity / read-back check | foil strip (end of reel) | zero-length record only | never |\n| Tape unit control | same | same | WTM in odd parity | never | never | never |",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.63 Fig 62/63, p.80-81 Fig 89/91, p.47-49 Fig 45/46, p.88 Fig 99"
+  }
+ ],
+ "open_questions": [
+  "Column binary on the 1410: A22-0526-3 describes no column-binary feature for the 1402 on the 1410 (index has no entry). Whether a 1410 column-binary option existed (as it did on the 1401) and how it mapped 12 rows into two core characters is unverified; check the 1410 Configurator (A22-6688), the 1414 OEM manual (A22-6701) or the 1410 Instruction Card (X22-6740) before implementing it.",
+  "1301 disk on the 1410 (A22-6670, A22-6788) was not read; the instruction form is expected to parallel the 1311 (%Fx with disk control field) but sector sizes (200/180 chars) and op digits should be verified from those manuals.",
+  "Exact card-code-to-BCD mapping table (Figure 2 of A22-0526-3, p.6) was not captured in this pass; use it (or the tape code chart Figure 95, p.85, which lists BA8421 for all 64 characters) to build the card->core translation, and note the 1410 special-character/collating set differs slightly from the 1401's.",
+  "Behavior of the console-printer word-mark/underscore output characters and the 1415 'asterisk insert' CE switch (affects how a tape mark read in odd parity lands in core) is described only in passing (p.88); the CE test panel section (p.50-58) was not read.",
+  "1414 OEM manual (A22-6701) was not read; it holds channel-level signal timing (11 us/character card and print buffer transfer, 1414 parity and timing errors) if a cycle-accurate synchronizer model is wanted.",
+  "Not read: the 1410 Priority Processing feature (A22-0530-1) which adds I/O interrupts and the Q/V I/O-no-op d-characters; also 1410 Accelerator (p.96) which changes per-character overlap timing from 4.5 us to 4.0 us."
+ ],
+ "sources": [
+  {
+   "title": "IBM 1410 Data Processing System, Principles of Operation, Form A22-0526-3 (1962/63)",
+   "url": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "note": "Primary source. PDF page number equals printed page number. Key pages: 11 (instruction form), 36-38 (branch ops incl. R/X status branch, Fig 35/36), 40-43 (1414, I/O instructions, move/load mode, status checking, Fig 40), 45-49 (1415 console, Fig 42-46), 59-65 (1402, Fig 61-63), 67-82 (1403, Fig 88-92), 84-91 (tape, Fig 94-100), 92-95 (channel 2, overlap), 104-105 (alphabetic listing, Fig 107)."
+  },
+  {
+   "title": "IBM 1311 Disk Storage Drive Model 5 with IBM 1410 and 7010 Systems, Form A22-6704",
+   "url": "http://bitsavers.org/pdf/ibm/1410/A22-6704_1311_Disk_for_1410_7010.pdf",
+   "note": "1410-specific 1311 instruction format (Fig 6, p.7), disk control field / sector addressing (p.6), seek and sector mode (p.8-9)."
+  },
+  {
+   "title": "IBM 1401/1440/1460 Disk Storage Input/Output Instructions, Form A24-3070-1 (misfiled on bitsavers under 1410)",
+   "url": "http://bitsavers.org/pdf/ibm/1410/A24-3070-1_1410_Disk_Storage_IO_Instructions.pdf",
+   "note": "Despite the filename this is the 1401/1440/1460 disk manual; used only to confirm the 1410 form differs."
+  },
+  {
+   "title": "bitsavers /pdf/ibm/1410/ directory (other relevant manuals: A22-6701 1414 OEM Information, A22-6670 1301 on 1410, A22-6788 1301/1302 on 1410/7010, A22-0530-1 Priority Feature, A22-1407-2 1410 Reference Nov61, C28-0309-1 Autocoder)",
+   "url": "http://bitsavers.org/pdf/ibm/1410/",
+   "note": "Directory listing; /pdf/ibm/140x/ does not exist; 1402 and 1403 component manuals are under /pdf/ibm/1402/ and /pdf/ibm/1403/."
+  },
+  {
+   "title": "bitsavers /pdf/ibm/1402/ and /pdf/ibm/1403/ (A24-3072 1402 Card Read-Punch, GA24-3073-8 1403 Printer component descriptions)",
+   "url": "http://bitsavers.org/pdf/ibm/1402/",
+   "note": "Not read this pass; mechanical/component detail if needed."
+  }
+ ]
+}

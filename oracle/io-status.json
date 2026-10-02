@@ -1,0 +1,194 @@
+{
+  "source": "research/io.md §6 (Figures 62, 63), §7 (Figures 89, 91), §8 (Figures 45, 46) — themselves transcribed from IBM 1410 Principles of Operation, Form A22-0526-3",
+  "note": "ONE fixture for every I/O status table in the phase: device × condition × when-set, with the manual page on every row, so any status rule the emulator implements can be diffed against io.md §§6-8 by eye. `whenSet` is io.md's cell VERBATIM, emphasis marks stripped; `never: true` marks the cells that literally read \"never\"; `neverForSelectStacker: true` carries Figure 62's two parenthetical exclusions, which are the whole reason `Channel.control` does not call `Device.precheck` (plan §6.1). Rows whose cell reads \"same\" carry `sameAs` naming the operation they repeat, because the manual prints the word and not the list. Wave 2 asserts the 1402 rows; waves 3 and 4 assert the 1403 and 1415 rows.",
+  "conditions": ["notReady", "busy", "dataCheck", "condition", "wrongLengthRecord", "noTransfer"],
+  "rows": [
+    {
+      "figure": 62, "page": 63, "device": "1402", "operation": "read / select stacker and feed",
+      "condition": "notReady",
+      "whenSet": "card jam, reader out of cards (not EOF), not on line, power off, stacker full, cover interlock open, feed clutch failure, joggle switch open, 1414 off line/power off"
+    },
+    {
+      "figure": 62, "page": 63, "device": "1402", "operation": "read / select stacker and feed",
+      "condition": "busy",
+      "whenSet": "read buffer being filled, or card being stacked"
+    },
+    {
+      "figure": 62, "page": 63, "device": "1402", "operation": "read / select stacker and feed",
+      "condition": "dataCheck",
+      "whenSet": "hole count check, 1414 parity or timing error, CPU parity error (never for select-stacker)",
+      "neverForSelectStacker": true
+    },
+    {
+      "figure": 62, "page": 63, "device": "1402", "operation": "read / select stacker and feed",
+      "condition": "condition",
+      "whenSet": "EOF — last card stacked (never for select-stacker)",
+      "neverForSelectStacker": true
+    },
+    {
+      "figure": 62, "page": 63, "device": "1402", "operation": "read / select stacker and feed",
+      "condition": "wrongLengthRecord",
+      "whenSet": "wrong length record"
+    },
+    {
+      "figure": 62, "page": 63, "device": "1402", "operation": "read / select stacker and feed",
+      "condition": "noTransfer",
+      "whenSet": "image already transferred: two select-stacker-and-feeds with no intervening x3=9 read, or two x3=9 reads with no intervening SSF"
+    },
+
+    {
+      "figure": 63, "page": 63, "device": "1402", "operation": "punch",
+      "condition": "notReady",
+      "whenSet": "card jam, out of cards, stacker full, power off, not on line, chip basket full/missing, cover open"
+    },
+    {
+      "figure": 63, "page": 63, "device": "1402", "operation": "punch",
+      "condition": "busy",
+      "whenSet": "previous card still being punched"
+    },
+    {
+      "figure": 63, "page": 63, "device": "1402", "operation": "punch",
+      "condition": "dataCheck",
+      "whenSet": "1414 detects parity error; card not punched"
+    },
+    {
+      "figure": 63, "page": 63, "device": "1402", "operation": "punch",
+      "condition": "condition",
+      "whenSet": "parity error during punching or hole-count check; error card goes to pocket 0"
+    },
+    {
+      "figure": 63, "page": 63, "device": "1402", "operation": "punch",
+      "condition": "wrongLengthRecord",
+      "whenSet": "wrong length record; card not punched"
+    },
+    {
+      "figure": 63, "page": 63, "device": "1402", "operation": "punch",
+      "condition": "noTransfer",
+      "whenSet": "never", "never": true
+    },
+
+    {
+      "figure": 89, "page": "80-81", "device": "1403", "operation": "write a line",
+      "condition": "notReady",
+      "whenSet": "printer not ready, not on line, power off, out of forms"
+    },
+    {
+      "figure": 89, "page": "80-81", "device": "1403", "operation": "write a line",
+      "condition": "busy",
+      "whenSet": "previous line still being printed"
+    },
+    {
+      "figure": 89, "page": "80-81", "device": "1403", "operation": "write a line",
+      "condition": "dataCheck",
+      "whenSet": "print buffer parity error; line not printed"
+    },
+    {
+      "figure": 89, "page": "80-81", "device": "1403", "operation": "write a line",
+      "condition": "condition",
+      "whenSet": "buffer timing error or hammer-fire check; the line following the error line is not printed"
+    },
+    {
+      "figure": 89, "page": "80-81", "device": "1403", "operation": "write a line",
+      "condition": "wrongLengthRecord",
+      "whenSet": "wrong length record; line not printed"
+    },
+    {
+      "figure": 89, "page": "80-81", "device": "1403", "operation": "write a line",
+      "condition": "noTransfer",
+      "whenSet": "never", "never": true
+    },
+
+    {
+      "figure": 91, "page": "80-81", "device": "1403", "operation": "carriage control",
+      "condition": "notReady",
+      "whenSet": "same", "sameAs": "write a line"
+    },
+    {
+      "figure": 91, "page": "80-81", "device": "1403", "operation": "carriage control",
+      "condition": "busy",
+      "whenSet": "forms in motion / forms instruction waiting"
+    },
+    {
+      "figure": 91, "page": "80-81", "device": "1403", "operation": "carriage control",
+      "condition": "dataCheck",
+      "whenSet": "never", "never": true
+    },
+    {
+      "figure": 91, "page": "80-81", "device": "1403", "operation": "carriage control",
+      "condition": "condition",
+      "whenSet": "never", "never": true
+    },
+    {
+      "figure": 91, "page": "80-81", "device": "1403", "operation": "carriage control",
+      "condition": "wrongLengthRecord",
+      "whenSet": "never", "never": true
+    },
+    {
+      "figure": 91, "page": "80-81", "device": "1403", "operation": "carriage control",
+      "condition": "noTransfer",
+      "whenSet": "never", "never": true
+    },
+
+    {
+      "figure": 45, "page": "47-49", "device": "1415", "operation": "read",
+      "condition": "notReady",
+      "whenSet": "never", "never": true
+    },
+    {
+      "figure": 45, "page": "47-49", "device": "1415", "operation": "read",
+      "condition": "busy",
+      "whenSet": "never", "never": true
+    },
+    {
+      "figure": 45, "page": "47-49", "device": "1415", "operation": "read",
+      "condition": "dataCheck",
+      "whenSet": "input character validity error"
+    },
+    {
+      "figure": 45, "page": "47-49", "device": "1415", "operation": "read",
+      "condition": "condition",
+      "whenSet": "Cancel key during inquiry"
+    },
+    {
+      "figure": 45, "page": "47-49", "device": "1415", "operation": "read",
+      "condition": "wrongLengthRecord",
+      "whenSet": "yes (early Release / excess characters)"
+    },
+    {
+      "figure": 45, "page": "47-49", "device": "1415", "operation": "read",
+      "condition": "noTransfer",
+      "whenSet": "no message request, or Cancel before inquiry"
+    },
+
+    {
+      "figure": 46, "page": "47-49", "device": "1415", "operation": "write",
+      "condition": "notReady",
+      "whenSet": "never", "never": true
+    },
+    {
+      "figure": 46, "page": "47-49", "device": "1415", "operation": "write",
+      "condition": "busy",
+      "whenSet": "carriage returning"
+    },
+    {
+      "figure": 46, "page": "47-49", "device": "1415", "operation": "write",
+      "condition": "dataCheck",
+      "whenSet": "output validity error (char printed and underlined, reply continues)"
+    },
+    {
+      "figure": 46, "page": "47-49", "device": "1415", "operation": "write",
+      "condition": "condition",
+      "whenSet": "never", "never": true
+    },
+    {
+      "figure": 46, "page": "47-49", "device": "1415", "operation": "write",
+      "condition": "wrongLengthRecord",
+      "whenSet": "never", "never": true
+    },
+    {
+      "figure": 46, "page": "47-49", "device": "1415", "operation": "write",
+      "condition": "noTransfer",
+      "whenSet": "never", "never": true
+    }
+  ]
+}

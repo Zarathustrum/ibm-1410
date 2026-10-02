@@ -1,0 +1,33 @@
+IBM 1410 emulator
+Copyright (c) 2026 Zarathustrum
+Licensed under the MIT License; see LICENSE.
+
+
+Third-party material
+--------------------
+
+Jay R. Jaeger, cube1us/1410 (https://github.com/cube1us/1410)
+  COPYRIGHT 1998, 1999, 2000, 2019 Jay R. Jaeger.
+  GNU General Public License, version 3 or (at your option) any later version.
+
+  None of it is distributed here. Core/cc01.cor, Core/insttest.cor,
+  Core/ilentest.cor and note1410.txt are downloaded at test time by
+  tools/fetch-oracles.ts, pinned to commit
+  6f6c8bb5d6b1bc360275541bd5f6feb229a8fa83 and by sha256, into the gitignored
+  oracles/ directory. The tier-3 fixtures in oracle/note1410/ cite
+  note1410.txt by line number and record only the facts it annotates
+  (addresses, field contents, latch states); test/note1410-not-vendored.test.ts
+  keeps its text out of src/, oracle/, test/, tools/ and demos/. The research
+  notes under docs/research/ quote a few of its lines, with attribution.
+
+Richard Cornwell, SimH i7010
+  Read as a reference implementation. No code or tables are copied; the
+  deliberate deviations from it are listed in oracle/simh-deviations.ts.
+
+IBM manuals (via bitsavers.org)
+  Cited by form number and page. No manual, scan or PDF is included. Short
+  passages and tables are transcribed where the emulator is checked against
+  them.
+
+IBM is a trademark of International Business Machines Corporation. This
+project is not affiliated with or endorsed by IBM.

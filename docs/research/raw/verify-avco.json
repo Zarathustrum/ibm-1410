@@ -1,0 +1,106 @@
+{
+ "topic": "Historical context: AVCO reentry-vehicle work, computers at Avco RAD (Wilmington MA), the IBM 1410, and 1960-era ballistic reentry trajectory analysis",
+ "refuted": [
+  {
+   "claim": "AVCOAT 5026-39 ... was selected in April 1962 as the Apollo command-module heat shield material (source: Wikipedia AVCOAT).",
+   "why": "The cited Wikipedia page gives no selection date at all. The NASA Ames ablators review states the material selected in April 1962 was Avcoat 5026-22 (density 66 lb/ft3); 5026-39 (and flight 5026-39G, ~31 lb/ft3) came from later density-reduction work. The Avco/April-1962 selection is real, but the material designation is wrong.",
+   "correction": "April 1962: Avco selected as NAA subcontractor and Avcoat 5026-22 (66 lb/ft3) chosen; the flight material Avcoat 5026-39/39G (epoxy-novolac + quartz fibers + phenolic microballoons in fiberglass honeycomb) was a later, lighter successor.",
+   "source": "https://ntrs.nasa.gov/api/citations/20190032222/downloads/20190032222.pdf (Venkatapathy et al., NASA Ames, 'Ablators - From Apollo to Future Missions', p. ~5: 'The ablative material initially selected in April 1962 ... was Avcoat 5026-22, which had a density of 66 lb/ft3')"
+  },
+  {
+   "claim": "By the October 1964 Computers and Automation census the 1410 average monthly rental was listed as $12,000.",
+   "why": "True as stated but misleading: the census PDF shows the $10,000 -> $12,000 change happened in mid-1963 (the May 1963 issue row is OCR-ambiguous, the July 1963 issue row clearly reads $12,000), i.e. 15 months earlier than the finder's date implies. Later rows show $14,200 from the August 1965 issue and $17,000 from the December 1967 issue.",
+   "correction": "1410 avg monthly rental: $10,000 (Jan-Apr 1963 issues), $12,000 by the July 1963 issue, $14,200 from the Aug 1965 issue, $17,000 from Dec 1967 issue. Oct 1964 issue: $12,000, 430 installed, 150 on order.",
+   "source": "https://archive.org/download/bitsavers_computersArCensus196274_16451676/_Computer_Census_1962-74.pdf (pp. 13, 15, 41, 59, 110 of the scan)"
+  },
+  {
+   "claim": "The Mark 2 heat-sink RV ... was the only operational US heat-sink RV (source: ccspacemuseum.org).",
+   "why": "The cited page says the Mark 2 was operational on Atlas D and on the Thor and Jupiter IRBMs, but does not say it was the only operational heat-sink RV. That qualifier is not in the source.",
+   "correction": "Keep: GE-built Mark 2, copper heat sink, first flown on Atlas 10 Jan 1958, ~35 flights, operational on Atlas D/Thor/Jupiter. Drop or mark unverified: 'only operational US heat-sink RV'.",
+   "source": "https://ccspacemuseum.org/artifacts/heatsink-nose-cone/"
+  },
+  {
+   "claim": "Titan I ... operational 1962-1965, retired 1965 (source: Wikipedia HGM-25A Titan I, 'likely').",
+   "why": "Wikipedia's own lede says 'in use from 1959 until 1962' while its body says first operational-spec launch 21 Jan 1962 and 'retired from service as ICBMs in early 1965'. The source is internally inconsistent; the finder silently picked one reading.",
+   "correction": "Body text supports: operational squadrons on alert from 1962, retired early 1965 (McNamara phase-out). Flag that Wikipedia's lede conflicts; use Spires 'On Alert' (2012) or Stumpf if a hard date is needed.",
+   "source": "https://en.wikipedia.org/w/index.php?title=HGM-25A_Titan_I&action=raw (lede vs. 'Deployment' section)"
+  }
+ ],
+ "upgraded": [
+  {
+   "claim": "Avco RAD 704: passed customer acceptance Aug 1958; reliability Jan 1960 to survey date 110 good hrs/wk of 120 attempted (0.92); 'This system is being replaced in the next six months by a PHILCO Transac System.'",
+   "source": "https://ed-thelen.org/comp-hist/BRL61-ibm0704.html (reliability table line 'AVCO 110, 120, 0.92, Jan 60 to present, Aug 58'; Future Plans section 'AVCO: This system is being replaced in the next six months by a PHILCO Transac System.') — read raw HTML; confirms the finder's 'verified' rating"
+  },
+  {
+   "claim": "IBM 1410 announced 12 Sept 1960, withdrawn 30 Mar 1970; max 80,000 characters; 1401 mode via switch; 7010 same architecture up to 100K.",
+   "source": "80K and 1401 compatibility switch confirmed in primary: IBM 1410 Principles of Operation A22-0526-3 (1411 Models 1-5 = 10/20/40/60/80K; 'Compatibility Switch' p.58; '1401-1410 Compatibility' p.98). 7010 100K and 'complete instruction compatibility with the 1410' confirmed in IBM 7010 Principles of Operation A22-6726 p.5 (7114 Models 1-4 = 40/60/80/100K). Announcement/withdrawal dates remain Wikipedia-only (IBM history page returned 403)."
+  },
+  {
+   "claim": "IBM 1410 had no floating-point hardware.",
+   "source": "Confirmed in both A22-0526-3 index (only 'Floating Dollar Sign') and, notably, the IBM 7010 Principles of Operation A22-6726 index (pp. 72-73) also lists only 'Floating Dollar Sign' — no floating-point instructions on the 7010 either, despite sky-visions.com claiming 'optional decimal floating point' for the 7010."
+  },
+  {
+   "claim": "DKR stagnation-point correlation q = 17,600 sqrt(rho/rho_SL) (V/26,000)^3.15 / sqrt(R_N) BTU/ft2-s.",
+   "source": "arXiv 1910.06397 eq. 19 gives 1.99876e8 W/m2 * sqrt(0.3048/r_n) * sqrt(rho/rho_SL) * (V/7924.8)^3.15; unit check: 1.99876e8 W/m2 * 8.811e-5 = 17,611 BTU/ft2-s at r_n = 1 ft, and 7924.8 m/s = 26,000 ft/s. Conversion verified by arithmetic."
+  },
+  {
+   "claim": "Allen & Eggers constants rho0 = 0.0034 slug/ft3, beta = 1/22,000 ft^-1; eqs. 15-17 (y1, V1 = 0.61 V_E, max decel = beta V_E^2 sin(theta_E)/(2ge)).",
+   "source": "http://hpp.education/Lessons/MecaSpace/Files/AllenEggers.pdf pp. 6-8, read directly — eq. (7) rho = 0.0034 e^(-y/22,000); eqs. (13)-(17) as stated."
+  },
+  {
+   "claim": "Operation Match (1965): IBM 7090 at the Avco service bureau in Wilmington MA; IBM 1401 printouts mailed; Crimson says 'Avco 1790 computer ... on a quiet street in Wilmington'.",
+   "source": "https://en.wikipedia.org/wiki/Operation_Match (exact sentences confirmed) and https://www.thecrimson.com/article/1965/11/3/operation-match-pif-you-stop-to/ (exact quote confirmed). Still secondary/period-press; 'likely' is the right ceiling."
+  },
+  {
+   "claim": "Wilmington plant: construction began 18 Feb 1957; dedicated 14 May 1959; Textron bought Avco 1984.",
+   "source": "https://homenewshere.com/wilmington_town_crier/news/article_caef142a-cbfc-11ec-8ae1-1317a8e0b183.html — sentences confirmed verbatim (article misspells the governor as 'Farcolo'). Local-press secondary; stays 'likely'."
+  },
+  {
+   "claim": "NASM Mark 4: Avco, Titan I and Atlas E/F, W-38 ~3.75 Mt, aluminum inner frame with ablative cover, 10 ft 8 in x 4 ft, 3,465 lb.",
+   "source": "https://airandspace.si.edu/collection-objects/missile-reentry-vehicle-mark-4/nasm_A19660029000 — confirmed verbatim via raw fetch (page says 'unknown ablative material')."
+  }
+ ],
+ "additions": [
+  {
+   "claim": "The BRL 1961 entry for Avco RAD explicitly names trajectory work: the 704 was used for 'systems of ordinary and partial differential equations (trajectories, aerodynamic flow, heat transfer, stress analysis, variational problems (optimization of trajectories), data processing, etc.)'. Staffing on three 8-hour shifts: 1 supervisor, 18 programmers, 2 clerks, 1 librarian, 5 operators, 3 engineers. Total system rental $54,000/month prime shift (704, 738 32K core, 711, 716, 721, 753, nine 727 tapes; 717, 407, 519 and 714 included). Computer room 50 x 50 ft, prepared under IBM supervision during laboratory construction.",
+   "source": "https://ed-thelen.org/comp-hist/BRL61-ibm0704.html (Applications, Rental, Personnel, Installation sections)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "IBM 1410 installed-base trajectory from the Computers and Automation census (issue month: installed / on order): Jan 1963: 78/430; Feb 1963: 140/400; Oct 1964: 430/150; Jul 1965: 800/80; Aug 1967: 822/44 (peak); Feb 1969 issue (data 30 Sep 1968): 156 US + 116 outside US = 272 (column interpretation likely). First installation 11/61 in every row.",
+   "source": "https://archive.org/download/bitsavers_computersArCensus196274_16451676/_Computer_Census_1962-74.pdf (scan pp. 5, 7, 41, 57, 104, 152/160)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1410 in 1401 mode: a 10K 1410 runs as an 8K 1401, all larger 1410s run as a 16K 1401. Supported 1401 features in that mode: Multiply-Divide, Expanded Print Edit, Advanced Programming (indexing, store address register, move record), Print Storage, High-Low-Equal Compare, Read-Punch Release, Sense Switches. NOT supported: Column Binary, Compressed Tape, Punch Feed Read, Serial I/O Adapter. Emulator-relevant: 1401 mode is not a full 1401.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf ('IBM 1401-1410 Compatibility', p. 98)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1411 processing unit core cycle is 4.5 microseconds per character (with optional 1410 Accelerator special feature); the 7010's 7114 has a 2.4 microsecond read-write cycle and accesses two adjacent characters per storage access. Index registers occupy storage positions 00025-00099 (15 registers x 5 positions), selected by zone bits over the tens and hundreds address positions.",
+   "source": "A22-0526-3 pp. 5, 14 and Fig. 9; A22-6726 p. 5",
+   "confidence": "verified"
+  },
+  {
+   "claim": "The IBM 7010 Principles of Operation (A22-6726) index contains no floating-point entry (only 'Floating Dollar Sign'); the sky-visions.com claim that the 7010 had 'optional decimal floating point instructions' is unsupported by the primary manual and should not be relied on.",
+   "source": "https://bitsavers.org/pdf/ibm/7010/ (A22-6726 index pp. 72-73) vs https://sky-visions.com/ibm/ibm1410.shtml",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1410 FORTRAN (J24-1468-1) additionally: a fixed-point constant in an expression is limited to 45 digits; fixed-point values exceeding k digits are treated modulo 10^k; with f=18 a floating number occupies 20 digits (18 mantissa + 2 characteristic). Source programs use character set H and up to 9 continuation cards (660 chars max).",
+   "source": "https://bitsavers.org/pdf/ibm/1410/J24-1468-1_1410fortran.pdf pp. 6-7",
+   "confidence": "verified"
+  },
+  {
+   "claim": "The 1401 RPG manual J24-0215-2 on bitsavers is copyright 1960, 1961 (minor revision Feb 1965) — consistent with RPG being announced 1959 but documented/delivered 1960-61; treat '1959' as announcement, not availability.",
+   "source": "https://bitsavers.org/pdf/ibm/1401/ (J24-0215-2 title/copyright page)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "NASA SP-4201 also records that Avco proposed Titan I as the booster for USAF Project 7969 'Man in Space Soonest' (Martin and Avco were two of the four responding firms) — a second Avco manned-capsule tie besides the Nov 1956 ARDC study.",
+   "source": "https://en.wikipedia.org/wiki/HGM-25A_Titan_I (citing Encyclopedia Astronautica 'Avco Project 7969'); SP-4201 ch. 3 confirms the Nov 1956 and 20 Nov 1957 Avco submissions",
+   "confidence": "likely"
+  }
+ ],
+ "notes": "Method: read primary PDFs already in the scratchpad (A22-1407-2 Nov-61 reference manual pp. 5-9; A22-0526-3 PrincOps index and compatibility section; J24-1468-1 FORTRAN pp. 1-8; C28-0328-3 OS FORTRAN pp. 5-8; 7010 PrincOps A22-6726 pp. 1-6, 72-73; Allen-Eggers pp. 1-8), downloaded the full Computers and Automation census PDF and extracted every 1410 row, and fetched BRL61 raw HTML.\n\n1401-vs-1410 confusion hunt: found none in the 1410 hardware claims. Table lookup (standard), 15 index registers, 10/20/40K expanding to 60/80K, 5-character addresses, 1402 800/250 cpm, 1403 100 (Model 1) / 132 (Model 2) positions, no floating-point hardware — all confirmed in 1410 primaries. The one real 1401/1410 risk is the family recollection itself: the only 1400-series machine documented at Avco Wilmington is the 1401 print satellite (1965); no 1410 at any Avco site surfaced anywhere I looked either. I could not re-check the finder's BRL64 claim (the BRL64 index page's link structure did not yield sub-pages to grep) — treat 'no Avco in BRL64' as the finder's unverified assertion.\n\nConfirmed as 'verified' by direct read: all 1410 manual claims, both census points the finder gave (with the rental-date nuance above), all BRL61 Avco claims, Allen-Eggers, DKR (with unit arithmetic), Wikipedia W56/W59 quotations, SP-4201 Nov 1956 sentence, NASM Mark 4, Town Crier dates, Operation Match, Crimson quote.\n\nUntestable / not reached: IBM 1410 announcement and withdrawal dates (IBM history page 403; Wikipedia only), Stumpf Air Power History article (paywalled), NAE memorial says the crash program followed a 1954 meeting and that Avco 'set up' AERL but gives no founding year in the fetched text (Wikipedia says 1955), the RK4/Adams integrator claim (no period Avco source; leave unverified), ETHW 1400-family totals (page fetched raw: '1400 family computers numbered nearly half of the estimated 26,000 computers worldwide by 1965 ... peaked at 14,600' — text matches, still secondary).\n\nEmulator-behavior relevance: the 1401-mode limits (8K/16K emulation, unsupported 1401 special features) and the 4.5 microsecond/character cycle are the facts most likely to matter; both now carry primary sources."
+}

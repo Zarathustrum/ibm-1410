@@ -1,0 +1,213 @@
+{
+  "topic": "gap-reentry-fixed-point-transcendentals: fixed-point decimal scaling convention and algorithms for exp(-beta*y), sqrt(rho/rho_SL) and V^3.15 on the IBM 1410 (no floating-point hardware; variable-length decimal A/S/M/D plus Table Lookup, op T)",
+  "summary": "DIRECT ANSWER, part 1 (what is documented): There is no published IBM 1410 fixed-point scaling *standard* — IBM never issued a 1410 numeric-conventions manual, and A22-0526-3 Principles of Operation deliberately has no fixed decimal point: the machine is variable-field-length, the programmer owns the point. What IS documented and is load-bearing: (a) the 1410 has NO floating-point hardware — in A22-0526-3 and in the 7010 A22-6726 the word 'floating' occurs only as 'floating dollar sign' in the Move-and-Edit description; (b) the Autocoder assembler nevertheless accepts six floating-point mnemonics FRA/FST/FA/FS/FM/FD, listed in C28-0309-1 under the heading 'FLOATING POINT ARITHMETIC INSTRUCTIONS INTERPRETED BY THE FORTRAN ARITHMETIC ROUTINES' — i.e. a documented software-float escape hatch callable from Autocoder; (c) the one IBM numeric format actually specified for this machine is the 1410/7010 FORTRAN real constant, C28-0328-3 pp.7-8: f+2 core positions, first f digits the fraction with an understood decimal point *before* the high-order digit (normalized to [0.1,1)), last two positions the plain decimal exponent, so +3.14159 at f=8 is stored 31415900 01. OS FORTRAN allows 3<=f<=18 and 3<=k<=20; the earlier preliminary J24-1468-1 (1961) states f default 8 with 'the specification for (f) cannot exceed 45' and k default 5, max 99. Magnitude range 10^-100 .. (1-10^-f) x 10^99.\n\nDIRECT ANSWER, part 2 (what does not survive): The algorithms inside 1410 EXP/ALOG/SQRT are NOT documented. The routines lived in IBM Program Library item 1410-FO-138 'FORTRAN Subroutine Library' (catalogued in C20-1602-8, distributed as absolute card decks; symbolic listings were an optional item). No listing of 1410-FO-138 is on bitsavers and none surfaced in search. So the implementer must choose a method. The only method statement IBM does publish for this machine is the *composition* rule, C28-0328-3 p.10: 'A**B is computed from EXP(B*ALOG(A))', with 'EXP argument must be less than 225' and SQRT of a negative argument returning sqrt(|x|) plus an error message (C28-0328-3 p.23 Figure 5). Same page also notes integer powers 0-5 are cheaper expanded (A*A*A) and 6+ cheaper via A**I. That is the period-authentic route for V^3.15: antilog(3.15 * log(V)).\n\nRECOMMENDED FALLBACK (design, flagged as engineering judgment built on the verified facts). Representation: signed fixed-point decimal, one digit per storage position, sign in the zone bits of the units position (A22-0526-3 p.15: minus is always a B bit; machine-developed plus is B+A; test with Branch if Zone Equal B). Give every variable a *constant* implied decimal point recorded in the DS/DCW comment, identical for the whole run — this is exactly the convention the only surviving real 1410 Autocoder numeric program states in its own comments: pi.job step 2, 'FIGURE WHERE THE DECIMAL POINT WILL BE (SAME RELATIVE PLACE IN EACH AREA)'. The 1410 has no shift instruction, so rescaling by 10^n is a Move between offset addresses (pi.job: 'MLC BASET-7,BASET  * SHIFT QUOTIENT' then 'MLC LC0L9,BASE6  * REMOVE UNSHIFTED'); with fixed scales every such offset is an assembly-time constant, which is the whole reason to prefer fixed point here. Clear-and-force-sign idioms from the same source: 'ZA +0,ACCUM' (zero and force plus), 'MLZS +0,BASET' (Move Zone Single: stamp a sign onto the units position only).\n\nRECOMMENDED ALGORITHMS. (1) Do not compute a square root at all. Under the Allen-Eggers exponential atmosphere rho = rho0 e^(-beta y) the density is exactly log-linear in altitude, so sqrt(rho/rho_SL) = 10^(0.0777085 - 9.870329e-6 * y) with y in feet (derivation: rho0=0.0034 slug/ft3 Allen-Eggers vs rho_SL=0.0023769 standard, ratio 1.43044, log10 = 0.155414, halved = 0.077707; beta*log10(e)/2 = 0.4342944819/44000 = 9.870329e-6). One multiply, one subtract, one antilog. Note the trap: Allen-Eggers rho0 is a fitted constant, NOT standard sea-level density, and DKR normalizes by true rho_SL — the 1.43044 factor is real and easy to drop. (2) exp(-beta*y) reduces to the same antilog: log10(rho/rho_SL) = 0.155414 - 1.9740658e-5 * y. On a decimal machine, splitting an antilog argument into integer decades and fraction is a *field slice*, not arithmetic: with the argument held at S=6 fractional digits, the integer part is an MLN from one offset and the fraction an MLN from another. Get 10^F for 0<=F<1 by Table Lookup (op T) into a 100- or 1000-entry table plus one linear interpolation; a 1000-entry table gives ~7 significant digits (max linear-interp error (ln10)^2 * 10^F * dF^2 / 8 = 6.6e-6 absolute on a value of ~10), a 100-entry table ~4-5 digits, both far inside DKR's own +/-10-20% correlation error. (3) V^3.15: tabulate g(u)=u^3.15 directly on a uniform u=V/26000 grid, du=0.01, 111 entries, linear interpolation — max error ~8.5e-5 absolute (g''=3.15*2.15*u^1.15 <= 6.77 on [0,1.1], error <= g'' du^2/8). Function values fit in 5 digits, which is precisely the case A22-0526-3 p.29 says to store inline in the table field; wider functions use the documented 'function at N+C' fixed-separation convention. Cite the period-authentic alternative in a comment: exp(3.15*ln V) per C28-0328-3 p.10. (4) If a general square root is ever needed (e.g. sqrt(R_N) for a nose-radius sweep), use Newton x_{n+1}=(x_n + a/x_n)/2 seeded by halving the decimal exponent — 2-3 iterations from a 2-digit seed reaches 8-16 digits. IBM's own Program Library square-root subroutine is documented as using 'Newton's iteration method', though that catalogue entry is 7080-08.3.001, a 7080 item, not a 1410 one.\n\nVALIDATION. NACA Report 1381 eqs. 13-17 give free checkpoints, all read directly: V = V_E exp[-(C_D rho0 A / (2 beta m sin theta_E)) e^(-beta y)] (eq.13) is the exact solution of the ODE the demo integrates, so print it in an adjacent column and difference it per step; V1 = V_E e^(-1/2) ~ 0.61 V_E at peak deceleration (eq.16); y1 = (1/beta) log[C_D rho0 A/(beta m sin theta_E)] (eq.15); max deceleration/g = beta V_E^2 sin theta_E / (2 g e) (eq.17), independent of m, A and C_D — so re-run with C_D doubled and confirm the peak-g figure does not move. The report explicitly warns eqs.16-17 apply only if y1 from eq.15 is positive.",
+  "facts": [
+    {
+      "claim": "The IBM 1410 has no floating-point hardware. In A22-0526-3 Principles of Operation the string 'floating' occurs only in the Move Characters and Edit section as 'floating dollar sign' (pp.32-33); there is no floating add/multiply/divide instruction anywhere in the instruction set. Same is true of the IBM 7010 (A22-6726 7010 Principles of Operation) — 'floating' appears there only as 'floating dollar sign' (p.27).",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, editing section pp.32-33 and full-manual text search) and http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-6726_7010_PrincOps.pdf (A22-6726, p.27)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 Autocoder nevertheless defines six floating-point mnemonics — FRA (Floating Reset and Add), FST (Floating Store), FA (Floating Add), FS (Floating Subtract), FM (Floating Multiply), FD (Floating Divide) — listed in the instruction-summary appendix under the exact heading 'FLOATING POINT ARITHMETIC INSTRUCTIONS INTERPRETED BY THE FORTRAN ARITHMETIC ROUTINES'. They are software, executed by the FORTRAN arithmetic package, and they give an Autocoder program a documented way to do floating-point without writing one.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf (C28-0309-1, instruction-summary appendix); the same six mnemonics appear in the operation-code list of C28-0326-1 1410 Operating System Autocoder, http://bitsavers.trailing-edge.com/pdf/ibm/1410/C28-0326-1_1410_OS_Autocoder.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410/7010 FORTRAN real (floating) storage format: a real constant occupies f+2 core-storage positions. The first f digits are the fraction, with a decimal point understood to precede the high-order digit (values normalized to [0.1,1)). The last two positions hold the exponent. Worked example given: with f=8, +3.14159 is stored as 3141590001 (fraction 31415900, exponent 01) and -3.14159 as the same digits with the sign overpunches. Magnitude must lie between 10^-100 and (1-10^-f) x 10^99 or be zero.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/C28-0328-3_1410_Fortran.pdf (C28-0328-3, 'Real Constants' / 'Magnitude of Real Constants — the Value of f', pp.7-8, read as page images)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Precision limits differ between 1410 FORTRAN releases and both should be quoted with their form number. C28-0328-3 (OS FORTRAN): 'The 1410/7010 FORTRAN processor permits the user to define the precision ... by specifying word size up to 20 digits for integers and 18 digits plus two exponent digits for real numbers'; f must satisfy 3<=f<=18, default 8; k must satisfy 3<=k<=20, default 5. The earlier preliminary J24-1468-1 (1961) states floating-point precision default 8, 'The specification for (f) cannot exceed 45; (k) cannot exceed 99', and that an 18-digit f gives 'a 20-digit floating-point number, 18 for the mantissa and 2 for the characteristic'.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/C28-0328-3_1410_Fortran.pdf (C28-0328-3 p.7) and http://bitsavers.trailing-edge.com/pdf/ibm/1410/J24-1468-1_1410fortran.pdf (J24-1468-1, 'Arithmetic Precision' and 'Constants', pp.5-7)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The only algorithmic statement IBM publishes for 1410 transcendentals is the composition rule: 'A**B is computed from EXP(B*ALOG(A)).' ALOG rejects negative arguments; when base A is zero the result is zero for any B. Where B is integral, use A**IFIX(B) instead. Also on the same page: for integer exponents 0-5 the expanded form (A*A, A*A*A) is the most efficient; for exponent 6 or greater the exponential form A**I is.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/C28-0328-3_1410_Fortran.pdf (C28-0328-3, 'Exponential Expression Sign Restrictions' table and 'Use of Exponential and Expanded Forms', p.10, read as page image)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Documented limits on the 1410 FORTRAN built-in functions relevant here: EXP — 'Argument must be less than 225.' SQRT — 'For negative arguments, the square root of the absolute value is calculated and an error message is given on the Standard Print Unit', so write SQRT(ABS(A)) to suppress it. ALOG — argument must be greater than zero. SIN/COS — argument must be less than 10000. radians in absolute value.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/C28-0328-3_1410_Fortran.pdf (C28-0328-3, Figure 5 'Built-in Functions', p.23)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The source of the 1410 EXP/ALOG/SQRT routines does not survive in the public archive. The routines were IBM Program Library item 1410-FO-138 'FORTRAN Subroutine Library', distributed 'in cards in absolute format'; the Autocoder mixed-output tape 'containing the library subroutine and the relocatable loader (total of 51 files) is no longer to be included in answer to requests', remaining available only as an optional item 'for those who request symbolic listings and program decks'. No listing of 1410-FO-138 appears in the bitsavers ibm/1410 directory and none was found by search.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/C20-1602-8_1410_pgmCatJun68.pdf (C20-1602-8, June 1968 program catalogue, entry 1410-FO-138) plus the bitsavers directory listing http://bitsavers.trailing-edge.com/pdf/ibm/1410/",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410 sign convention, which fixes where the sign lives in every fixed-point field: 'The sign of a factor in a field is determined by the combination of zone bits in its units position. A minus sign is always indicated with a B bit. A plus sign may be indicated in any of three ways: by B and A bits, no zone bits, or (less commonly) by an A bit.' When the machine develops a sign it writes B+A for plus and B for minus, 'The test for a minus result from an operation can thus be made with a branch if zone equal B instruction, V (I)(B) K'.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, 'Sign Change or Development' and Figure 11 'Bit Equivalents for Signs', arithmetic-operations chapter, ~p.15)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The 1410 has no shift instruction. Scaling by a power of ten must be done by a Move between offset addresses. Verified two ways: the A22-0526-3 instruction set contains no shift op (the word 'shift' occurs only inside the multiply/divide algorithm narrative and in console-keyboard text), and the Move family provides the needed primitives — d-modifier variants MLC/MLN/MLZ/MLW (right-to-left through first word mark) and the single-position forms MLNS/MLZS/MLCS.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, 'Move Characters and Suppress Zeros' d-character table, ~pp.26-27, and full-text search for 'shift')",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Multiply field-sizing rule: the product develops in the B-field, which must hold multiplicand digits + multiplier digits + 1 positions. The multiplier image must be placed in the high-order positions of the product field before the M instruction and is destroyed by it. Word marks must define the high-order position of both the multiplicand and the multiplier image. Product sign: like signs in the units positions of multiplicand and multiplier give plus, unlike give minus; the sign is written to the units position of the B-field.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, 'Multiply', ~pp.18-19)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Divide field-sizing and setup rules: A-address = units position of the divisor, B-address = LEFTMOST position of the dividend field; the dividend sits in the rightmost positions of the quotient-dividend B-field. B-field length = divisor digits + dividend digits + 1. The quotient develops in the leftmost positions; the remainder is left in the rightmost positions. The quotient positions must contain zeros at the start and the dividend must carry a sign (B+A plus, B minus) — 'Moving the dividend into the B-field by means of a zero and add instruction ensures both'. After the operation the B-address register holds the tens position of the quotient.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, 'Divide', ~p.20)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Table Lookup (op code T) semantics, which is the mechanism for a tabulated transcendental: the A-address is the rightmost position of the search argument, the B-address is the rightmost character of the ENTIRE table, and the table is searched right to left. Each table field is an implicit B-field with the table argument in its rightmost positions and the function in its leftmost; every table field needs a word mark in its leftmost position, and the search argument needs one too. The table argument must be the same length as the search argument — a shorter one signals end-of-table and turns on the high-compare indicator. The operation stops one position to the LEFT of the first table argument satisfying the d-character, so the B-address register ends up holding the address of the rightmost character of the function. Instruction length L = 1, 6 or 12; an L=6 form chains the B-address and reuses the previous d-modifier. Timing T = 4.5 (L + 1 + B + NA) microseconds, where N is the number of fields actually compared and B counts only the argument fields compared plus the intervening function values.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, 'Table Lookup' discussion p.29 and instruction p.30, Figures 25 and 26)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "A22-0526-3 gives explicit guidance on how to lay out a function table, which maps straight onto a transcendental table: 'If the desired factor is five positions or less, it is often practical to store the factor itself in this place' — otherwise store the five-character address of the factor. It also documents the fixed-separation convention: 'Function values may also be stored a fixed number of core-storage positions from their arguments. Thus, having found the location N of the argument, the function is located at N + C.' Timing is driven by how many table characters are read before the hit, so shorter functions are faster.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, 'Table Lookup — Function' and 'Finding the Function', p.29)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The only surviving real 1410/7010 Autocoder multi-digit fixed-point numeric program states the scaling convention in its own comments. pi.job (PI to 5000 digits, Machin's formula, three 5051-position work areas ACCUM/INTER/BASET) step 2 reads: 'FIGURE WHERE THE DECIMAL POINT WILL BE / (SAME RELATIVE PLACE IN EACH AREA) / (SEVERAL CHARACTERS OR WORDS TO THE RIGHT OF THE TOP SIGNIFICANCE.)'. It also demonstrates the working idioms: 'ZA +0,ACCUM * ZERO ACCUMULATOR, FORCE POSITIVE'; 'MLZS +0,BASET * SET POSITIVE SIGN'; a decimal rescale done as 'MLC BASET-7,BASET * SHIFT QUOTIENT' followed by 'MLC LC0L9,BASE6 * REMOVE UNSHIFTED' where LC0L9 is a nine-zero literal; and 'D DIVBAS,BASE6' for the divide.",
+      "source": "http://www.sky-visions.com/ibm/7010/pr155/pi.job (1410/7010 Autocoder source, sample job for the PR155 operating system, downloaded and read in full)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Machine parameters that bound the design: core storage cycle 4.5 microseconds per character; core storage capacities 10,000 / 20,000 / 40,000 / 80,000 positions. Timing formula symbols: A = A-field length, B = B-field length, L = instruction length, M = multiplier length, N = number of fields actually compared on a table search, Q = quotient length, E = 2 on a single-character multiply or divide, 1 on a single-character add/subtract/ZA/ZS/table-lookup or a 6-character multiply or divide, else 0.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, system introduction pp.5-6 and Figure 7 'Timing Formula Symbols', ~p.9)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Arithmetic cost budget for the demo. Multiply T ~ 4.5 [L + 1 + E + 2.5M + (2.5M + 1.5)(2.5A + 3)] microseconds; Divide T ~ 4.5 {L + 1 + E + 6.5Q [A + 1.5 (A + 2)]}. Substituting an 8-digit by 8-digit multiply (L=11, M=8, A=8, E=0) gives ~2.4 ms; an 8-digit quotient divide by an 8-digit divisor gives ~5.4 ms. So budget roughly 400 multiplies or 180 divides per second and prefer multiplication by a reciprocal over division in inner loops.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3 'Multiply' and 'Divide' timing lines), formulas cross-checked against the identical text in http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-1407-2_1410ref_Nov61.pdf (A22-1407-2, Nov 1961 reference manual). The two substituted numbers are my arithmetic, not IBM's; the formulas are OCR from a scan, so treat the millisecond figures as an order-of-magnitude budget and re-check against the emulator once cycle-accurate timing exists.",
+      "confidence": "likely"
+    },
+    {
+      "claim": "Allen & Eggers NACA Report 1381 supplies the closed-form checkpoints, read directly: V = V_E exp[-(C_D rho0 A / (2 beta m sin theta_E)) e^(-beta y)] (eq.13); y1 = (1/beta) log[C_D rho0 A / (beta m sin theta_E)] (eq.15); V1 = V_E e^(-1/2) ~= 0.61 V_E (eq.16); (dV/dt)/g max = beta V_E^2 sin theta_E / (2 g e) (eq.17). Atmosphere: rho = 0.0034 e^(-y/22,000) slug/ft3. The report warns 'the velocity and deceleration as given by equations (17) and (16) apply only if the altitude y1, given by equation (15), is positive'.",
+      "source": "http://hpp.education/Lessons/MecaSpace/Files/AllenEggers.pdf (NACA Report 1381, Allen & Eggers; eq.(7) for the atmosphere, eqs.(13)-(17) read directly from the extracted text, ~pp.6-8)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Scaling trap the implementer will otherwise hit: Allen-Eggers rho0 = 0.0034 slug/ft3 is a curve-fit constant, not standard sea-level density (0.0023769 slug/ft3), while Detra-Kemp-Riddell normalizes by true rho_SL. So rho/rho_SL = 1.43044 * e^(-beta*y), log10(rho/rho_SL) = 0.155414 - 1.9740658e-5 * y (y in ft), and sqrt(rho/rho_SL) = 10^(0.077707 - 9.870329e-6 * y). Constants: log10(e) = 0.4342944819; beta*log10(e) = 0.4342944819/22000 = 1.9740658e-5 per ft.",
+      "source": "Derived arithmetic from the two verified constant sets — Allen-Eggers rho0/beta (NACA 1381 eq.7, http://hpp.education/Lessons/MecaSpace/Files/AllenEggers.pdf) and the DKR rho/rho_SL normalization already verified in this project's docs/research/raw/compact-avco.json. Standard sea-level density 0.0023769 slug/ft3 is the US Standard Atmosphere value.",
+      "confidence": "likely"
+    },
+    {
+      "claim": "The demo needs no square root and no logarithm at all if it works in the log-density domain. Because the Allen-Eggers atmosphere is exactly exponential, log10(rho) is exactly linear in altitude, so both exp(-beta*y) and sqrt(rho/rho_SL) are the same single primitive — a decimal antilog 10^x — evaluated at two coefficients differing only by a factor of two. On a decimal machine the antilog's decade/fraction split is a field slice (two Move Numeric instructions from fixed offsets), not arithmetic, which is the strongest argument for base 10 rather than base e here.",
+      "source": "Design conclusion derived from the verified facts above (A22-0526-3 Move d-modifier set; NACA 1381 eq.7). Engineering judgment, not an IBM statement.",
+      "confidence": "unverified"
+    },
+    {
+      "claim": "Recommended table sizes and their error bounds, for a Table Lookup plus linear interpolation. Antilog 10^F over F in [0,1): 1000 entries at dF=0.001 gives max interpolation error (ln10)^2 * 10^F * dF^2 / 8 = 6.6e-6 absolute on a value up to 10, i.e. ~7 significant digits; 100 entries at dF=0.01 gives ~6.6e-4 absolute, ~4-5 digits. Power law u^3.15 over u = V/26000 in [0,1.1]: 111 entries at du=0.01 gives max error g'' du^2 / 8 with g'' = 3.15*2.15*u^1.15 <= 6.77, i.e. 8.5e-5 absolute. Both are far inside the +/-10-20% accuracy of the DKR correlation itself, and both function values fit in the 5 digits that A22-0526-3 p.29 says to store inline in the table field.",
+      "source": "Derived: standard linear-interpolation error bound |f''| h^2 / 8, applied to the two functions; table-field guidance from http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.29.",
+      "confidence": "unverified"
+    },
+    {
+      "claim": "IBM's own house method for square root on decimal machines of this family was Newton iteration, if a general sqrt is ever needed (e.g. sqrt(R_N) for a nose-radius sweep). The IBM Program Library entry 'SQUARE ROOT MACRO AND SUBROUTINE', file 7080-08.3.001, is described as using 'Newton's iteration method to determine the square root'. This is a 7080 item, not a 1410 one — cite it as family evidence, not as a 1410 fact.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/C20-1602-8_1410_pgmCatJun68.pdf (C20-1602-8, entry 7080-08.3.001)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The 1410 Autocoder manual's square-root reference is a naming example only and contains no algorithm: it uses a CALL routine whose entry point is SQART01 and whose input must be placed in a location labelled SQART02 to illustrate the CALL macro's specifically-labelled-areas convention (Figure 84). No square-root code is given.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf (C28-0309-1, 'Call Macro', Figure 84)",
+      "confidence": "verified"
+    }
+  ],
+  "tables": [
+    {
+      "title": "Table Lookup (op T) d-characters — A22-0526-3 Figure 25",
+      "markdown": "| Mnemonic | d-char | Table search stops on a table argument that is |\n|---|---|---|\n| LL | 1 | Lower than search argument |\n| LE | 2 | Equal to search argument |\n| LLE | 3 | Equal to or lower than search argument |\n| LH | 4 | Higher than search argument |\n| LLH | 5 | Lower than or higher than search argument |\n| LEH | 6 | Equal to or higher than search argument |\n| (none) | 7 | Stop on any |\n| (none) | blank | Search to end of table |\n\nInstruction form: `T aaaaa bbbbb d`. A-address = rightmost position of the search argument; B-address = rightmost character of the entire table; table searched right to left; stops one position left of the hit, so the B-address register ends holding the rightmost character of the function. L = 1, 6 or 12 (L=6 chains the B-address and reuses the previous d-modifier). Timing T = 4.5 (L + 1 + B + NA) us.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf — A22-0526-3, Figure 25 and 'Table Lookup' instruction, p.30"
+    },
+    {
+      "title": "IBM 1410/7010 FORTRAN real-number storage format (the one documented IBM numeric format for this machine)",
+      "markdown": "| Field | Positions | Content |\n|---|---|---|\n| Fraction | first f | Normalized to [0.1, 1) — decimal point understood *before* the high-order digit |\n| Exponent | last 2 | Plain decimal exponent |\n| Total | f + 2 | |\n\nWorked example from the manual, f = 8: `+3.14159` stored as `31415900` `01`, i.e. 0.31415900 x 10^1. `-3.14159` stored as the same digits with sign overpunches.\n\n| Parameter | C28-0328-3 (OS FORTRAN) | J24-1468-1 (1961 preliminary) |\n|---|---|---|\n| f (real mantissa digits) | default 8, 3 <= f <= 18 | default 8, max 45 |\n| k (integer digits) | default 5, 3 <= k <= 20 | default 5, max 99 |\n| Real magnitude range | 10^-100 .. (1 - 10^-f) x 10^99 | 10^-99 .. (1 - 10^-f) x 10^99 |\n| Integer magnitude | 1 .. (10^k - 1) | < 10^k, treated modulo 10^k on overflow |\n\nWhere the signs sit is NOT crisply readable in the scan — the manual shows overpunch marks over the high-order fraction digit and over the exponent, consistent with the 1410 zone-bit sign convention, but do not treat the exact placement as verified.",
+      "source": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/C28-0328-3_1410_Fortran.pdf pp.7-8 and http://bitsavers.trailing-edge.com/pdf/ibm/1410/J24-1468-1_1410fortran.pdf pp.5-7"
+    },
+    {
+      "title": "Proposed fixed-point scaling table for the reentry demo (design recommendation, not an IBM document)",
+      "markdown": "Convention: signed fixed-point decimal, one digit per core position, sign in the zone bits of the units position (B = minus, BA = plus). S = number of implied fractional digits, constant for the life of the run. Units: feet, ft/s, seconds, slug/ft3.\n\n| Symbol | Meaning | Digits | S | Represents |\n|---|---|---|---|---|\n| T | elapsed time (s) | 6 | 2 | 0 .. 9999.99 |\n| DT | integration step (s) | 4 | 3 | e.g. 0100 = 0.100 s |\n| Y | altitude (ft) | 8 | 1 | 0 .. 9,999,999.9 |\n| VEL | speed (ft/s) | 8 | 2 | 0 .. 999,999.99 |\n| GAM | flight-path angle (rad) | 8 | 7 | +/- 9.9999999 |\n| L10R | log10(rho/rho_SL) | 8 | 6 | -99.999999 .. +9.999999 |\n| ANTI | 10^F for F in [0,1) | 8 | 7 | 1.0000000 .. 9.9999999 |\n| RHOR | rho/rho_SL | 8 | 7 | mantissa; decade tracked in a 2-digit companion |\n| SQR | sqrt(rho/rho_SL) | 8 | 7 | as above |\n| U | V / 26,000 | 8 | 7 | 0 .. 1.1 typical |\n| U315 | U^3.15 | 8 | 7 | 0 .. ~1.35 |\n| QDOT | heat rate (BTU/ft2-s) | 8 | 2 | 0 .. 999,999.99 |\n\nRescaling rules that follow mechanically from A22-0526-3:\n\n| Operation | Rule |\n|---|---|\n| Multiply a x b | Product scale = Sa + Sb; B-field must be (a digits + b digits + 1) wide with the multiplier image pre-loaded high-order. Rescale to the target S with one `MLC SRC-n,DEST` where n = Sa + Sb - Starget, then blank the residue with an `MLC` of a zeros literal. n is an assembly-time constant. |\n| Round before truncating | `A +5,WORK-n+1` (add a 5 one position right of the target units) before the truncating move. |\n| Divide a / b | Pre-scale the dividend left by (Starget + Sb - Sa) positions into a zeroed field. B-field = divisor digits + dividend digits + 1; load the dividend with `ZA` to guarantee leading zeros and a proper sign. Quotient develops leftmost, remainder stays rightmost, B-address register ends at the quotient's tens position. |\n| Split an antilog argument into decade + fraction | With L10R held at S=6, the integer decades are `MLN L10R-6,DEC` and the fraction is `MLN L10R,FRAC`. Field slice, no arithmetic. |\n\nInner-loop cost, from A22-0526-3 timing formulas: ~2.4 ms per 8x8 multiply, ~5.4 ms per divide. Prefer a pre-computed reciprocal and a multiply over any divide in the step loop.",
+      "source": "Design derived from A22-0526-3 (arithmetic rules, timing) and the pi.job idiom at http://www.sky-visions.com/ibm/7010/pr155/pi.job. Not an IBM-published convention."
+    },
+    {
+      "title": "Algorithm selection for the three non-elementary operations",
+      "markdown": "| Needed | Recommended method | Cost per step | Period-authentic alternative |\n|---|---|---|---|\n| exp(-beta*y) | L = 0.155414 - 1.9740658e-5 * y; slice L into decade D and fraction F; `T` lookup of 10^F in a 1000-entry table + linear interpolation; apply decade D as an indexed `MLC` offset (X-register). | 1 multiply, 1 lookup, 1 interp multiply, 1 indexed move | `FRA`/`FM`/`FST` Autocoder pseudo-ops calling the FORTRAN arithmetic routines (C28-0309-1) |\n| sqrt(rho/rho_SL) | Same routine, half the coefficient: 10^(0.077707 - 9.870329e-6 * y). NO square root is computed. | 1 multiply + one more antilog | Newton x <- (x + a/x)/2 (family precedent: 7080-08.3.001) |\n| V^3.15 | Direct table of u^3.15 on u = V/26000, du = 0.01, 111 entries, 5-digit function values stored inline in the table field, linear interpolation. | 1 divide-or-reciprocal-multiply, 1 lookup, 1 interp multiply | antilog(3.15 * log10 V) — exactly IBM's documented rule 'A**B is computed from EXP(B*ALOG(A))' (C28-0328-3 p.10) |\n| general sqrt (only if a nose-radius sweep is added) | Newton x <- (x + a/x)/2, seeded by halving the decimal exponent; 2-3 iterations for 8-16 digits. | 1 divide + 1 add + 1 halving per iteration | as above |\n\nTable-ordering note for interpolation: A22-0526-3 shows table arguments 'stored in table in ascending order, right to left' and the table 'always searched from right to left', stopping at the FIRST argument satisfying the d-character. With that ordering, `LEH` (d=6) yields the smallest table argument >= x — the upper bracket — and the lower bracket is the adjacent field a fixed number of positions to the right, matching the manual's 'function at N + C' convention. Reversing the table ordering and using `LLE` (d=3) gives the lower bracket instead. Verify whichever you pick against the emulator before trusting it; the ordering/direction interaction is the easiest thing to get backwards.",
+      "source": "Methods are design recommendations; the Table Lookup ordering and d-character facts are from http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf pp.29-30, the A**B rule from http://bitsavers.trailing-edge.com/pdf/ibm/1410/C28-0328-3_1410_Fortran.pdf p.10, the Newton precedent from http://bitsavers.trailing-edge.com/pdf/ibm/1410/C20-1602-8_1410_pgmCatJun68.pdf entry 7080-08.3.001."
+    },
+    {
+      "title": "Validation checkpoints from NACA Report 1381 (Allen & Eggers)",
+      "markdown": "| Check | Expression | Why it is cheap |\n|---|---|---|\n| Per-step exact solution | V = V_E exp[-(C_D rho0 A / (2 beta m sin theta_E)) e^(-beta y)]  (eq.13) | This is the closed-form solution of the very ODE being integrated. Print it in an adjacent column and difference it — a free per-step error column, and it reuses the antilog routine already written. |\n| Speed at peak deceleration | V1 = V_E e^(-1/2) ~= 0.6065 V_E  (eq.16) | Depends on nothing but V_E. If the printed trajectory's minimum-of-dV/dt row is not at 0.61 V_E, the integration is wrong. |\n| Altitude of peak deceleration | y1 = (1/beta) ln[C_D rho0 A / (beta m sin theta_E)]  (eq.15) | Closed form; also the guard condition — eqs.16-17 are only valid when y1 > 0. |\n| Peak deceleration | (dV/dt)/g |max = beta V_E^2 sin theta_E / (2 g e)  (eq.17) | Independent of m, A and C_D. Regression test: re-run with C_D doubled; the peak-g figure must not move. |\n| Atmosphere | rho = 0.0034 e^(-y/22,000) slug/ft3  (eq.7) | Beware: 0.0034 is a fit constant, not standard sea-level density (0.0023769). DKR normalizes by true rho_SL, hence the 1.43044 factor. |",
+      "source": "http://hpp.education/Lessons/MecaSpace/Files/AllenEggers.pdf — NACA Report 1381, eqs. (7) and (13)-(17), ~pp.6-8"
+    }
+  ],
+  "open_questions": [
+    "The 1410 FORTRAN library source (IBM Program Library 1410-FO-138) is not on bitsavers. If a copy ever surfaces — CHM's IBM Program Library collection, or the symbolic listings that C20-1602-8 says were shipped as an optional item — it would settle exactly how IBM did EXP/ALOG/SQRT on this machine. Worth a CHM catalogue query before the demo is called historically faithful.",
+    "The sign placement inside the 1410 FORTRAN f+2 real format is not crisply readable in the C28-0328-3 scan. The overpunch marks appear over the high-order fraction digit and over the exponent, which would mean a mantissa sign zone on the fraction's leading digit and an exponent sign zone on the exponent's low-order digit — but the scan is not sharp enough to read the zones. A cleaner scan of C28-0328-3 p.8, or the C28-0328-1 earlier printing, would resolve it.",
+    "The multiply and divide timing formulas were OCR'd from a scan and cross-checked only against another OCR of the same text (A22-1407-2). The substituted millisecond figures (~2.4 ms for 8x8 multiply, ~5.4 ms for an 8-digit divide) should be re-derived from a clean page image and then validated against the emulator's cycle counts before any performance claim is made in the demo write-up.",
+    "Table Lookup's interaction between table ordering (ascending right-to-left, per Figure 26) and the d-character semantics needs an emulator experiment before an interpolation routine is trusted. The manual states the rule but the figure's OCR is mangled and the bracketing direction is the easiest thing to get backwards.",
+    "Whether the FRA/FST/FA/FS/FM/FD Autocoder pseudo-ops can be used from a standalone Autocoder program without linking the whole FORTRAN object-time package is not documented in C28-0309-1 or C28-0326-x beyond the appendix heading. If the demo wants the software-float path rather than fixed point, that linkage has to be worked out from the PR155/PR108 system tapes on sky-visions.",
+    "No 1410 or 1401 Autocoder source implementing a transcendental was found in the surviving corpus — pi.job, prime.job (FORTRAN II), laplace.job (FORTRAN, uses SQRT and **) and f108.job are the whole set at sky-visions, and only pi.job is hand-written fixed-point Autocoder. If period fidelity of the *style* matters, pi.job is the single model available."
+  ],
+  "sources": [
+    {
+      "title": "IBM 1410 Principles of Operation, A22-0526-3",
+      "url": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "note": "Primary. Sign convention and Figure 11 (~p.15); Multiply (~pp.18-19); Divide (~p.20); Move d-character table (~pp.26-27); Table Lookup discussion p.29 and instruction p.30 with Figures 25-26; Figure 7 timing symbols (~p.9); storage capacities and 4.5 us cycle (pp.5-6). Confirms no floating-point instruction exists."
+    },
+    {
+      "title": "IBM 1410 Data Processing System Reference Manual, A22-1407-2 (Nov 1961)",
+      "url": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-1407-2_1410ref_Nov61.pdf",
+      "note": "Primary. Used only to cross-check the Multiply and Divide timing formulas against A22-0526-3; the text is identical."
+    },
+    {
+      "title": "IBM 7010 Principles of Operation, A22-6726",
+      "url": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/A22-6726_7010_PrincOps.pdf",
+      "note": "Primary. Confirms the 7010 likewise has no floating-point instruction — 'floating' occurs only as 'floating dollar sign' (p.27). Relevant because the surviving Autocoder sample jobs target 7010/PR155."
+    },
+    {
+      "title": "IBM 1410/7010 Operating System FORTRAN, C28-0328-3",
+      "url": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/C28-0328-3_1410_Fortran.pdf",
+      "note": "Primary. pp.7-8 the f+2 real-constant storage format with the 3.14159 example and the f/k limits; p.10 'A**B is computed from EXP(B*ALOG(A))' plus the expanded-vs-exponential efficiency rule; p.23 Figure 5 built-in function limits (EXP argument < 225, SQRT of negative)."
+    },
+    {
+      "title": "IBM 1410 FORTRAN Preliminary Specifications, J24-1468-1 (1961)",
+      "url": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/J24-1468-1_1410fortran.pdf",
+      "note": "Primary. 'Arithmetic Precision' pp.5-7: f default 8 and 'cannot exceed 45', k default 5 and 'cannot exceed 99', 18-digit mantissa + 2-digit characteristic = 20-digit number; Figure 10 library functions SINF/COSF/LOGF/EXPF/SQRTF/ATANF. Note the limits differ from the later C28-0328-3 — quote with the form number."
+    },
+    {
+      "title": "IBM 1410 Autocoder, C28-0309-1",
+      "url": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf",
+      "note": "Primary. Instruction-summary appendix carries 'FLOATING POINT ARITHMETIC INSTRUCTIONS INTERPRETED BY THE FORTRAN ARITHMETIC ROUTINES' with FRA/FST/FA/FS/FM/FD. The SQART01/SQART02 CALL-macro example (Figure 84) is a naming illustration only — no algorithm."
+    },
+    {
+      "title": "IBM 1410 Operating System Autocoder, C28-0326-1",
+      "url": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/C28-0326-1_1410_OS_Autocoder.pdf",
+      "note": "Primary. Operation-code list showing the same FA/FS/FM/FD/FRA/FST mnemonics alongside A/S/M/D/ZA/ZS and the C/LL/LE/LLE lookup group."
+    },
+    {
+      "title": "IBM 1410/7010 Programming Systems Catalog, C20-1602-8 (June 1968)",
+      "url": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/C20-1602-8_1410_pgmCatJun68.pdf",
+      "note": "Primary. Entry 1410-FO-138 'FORTRAN Subroutine Library' — distribution in absolute card decks, symbolic listings optional; this is the item whose source would contain EXP/ALOG/SQRT and which does not survive publicly. Entry 7080-08.3.001 documents 'Newton's iteration method' for square root on the 7080."
+    },
+    {
+      "title": "IBM 1410/7010 Autocoder sample job: pi.job (PI to 5000 digits, PR155)",
+      "url": "http://www.sky-visions.com/ibm/7010/pr155/pi.job",
+      "note": "Primary source code, downloaded in full. The only surviving hand-written fixed-point multi-digit Autocoder numeric program. States the scaling convention in its own comments ('SAME RELATIVE PLACE IN EACH AREA'), and demonstrates ZA/MLZS sign handling, MLC-from-offset rescaling, and D followed by an extraction move."
+    },
+    {
+      "title": "IBM 1410/7010 sample jobs index (sky-visions)",
+      "url": "http://www.sky-visions.com/ibm/ibm7010_soft.shtml",
+      "note": "Index of the surviving sample jobs. pi.job (Autocoder, fixed point), prime.job and f108.job (FORTRAN II sieve), laplace.job (FORTRAN, uses SQRT and **, compiled with the FLT option), autotest.job, a.job, c.job, f.job. Confirms pi.job is the only hand-coded numeric Autocoder source in the corpus."
+    },
+    {
+      "title": "NACA Report 1381 — Allen & Eggers, 'A Study of the Motion and Aerodynamic Heating of Ballistic Missiles Entering the Earth's Atmosphere at High Supersonic Speeds'",
+      "url": "http://hpp.education/Lessons/MecaSpace/Files/AllenEggers.pdf",
+      "note": "Primary. Eq.(7) exponential atmosphere rho = 0.0034 e^(-y/22,000); eqs.(13)-(17) the closed-form velocity, peak-deceleration altitude y1, V1 = 0.61 V_E, and max deceleration independent of m/A/C_D; explicit caveat that eqs.16-17 hold only for y1 > 0."
+    },
+    {
+      "title": "bitsavers IBM 1410 document directory",
+      "url": "http://bitsavers.trailing-edge.com/pdf/ibm/1410/",
+      "note": "Full directory listing consulted to establish what does and does not survive. No listing of the 1410 FORTRAN Subroutine Library (1410-FO-138) is present. Note bitsavers.org itself returns 403 to curl; the trailing-edge mirror serves the same tree."
+    }
+  ]
+}

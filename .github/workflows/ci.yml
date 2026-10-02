@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # The oracle fixtures (cube1us/1410, GPL-3.0-or-later) are fetched, never vendored. The key tracks
+      # the pinned COMMIT in the fetcher; it re-verifies sha256 on every run, so a restored
+      # cache is checked, not trusted.
+      - uses: actions/cache@v4
+        with:
+          path: oracles
+          key: oracles-${{ hashFiles('tools/fetch-oracles.ts') }}
+
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      # pretest fetches the oracles. test/oracles-present.test.ts fails the run if any are
+      # missing (the fetcher exits 0 on a failed download), so do not set ALLOW_MISSING_ORACLES.
+      - run: npm test
+
+      - run: npm run smoke
+
+      - run: npm run cc01
+
+      - run: npm run build
+
+      # Informational: a tripped deferred-work trigger should be visible, not block the merge.
+      - run: npm run check:deferred
+        continue-on-error: true

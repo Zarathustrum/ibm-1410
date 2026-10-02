@@ -1,0 +1,78 @@
+{
+  "source": "research/opcodes.md §4.1-§4.4 (A22-0526-3 p.16 Figures 11-12, pp.18-19 Figure 13); research/charset.md §6, §6.2; research/architecture.md §10 'Arithmetic, signs and indicators'",
+  "note": "Transcribed from the research files, NOT from src/core/alu.ts. test/signs-fixture.test.ts asserts that alu.ts's tables equal this one, so a change to either side has to be made deliberately on both.",
+
+  "signZones": {
+    "cite": "opcodes.md §4.1 / charset.md §6 / architecture.md §10 — A22-0526-3 p.16 Figure 11",
+    "note": "The sign of a field is the zone bits of its UNITS (rightmost) position. Minus is ALWAYS a B bit alone; every other zone combination is plus.",
+    "rows": [
+      { "zoneBits": "none", "cardZone": "none", "sign": "+" },
+      { "zoneBits": "BA", "cardZone": "12", "sign": "+" },
+      { "zoneBits": "B", "cardZone": "11", "sign": "-" },
+      { "zoneBits": "A", "cardZone": "0", "sign": "+" }
+    ],
+    "written": {
+      "plus": "BA",
+      "minus": "B",
+      "cite": "architecture.md §10 / charset.md §6 — 'When the machine generates or changes a sign it writes B+A for plus, B for minus'"
+    }
+  },
+
+  "digitCoding": {
+    "cite": "opcodes.md §4.2 / charset.md §6.2 — A22-0526-3 p.16 'Digit Coding'",
+    "note": "Characters whose numeric bits are a digit 0-9 are used at face value; every other character is coerced by DROPPING THE 8 BIT. The numeric portion 8-2 is the code for the digit ZERO in this character set (charset.md §2 rank 54: '0' is octal 12), so it is face value 0 and not 'ten'. A character with no numeric bits at all — blank, '&', '-', substitute blank — is zero.",
+    "byNumericBits": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 3, 4, 5, 6, 7],
+    "zeroIsWrittenAs": "8-2",
+    "specials": [
+      { "glyph": " ", "name": "blank", "octal": "00", "numericBits": "none", "digit": 0, "why": "no numeric bits — 'blank becomes zero'" },
+      { "glyph": "&", "name": "ampersand", "octal": "60", "numericBits": "none", "digit": 0, "why": "zone bits only (BA)" },
+      { "glyph": "-", "name": "minus", "octal": "40", "numericBits": "none", "digit": 0, "why": "zone bits only (B)" },
+      { "glyph": "ƀ", "name": "substitute blank", "octal": "20", "numericBits": "none", "digit": 0, "why": "zone bits only (A)" },
+      { "glyph": "⧧", "name": "group mark", "octal": "77", "numericBits": "8421", "digit": 7, "why": "8 bit dropped — '7 (421) if zones are stripped'" },
+      { "glyph": "#", "name": "number sign", "octal": "13", "numericBits": "821", "digit": 3, "why": "8 bit dropped — '# (821) becomes 3'" },
+      { "glyph": "0", "name": "zero", "octal": "12", "numericBits": "82", "digit": 0, "why": "8-2 IS the digit zero" },
+      { "glyph": "?", "name": "plus zero", "octal": "72", "numericBits": "82", "digit": 0, "why": "zero with a BA (plus) zone" },
+      { "glyph": "!", "name": "minus zero", "octal": "52", "numericBits": "82", "digit": 0, "why": "zero with a B (minus) zone" },
+      { "glyph": "‡", "name": "record mark", "octal": "32", "numericBits": "82", "digit": 0, "why": "numeric bits are a digit — used directly" },
+      { "glyph": "/", "name": "slash", "octal": "21", "numericBits": "1", "digit": 1, "why": "numeric bits are a digit — used directly" },
+      { "glyph": "@", "name": "at sign", "octal": "14", "numericBits": "84", "digit": 4, "why": "8 bit dropped" },
+      { "glyph": ":", "name": "colon", "octal": "15", "numericBits": "841", "digit": 5, "why": "8 bit dropped" },
+      { "glyph": ">", "name": "greater than", "octal": "16", "numericBits": "842", "digit": 6, "why": "8 bit dropped" },
+      { "glyph": "√", "name": "tape mark (radical)", "octal": "17", "numericBits": "8421", "digit": 7, "why": "8 bit dropped" },
+      { "glyph": ".", "name": "period", "octal": "73", "numericBits": "821", "digit": 3, "why": "8 bit dropped" },
+      { "glyph": "⌑", "name": "lozenge", "octal": "74", "numericBits": "84", "digit": 4, "why": "8 bit dropped" },
+      { "glyph": "A", "name": "A", "octal": "61", "numericBits": "1", "digit": 1, "why": "letters are used at face value" },
+      { "glyph": "I", "name": "I", "octal": "71", "numericBits": "81", "digit": 9, "why": "letters are used at face value" },
+      { "glyph": "J", "name": "J", "octal": "41", "numericBits": "1", "digit": 1, "why": "letters are used at face value" },
+      { "glyph": "Q", "name": "Q", "octal": "50", "numericBits": "8", "digit": 8, "why": "letters are used at face value" },
+      { "glyph": "S", "name": "S", "octal": "22", "numericBits": "2", "digit": 2, "why": "letters are used at face value" }
+    ]
+  },
+
+  "addCycle": {
+    "cite": "opcodes.md §4.3 — A22-0526-3 p.16 Figure 12 'Add-cycle selection and result sign'",
+    "note": "Subtract inverts the A-field sign FIRST, then the Add rule applies; the rows below are the printed figure, one per (operation, A sign, B sign). 'greater' means the sign of the greater value, which the hardware resolves by the carry out of the high-order position: a carry means B was the greater and its sign stands; no carry means A was the greater, a RECOMPLEMENT pass is taken and A's sign is written.",
+    "rows": [
+      { "op": "A", "aSign": "+", "bSign": "+", "cycle": "true", "resultSign": "+" },
+      { "op": "A", "aSign": "+", "bSign": "-", "cycle": "complement", "resultSign": "greater" },
+      { "op": "A", "aSign": "-", "bSign": "+", "cycle": "complement", "resultSign": "greater" },
+      { "op": "A", "aSign": "-", "bSign": "-", "cycle": "true", "resultSign": "-" },
+      { "op": "S", "aSign": "+", "bSign": "+", "cycle": "complement", "resultSign": "greater" },
+      { "op": "S", "aSign": "+", "bSign": "-", "cycle": "true", "resultSign": "-" },
+      { "op": "S", "aSign": "-", "bSign": "+", "cycle": "true", "resultSign": "+" },
+      { "op": "S", "aSign": "-", "bSign": "-", "cycle": "complement", "resultSign": "greater" }
+    ],
+    "recomplement": "When a complement-add underflows (no carry out of the high-order position) a recomplement pass is taken; the timing term R is 1 when a recomplement occurs (the +1.5RB of 4.5(L+1+E+A+1.5B+1.5RB)). opcodes.md §4.3, §1.5."
+  },
+
+  "zeroAndSubtractSignMap": {
+    "cite": "opcodes.md §4.4 — A22-0526-3 pp.18-19 Figure 13",
+    "note": "DATA ONLY for Wave 3. Zero and Subtract ('!') is Wave 6; this table is transcribed here so the whole of the arithmetic sign machinery lives in one fixture.",
+    "rows": [
+      { "aSignBits": "none", "aSign": "+", "bSignAtEnd": "B", "bSign": "-" },
+      { "aSignBits": "B", "aSign": "-", "bSignAtEnd": "BA", "bSign": "+" },
+      { "aSignBits": "BA", "aSign": "+", "bSignAtEnd": "B", "bSign": "-" },
+      { "aSignBits": "A", "aSign": "+", "bSignAtEnd": "B", "bSign": "-" }
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+RG                                                                         02010
+CAA  001 CC                              01                                03010
+DITEM  008         CAA 009008                                              04010
+DQTY   003         CAAN012003                                              04020
+DPRICE 005         CAAN017005                                              04030
+DPAGENO003         PAG                                                     04040
+ACOUNT 003                   PAGENO003A         D                          05010
+LHA1X       02      1P                                                     06010
+K                                 020          009CARD LIST                06020
+LD11X       01      01                                                     06030
+F                           ITEM  008                                      06040
+F                           QTY   012         Z                            06050
+F                           PRICE 018         Z                            06060

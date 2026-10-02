@@ -1,0 +1,81 @@
+{
+ "topic": "IBM 1410 software stack: Autocoder formats, loaders, OS, languages, 1401 compatibility",
+ "refuted": [
+  {
+   "claim": "OS relocation indicator codes (Figure 13): no address with d-mod = '1'; two addresses no relocation = '?' (12-0)",
+   "why": "Read the scanned Figure 13 (C28-0319-4 p.65). The finder's OCR-derived table mis-assigned two entries. 'No address' with d-modifier is the letter I (card code 12-9, length 2), not the digit 1. 'Two addresses, no relocation' without d-modifier is the digit 0 (card code 0, length 11); the '?' (12-0) is the with-d-modifier form (length 12). The digit 1 is 'two addresses, only B-address upward' (without d-mod; 'A' = 12-1 with d-mod).",
+   "correction": "Figure 13 as scanned: No address: 9 / I(12-9). X-control B-up J(11-1), B-down K(11-2), B-none L(11-3), no B M(11-4), lengths 10/10/10/5. Single address up @(4-8), down :(5-8), none >(6-8); with d-mod lozenge(12-4-8), [ (12-5-8), <(12-6-8); lengths 6/7. Two addresses none 0 / ?(12-0); B-up 1/A(12-1); B-down 2/B(12-2); A-up 3/C(12-3); both up 4/D(12-4); A-up B-down 5/E(12-5); A-down 6/F(12-6); A-down B-up 7/G(12-7); both down 8/H(12-8); lengths 11/12. Address constant up N(11-5), down P(11-7), none Q(11-8), length 5. DCWS S(0-2) len 7; DCWF T(0-3) len 5; constant blank.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/C28-0319-4_1410_sysMonitor.pdf (PDF page 65, Figure 13, read from scan)"
+  },
+  {
+   "claim": "OS relocatable Load card col 72 = blank for an absolute (or linkage-symbol) load address, '1' upward, '2' downward",
+   "why": "The scanned page 65 of C28-0319-4 reads: '72   0 (for load card with absolute location or ABCD/ linkage symbol as load address...) 1 (upward relocation factor...) 2 (downward...)'. Column 72 is the digit 0, not blank. A loader keyed on blank would misclassify every absolute Load card.",
+   "correction": "Load card col 72: '0' = absolute or linkage-symbol load address; '1' = apply upward relocation to numeric load address; '2' = apply downward relocation.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/C28-0319-4_1410_sysMonitor.pdf (PDF page 65, 'Load Card' column list)"
+  },
+  {
+   "claim": "Bootstrap read instruction keyed into 00000-00011 is of the form 'L <X-control> 00012 R' (OCR 'ALcBu00012$N' / 'ALcde00012$r' left unresolved)",
+   "why": "Read Tables I/II from the scan. The d-character of the keyed Load instruction is '$', not 'R'. Per the 1410 PrincOps tape instruction table, d='$' with op L is 'Read tape with word marks, group-mark-word-marks in core have no effect, stop at IRG or end of storage' (mnemonic RTGW/RTBGW); d='R' is the ordinary RTW that stops at the first GMWM. The 12th character (00011) is not part of the read instruction: for tape it is an N (NOP, word-marked); for the card/disk case it is the op code of the 'branch if I/O channel status indicator on' instruction for the input channel (R = channel 1, X = channel 2; 7010: 3 = channel 3, 1 = channel 4), whose I-address and d-character are supplied by the first 6 columns of the Bootstrap 1 card read into 00012-00017 ('00018' + group-mark char), i.e. 'R 00018 ‡'.",
+   "correction": "Layout: 00000 = status char A (may carry WM); 00001 = L (WM); 00002-00004 = X-control (channel char % / lozenge / ? / !, unit-type char B=tape or 1=card reader, unit digit 0-9 or 0 for reader); 00005-00009 = 00012; 00010 = d '$'; 00011 = N (tape SOF) or the channel-status-branch op R/X/3/1 (card/disk SOF). Installation standard tape: 'A L %B0 00012 $ N' with word marks on L and N; Asterisk-Insert switch ON; press Computer Reset then Start (once per label record extra).",
+   "source": "https://bitsavers.org/pdf/ibm/1410/C28-0351-5_1410_operGuide.pdf (PDF pages 7-8, Tables I and II and Bootstrap 1 card images) ; https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (tape instruction table: 'Read tape RTG/RTBG d=$ ... group mark-word marks in core storage have no effect'; 'Branch if I/O channel status indicator on ... R op code for channel 1 or the X op code for channel 2')"
+  }
+ ],
+ "upgraded": [
+  {
+   "claim": "On the 1401, pressing the 1402 LOAD key reads a card, sets the I-address register to 001, sets a word mark at 001, removes all other word marks in 002-080, and starts executing at 001",
+   "source": "https://bitsavers.org/pdf/ibm/1401/A24-1403-5_1401_Reference_Apr62.pdf ('LOAD KEY: ...The I-address register is set to 001, and a word mark is set in address 001. All other word marks in addresses 002 through 080 are removed. When the card is read at the read and check station, the program starts and executes the instruction that is punched in the first columns of the card'; also 'Pressing the load key on the console causes a word mark to be set at location 001')"
+  },
+  {
+   "claim": "The compatibility switch at the 1401 setting makes it possible to run 1401 programs on the 1410; hardware feature; sense-bit switches act as sense switches A-G only in 1401 mode (Wikipedia 'flip of a switch' claim)",
+   "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf ('Compatibility Switch ... when at the 1401 setting, makes it possible to run IBM 1401 programs on the 1410. Ordinarily, the switch should be in the 1410 setting'; 'The sense-bit switches are active as sense switches (A through G) only when operation is in the 1401 mode'). Independently consistent with SimH i7010_cpu.c 1401 emulation mode (UNIT_MODEL 'Emulate a 1401', 1401 addressing modulo 16000)."
+  }
+ ],
+ "additions": [
+  {
+   "claim": "Standalone condensed card Figure 2 confirmed from the scan exactly as claimed, including cols 8-10 = zeros and the relocation-indicator/sequence/ident columns; the 'two adjacent word separators load one word separator' rule in the OS Load card additionally says 'Add only 1 to the count' (i.e., the loaded word separator counts as one character).",
+   "source": "https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf (PDF p.7 Figure 2) ; https://bitsavers.org/pdf/ibm/1410/C28-0319-4_1410_sysMonitor.pdf (p.65 NOTE 1)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "OS loader card type codes in col 72 beyond those listed: DEFIN card col 72 = '4' (col 71 = blank/P/Q for its value); Set Word Mark or Record Mark card col 72 = '8' (col 20 = record mark 0-2-8 for RM, blank for WM; col 71 = N/P relocation of the first address); Clear Word Mark card col 72 = 'W'; Clear Storage col 72 = 'Y'; Random Load col 72 = 'Z' with five 11-col fields (1-11, 12-22, 23-33, 34-44, 45-55) and per-field indicators in cols 71,70,69,68,67 (0-8 code: 0-2 load addr none, 3-5 addr up, 6-8 addr down; within each triple: chars none/up/down). BASE1/BASE2/PRTCT/ENTRY/CALL col 72 = '4'. TITLE col 72 = '5'; Termination 'E' card col 72 = '3' primary / '9' secondary. Random Load loads its five characters in Move mode (no word marks).",
+   "source": "https://bitsavers.org/pdf/ibm/1410/C28-0319-4_1410_sysMonitor.pdf (PDF pp.65-67, read from scan)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1401-mode B-address register after a print: the 1401 value is 333 for a buffered (Print Storage) printer and 335 for an unbuffered printer; the 1410 in 1401 mode gives 335 for op 2 and 082/183 for read/punch families (1/3 -> 082; 4/5/6/7 -> 183).",
+   "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf ('IBM 1401-1410 Compatibility', B-Address Register chart, footnote '*335 for an unbuffered printer')",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Card character-set incompatibility the finder missed: the 1410 punches a core A-bit (blank-A, the 'substitute blank') as an 8-2 card combination and reads 8-2 as the A-bit; the 1401 punches an A-bit as a zero and reads 8-2 as an invalid character. No-charge RPQ 898148 makes a 1401 behave like the 1410.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf ('Card Read-Punch Character Set')",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Precise 1401-vs-1410 tape load-mode word-separator semantics (matters for an emulator running 1401 tape decks in compatibility mode): writing in load mode, a word separator in core is written as ONE word separator by the 1401 but TWO by the 1410; reading in load mode, the 1401 eliminates any run of one or more word separators and puts a word mark on the next non-WS character, whereas the 1410 reads a PAIR of adjacent word separators as one word separator with no word mark on the following character.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf ('Read and Write Tape with Word Marks' under 1401-1410 Compatibility)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "In 1401 mode, pressing a tape unit's reset/load-rewind/start keys in rapid succession and then addressing the unit before loading completes (tolerated on a real 1401) prevents the drive from starting on the 1410; recovery needs Stop, address-set to the tape instruction, Start.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf ('Loading Tape Units')",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1410 native I/O op-code facts needed to decode the bootstrap: R = 'branch if I/O channel status indicator on' for channel 1, X = same for channel 2 (format op IIIII d, d-bits select the indicators); tape d-characters with M/L: R = read (stop at first GMWM or IRG), W = write, $ = read ignoring GMWMs (stop at IRG or end of core), X = write erase-mode ('WTE'). Non-overlapped I/O uses % (ch1) or lozenge (ch2) as the first X-control character; an R/X status-branch must intervene between two I/O instructions on the same channel or the system stops.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (tape instruction table; 'Branch if I/O Channel Status Indicator On'; 'Non-Overlap Operation')",
+   "confidence": "verified"
+  },
+  {
+   "claim": "The Bootstrap 1 card for the disk SOF (1410 version) begins '00018‡' then word-separated instructions 'L xF0 00066 R', 'y 00035 $', 'L xF1 00066 $', 'y 00035 2', 'y 00059 $', 'J 00138 ...' where x = %/lozenge (channel of SOF) and y = R/X (status-branch op for that channel); the 7010 card begins '~R00008‡' instead. This is the only IBM-published 1410 loader card image found; the standalone Autocoder 'load program' cards remain unpublished.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/C28-0351-5_1410_operGuide.pdf (PDF p.8, Table II card images; x/y legend on the figure)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "The SimH/Cornwell i7010 simulator (covers 1410 and 7010) implements 1401 compatibility mode as a CPU model option ('Emulate a 1401'), decodes 1401 3-character zone-tagged addresses (hundreds-position zone x4000, thousands zone) modulo 16000 with 1401 index registers at 87-99, and its sim_load returns SCPE_NOFNC, i.e. it has no Autocoder-deck loader; a new emulator cannot borrow a condensed-card loader from it.",
+   "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_cpu.c ; https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_sys.c",
+   "confidence": "verified"
+  }
+ ],
+ "notes": "Method: downloaded the bitsavers scans (C28-0309-1, A22-0526-3, C28-0351-5, C28-0319-4, A24-1403-5) plus archive.org OCR text, and read the load-bearing pages as images. Confirmed unchanged: standalone card layout, condensed card Figure 2 (incl. cols 8-10 zeros), 00500 default origin, 00281 re-entry, EX/XFR/END semantics, address types/indexing examples (pp.8-10), 1401-mode 8K/16K mapping and feature lists, compatibility switch, behavioral-difference list, 7010 Load key vs 1410 manual entry. Three refutations are all in areas that would change loader/bootstrap code (Figure 13 codes, Load-card col 72, bootstrap d-character). Not checked against a primary source: RPG 1959-vs-1961 date and FARGO ordering (J24-0215-2 copyright 1960/61 is the only primary evidence; leave as open), the 'basic Autocoder for the IBM 1410' referenced by J24-1433 (no manual on bitsavers), whether the 1402 LOAD key functions in 1410 1401-mode (CE doc 223-2597 not examined), and whether RPG shipped under 1410-PR-155. No 1401/1410 confusion found in the verified claims; the finder correctly attributed the 1402 LOAD-key behavior to the 1401 only. OCR of C28-0309-1 also does not list 'NOP/NOPWM' as standalone ops explicitly in the pages checked; the pseudo-op table row 'NOP/NOPWM yes/yes' for the standalone assembler is unverified by me."
+}

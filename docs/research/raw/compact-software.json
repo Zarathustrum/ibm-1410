@@ -1,0 +1,296 @@
+{
+ "topic": "software",
+ "summary": "TL;DR — There were two 1410 Autocoders, and your assembler/loader design depends on which you target. (a) The standalone \"IBM 1410 Autocoder\" (C28-0309/-1; processor 1410-AU-906 tape / 1410-AU-942 disk, distributed as part of the \"1410 Processor Operating System\" tapes 1410-PR-108 / 1410-PR-134) emits an ABSOLUTE \"condensed\" object deck: col 1 word-separator (0-5-8), cols 2-6 five-digit load address, col 7 word-separator, cols 8-10 zeros, cols 11-12 character count, cols 13-72 data (a word-separator punched before a character sets a word mark on it and is not counted; two adjacent word-separators load one word-separator), cols 70-72 optional relocation indicators ignored by the load program, 73-75 sequence, 76-80 identification from the JOB/RESEQ card. A LOAD control card makes the processor put a load program ahead of the deck; EX/XFR statements make the loader stop and branch mid-load (re-entry to the load routine at the IBM standard 00281); END produces a final execute (branch) card. Default ORG is 00500 (the loader sits below). (b) The \"1410/7010 Operating System (1410-PR-155) Autocoder\" (C28-0326-1/-2, processor 1410-AU-968) emits RELOCATABLE subprograms (TITLE card … Load cards with per-instruction relocation indicators in cols 71-downward and a card-type code in col 72 … 'E' Termination card carrying the entry point) that the Linkage Loader (1410-UT-963) turns into absolute programs on the Job file; the object card formats (TITLE, Load, DEFIN, CALL, Random Load, Clear Storage, Set/Clear Word Mark) are spelled out in System Monitor C28-0319-4 \"Program Patching\". Both share the same source card layout: cols 1-2 page, 3-5 line, 6-15 label (≤10 alphameric, first alphabetic; '*' in col 6 = comment card), 16-20 operation, 21-72 free-form operand (A, B, d separated by commas; comment after ≥2 blanks), 73-75 blank/sequence, 76-80 identification. Operand syntax: actual addresses 1-5 digits; symbolic labels; '*' = address of the last character of the current instruction (current counter in EQU/ORG/LTORG); address adjustment \"LABEL+3\"/\"LABEL-12\" (1-5 digits, multiple terms summed); indexing \"+X1\"..\"+X15\" or a symbolic index name (rightmost index wins); numeric literals \"+10\"/\"-5\" (sign required, pooled if ≤9 digits), alphameric \"@TEXT@\", area-defining \"WKAREA#6\", address-constant \"+LABEL\"; d-modifiers are mostly folded into extended mnemonics (BW/BZN/BWZ all = op V) but when needed are written as a third comma-separated operand, e.g. \"BCE ENTRYA,SWITCH,2\". Declaratives: DCW (constant with word mark; label = low-order/units position), DC (no word mark), DS (reserve n positions), DA (define area \"b X l\" with optional \",Xn\" \",#\" (record marks) \",G\" (group mark) \",0\" (relative-to-zero); sub-entries \"hi,lo\" fields), EQU (symbol = address ± adjust, index \"2,X\" form, tape-unit forms). Standalone control ops: RUN (first card, label AUTOCODER or SYSTEMS), JOB (heading + ident 76-80), CTL (col 22 core size code 1-5 = 10/20/40/60/80K, col 23 suppress punch/print), EJECT, RESEQ, LOAD, ORG, LTORG, EX, XFR, SFX (label suffixing, cross-ref via \"A$LABEL\"), PST, END. OS adds HEADR, SPEND, TITLE, BASE1/BASE2, CALL, DCWF, DCWS, DEFIN, PRTCT, DAV, RSV and drops CTL/LOAD/EX/XFR. Macros: library on tape, model statements with parameters, pseudo-macros MATH/BOOL/COMP/NOTE/MEND, CALL/INCLD for closed routines; IOCS macros (GET/PUT etc.) come from the IOCS package.\n\nOperating environment: the 1410 did have IBM operating systems. Early: \"IBM 1410 Processor Operating System\" (tape: 1410-PR-108 with System Supervisor 1410-SV-907; 1301 disk: 1410-PR-134 with 1410-SV-941) — a supervisor that reads control cards, positions the system tape, and calls Autocoder/COBOL/FORTRAN/RPG/IOCS. Later (1963-65): \"IBM 1410/7010 Operating System (1410-PR-155)\" — Resident Monitor + Transitional Monitor (1410-SV-962) + Linkage Loader (1410-UT-963), IOCS, sorts, utilities, Autocoder/FORTRAN/COBOL processors; control cards are Autocoder-format with MON$$ in cols 6-10 and JOB/MODE/EXEQ/ASGN/COMT/DATE/END/PAUSE in 16-20 (e.g. \"MON$$ JOB name\", \"MON$$ MODE GO\", \"MON$$ EXEQ AUTOCODER\", \"MON$$ EXEQ LINKLOAD\", \"MON$$ EXEQ pgm,MJB\"). Requires 40K core + 5 tapes (tape SOF) or 60K + 1301/2302 + 2 tapes (disk SOF) plus Overlap and Priority features, so it is not a card-only environment; the standalone Autocoder needed 20K + 4 tapes (1402/1403 tradeable for tape). There is no IBM card-only 1410 assembler documented on bitsavers; J24-1433 (1961) says Autocoder \"supplements and extends, but does not replace, the basic Autocoder for the IBM 1410\", but no manual for that basic Autocoder was found. The 1410 has no card Load key: to bootstrap, the operator keys a status character 'A' plus a Load-mode read instruction (L …00012 R) into locations 00000-00011 from the 1415 console, presses Computer Reset then Start; the Bootstrap 1 card/record is first on the Standard Input Unit or system tape. The 7010 added a Load key.\n\nLanguages: Autocoder, COBOL (1410-CB-912/-944 pre-OS; 1410-CB-969 OS, C28-0327), FORTRAN (pre-OS \"1410 FORTRAN\" J24-1468, 1410-FO-913/-950 and \"1410 FORTRAN II PROCESSOR 1410-FO-945\"; OS FORTRAN 1410-FO-970, C28-0328, produces relocatable output), and RPG — natively: \"1410 Report Program Generator 1410-RG-910\" (tape POS) and \"1410/1301 Report Program Generator 1410-RG-943\" (disk POS), documented in \"Report Program Generator for the 1410\" C28-1443. 1410 RPG is a preprocessor: it reads RPG specification cards and produces an Autocoder-format symbolic deck which is then assembled (automatically in the disk system); generated programs use 1410 IOCS. So RPG did NOT require 1401 compatibility mode on the 1410. RPG history: 1401 RPG manual J24-0215 is © 1960, 1961; Wikipedia says \"introduced in 1959 for the IBM 1401\"; a first-hand recollection (ibm-1401.info) says IBM announced RPG in January 1961; FARGO (C24-1464, © 1961) is a 4K card-only interpretive 407 emulator — Wikipedia calls it RPG's predecessor, but the same recollection says FARGO appeared as a Type III program toward the end of 1961, after RPG.\n\n1401 compatibility: a hardware feature; the compatibility switch on the 1415 console test panel (1401 setting) makes the 1410 run 1401 programs; a 10K 1410 behaves as an 8K 1401, all larger 1410s as a 16K 1401; the 1410 sense-bit switches act as 1401 sense switches A-G in 1401 mode; supported 1401 features include Multiply-Divide, Expanded Print Edit, Advanced Programming (indexing, SAR, Move Record), Print Storage, High-Low-Equal compare, Read-Punch Release; unsupported: column binary, compressed tape, punch-feed-read, serial I/O adapter devices, process overlap, selective tape listing, space suppression. Documented incompatibilities: invalid-parity input becomes '*', quotient blanks become zeros, load-mode tape word-separator handling differs, B-address register values after card/print ops differ (082/335/183 vs 081/333/181), no set-up character in 000/100 after read/punch, end-of-file reset needs Computer Reset, 1414 read buffer lags a card, stacker-select timing differs. Autocoder source could be written to assemble on either machine (same mnemonics) but object decks are not interchangeable (3- vs 5-character addresses).",
+ "facts": [
+  {
+   "claim": "Standalone 1410 Autocoder source card layout: page number cols 1-2, line number cols 3-5, label cols 6-15 (symbolic ≤10 alphameric chars, first alphabetic, no specials; or an actual address), operation cols 16-20, operand cols 21-72 (free-form; A-operand, B-operand and d-character separated by commas; comment after ≥2 blanks), identification cols 76-80; comments card = '*' in col 6 with text in 7-72. Coding sheet form X24-1350.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf (pp. 5-7)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "OS Autocoder (C28-0326-1) uses the same source layout (Autocoder Input Card form A36199): ident 76-80, page/line 1-5, label 6-15, op 16-20, operand 21-72, and says columns 73-75 should be left blank.",
+   "source": "https://archive.org/details/bitsavers_ibm1410C28r_7340037 (C28-0326-1, p.12)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Standalone Autocoder condensed (object) card format: col 1 word separator (0-5-8 punch); cols 2-6 five-digit high-order address of area to load; col 7 word separator; cols 8-10 zeros; cols 11-12 count of characters to load; cols 13-72 instructions/data; a word separator punched before a character sets a word mark on that character and is not counted; two adjacent word separators load a single word separator (cannot carry a word mark); cols 72,71,70 relocation indicators if required, ignored by the Load Program; cols 73-75 card sequence number placed by the processor; cols 76-80 program identification.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf (Figure 2, p.7)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Standalone Autocoder LOAD control card 'is used to signal the processor that a load program should precede the object deck'; JOB card prints heading and punches ident 76-80 into all condensed cards; RESEQ resets object-deck sequence to 001 and changes the ident; RUN is the first card (label AUTOCODER = assemble, SYSTEMS = library update); CTL is normally the second card with col 22 core-size code (1=10K,2=20K,3=40K,4=60K,5=80K) and col 23 suppress code (1=punch,2=print); if CTL is missing both processor and object machine are assumed 20K.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf (pp.17-18)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Standalone Autocoder: if no ORG precedes the first entry, address assignment starts at 00500 (normal origin 00500 absent IOCS entries). ORG accepts actual, symbolic (previously defined), blank (= high assignment counter+1), or '*' with adjustment (e.g. '*+200', '*+100' style advance to next multiple); indexing not allowed in ORG. LTORG assigns storage to previously encountered literals and closed library routines; without LTORG they are assigned at EX or END.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf (pp.18-19)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "EX statement: processor incorporates literals/closed routines/address constants then assembles a branch that is placed in the loading data; the processor-produced loading routine halts loading and executes the branch; to resume loading the program must re-enter the load routine ('The IBM standard re-entry point is 00281'). XFR is the same without incorporating literals. END is the last card; its operand is the first instruction to execute and the processor creates an 'execute card' (unconditional branch used as part of the loading data) so execution begins automatically after load.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf (pp.19-20)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Address types: blank (chaining), actual (1-5 digits, leading zeros optional), symbolic (1-10 chars), asterisk (= address of last character of the instruction; in EQU/ORG/LTORG = current assignment counter), literals, address constants. Address adjustment = '+'/'-' followed by 1-5 digits after the symbol; multiple adjustments are summed. Indexing = '+X1'..'+X15' (or a symbolic index label preceded by '+') after the address and adjustment; with multiple index tags only the rightmost is effective; example 'A TOTAL+3+X1-12+X2,ACCUM-5+X2+35' ≡ 'A TOTAL-9+X2,ACCUM+30+X2'. Indexing not accepted in DS/ORG/LTORG or control ops.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf (pp.8-11)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Index tagging in assembled addresses: the tens position of the address carries zone bits, e.g. index 2 = B-bit (11 overpunch) giving 'M' for tens digit 4 (D 03101 001M0 C); index 1 = zero overpunch giving 'Y' for tens digit 8 (D 030Y9 00140 C).",
+   "source": "https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf (pp.8, 11)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Literals: numeric literal requires leading + or - sign (sign placed over units position), ≤9 digits+sign pooled once per program section; alphameric literal bracketed by '@' (processor searches right-to-left from col 72 for the closing @), 1-9 chars pooled, longer ones allocated each occurrence; max literal 52 chars, must fit on one line ≤ col 72; area-defining literal 'WKAREA#6' reserves 6 blank positions with a word mark (# = 8-3 punch); address-constant literal '+LABEL' yields the 5-char address of LABEL as an unsigned constant via an auto-generated DCW. Literals get word marks via processor-generated DCW cards.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf (pp.8-10)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "d-modifiers: 'With a few exceptions, these d-characters are incorporated into Autocoder mnemonics' (e.g. machine op V has mnemonics BW, BZN, BWZ). When required they are written after the A- and B-operands separated by a comma, e.g. 'BCE ENTRYA,SWITCH,2' assembles to 'B 00392 00498 2'.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf (pp.7, 11)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Declaratives (standalone): DCW = constant with word mark (label addresses low-order position; numeric ± sign → AB-bits/B-bit over units; unsigned stored unsigned; first blank ends numeric constant; max 51 digits+sign; alphameric '@..@' ≤50 chars; blank constant '#n'; address constant 'LABEL+10' optionally signed; trailing ',G' after alphameric adds group-mark-word-mark); DC = same without word mark; DS n = reserve n positions, label = low-order; DA = define area with header operand 'b X l' plus optional ',Xn' (index all field labels), ',#' (record mark after each area), ',G' (group mark with word mark after whole area), ',0' (relative-to-zero addressing); sub-entries have blank op, label, and 'hi,lo' relative positions (word mark set on hi; single number = subfield, no word mark); EQU assigns a label to an actual/symbolic address with adjustment/indexing, to an index register ('2,X' form or 'X2'), or to a tape unit / X-control field.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf (pp.12-16)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Standalone control ops list: JOB, EJECT, RESEQ, LOAD, RUN, CTL, ORG, LTORG, EX, XFR, SFX, PST, END. SFX puts a suffix character in position 10 of all subsequent labels shorter than 10 chars; cross-reference to another section via 'A$LABEL' or '$LABEL' for unsuffixed; IOCS-prefixed labels and DTF names are never suffixed. PST prints the symbol table. Diagnostic flags: F format, U undefined, M multiply defined, O invalid op.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf (pp.17-20)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Macro facility (standalone and OS): library routines of model statements held on the system/library tape, maintained by a Librarian phase (RUN SYSTEMS); macro-instructions take parameters in the operand; pseudo-macros MATH, BOOL, COMP, NOTE, MEND plus permanent/temporary switches control generation; CALL and INCLD macros bring in closed library routines; DELET/INSER maintain the library.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf (pp.25-39)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Standalone 1410 Autocoder processor machine requirements: 20,000 core, four 729 II/IV or 7330 tape units, 1403 Model 2 (or listing on tape), 1402 (or tape input / self-loading tape output). The 1961 bulletin states Autocoder 'supplements and extends, but does not replace, the basic Autocoder for the IBM 1410'.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/J24-1433-2_1410_Autocoder_Preliminary_Specifications_1961.pdf (p.1)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "The '1410 Processor Operating System' tape (file 1410-PR-108) contained 1410 Autocoder 1410-AU-906, 1410 COBOL 1410-CB-912, 1410 FORTRAN 1410-FO-913 and FORTRAN 40K processor 1410-FO-950, 1410 IOCS 1410-IO-926, 1410 Report Program Generator 1410-RG-910, and 1410 Systems Supervisor 1410-SV-907. The 1410/1301 disk Processor Operating System (1410-PR-134) contained Autocoder 1410-AU-942, COBOL 1410-CB-944, FORTRAN II Processor 1410-FO-945, IOCS 1410-IO-926, 1410/1301 RPG 1410-RG-943, System Supervisor 1410-SV-941.",
+   "source": "https://archive.org/details/bitsavers_ibm1410C208_4456778 (Catalog of Programs C20-1602-8, Jun 1968, 1410 section)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1410 RPG (1410-RG-910 / 1410-RG-943) 'accepts report specifications and produces a symbolic program deck (Autocoder format) for the desired report program'; generated programs use 1410 IOCS; on the disk system 'an Autocoder run will follow automatically to produce the program deck'. Minimums: RPG generation 20K + 1402 + two tapes; Autocoder assembly of the generated program 20K + 1402 + four tapes + 1403-2 (tape system); disk version 40K + overlap/priority + 1301.",
+   "source": "https://archive.org/details/bitsavers_ibm1410C208_4456778 (C20-1602-8, abstracts for 1410-RG-910 and 1410-RG-943)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "IBM 1410/7010 Bibliography lists 'Report Program Generator for the 1410, C28-1443' under subject code 28, and '1401-1410 Report Program Generator — Input Specification Sheet X24-1336..X24-1339', confirming native 1410 RPG documentation.",
+   "source": "https://archive.org/details/bitsavers_ibm1410A22_1893360 (A22-6826-4)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1410/7010 Operating System (1410-PR-155) components: System Monitor = Resident Monitor + Transitional Monitor (1410-SV-962) + Linkage Loader (1410-UT-963); IOCS; Random-Processing Scheduler; System Generation; Tele-processing Supervisor; language processors Autocoder (1410-AU-968), FORTRAN (1410-FO-970), COBOL (1410-CB-969); sorts; utilities (1410-UT-973). Minimum: tape SOF 40K core, 5 tapes, card reader; disk SOF 60K, one 1301/2302 module, 2 tapes; Processing Overlap and Priority features required.",
+   "source": "https://archive.org/details/bitsavers_ibm1410C28p_1972928 (Basic Concepts C28-0318-3, pp.6-11) and https://archive.org/details/bitsavers_ibm1410C28_7642875 (System Monitor C28-0319-4, cover)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Under 1410-PR-155 all compiler output is relocatable; the Linkage Loader applies upward (relocation factor added), downward (COMMON references, assembled relative to 99999) or no relocation per address, writes absolute programs to the Job file (MJB), and the Resident Monitor's Load routine brings them in. Autocoder processing options are given on the EXEQ card: NOPRT, NOPCH, NOMAC, NOFLG; the object program must terminate with 'B /EOP/' or 'B /UEP/'.",
+   "source": "https://archive.org/details/bitsavers_ibm1410C28r_7340037 (C28-0326-1 pp.8-9)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "OS Monitor control-card format: MON$$ in cols 6-15 (label field), card type in 16-20 (JOB, MODE, EXEQ, COMT, ASGN, END, DATE, SPOOL, PAUSE), operands from col 21 following Autocoder operand rules (comma separated, no blanks). Example job (System Monitor Fig.14): MON$$ JOB ANYNAME / COMT / ASGN / MON$$ MODE GO / MON$$ EXEQ AUTOCODER + source deck (TITLE A … END) / MON$$ EXEQ AUTOCODER,MR1 / MON$$ ASGN MJB,B2 / MON$$ EXEQ LINKLOAD,,LIB with PHASE, CALL, TITLE cards and relocatable decks / MON$$ MODE TEST / MON$$ EXEQ XYZ,MJB + data / MON$$ EXEQ UTILITIES.",
+   "source": "https://archive.org/details/bitsavers_ibm1410C28_7642875 (C28-0319-4 'Use of Transitional Monitor' p.43 and 'Example 1' p.68)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "When EXEQ AUTOCODER is processed the Monitor loads a Clear Storage routine that clears storage above the Resident Monitor (except the first 99 positions above it and the top two positions of core), then loads the processor; the processor reads source from the Standard Input Unit, uses three work files, writes relocatable card-image records to the Go file (MODE GO) and also punches a relocatable object deck on the Standard Punch Unit.",
+   "source": "https://archive.org/details/bitsavers_ibm1410C28_7642875 (C28-0319-4 p.68)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "OS relocatable object cards (System Monitor 'Program Patching'): TITLE card cols 16-20 'TITLE', 21-30 subprogram name, 31-35 compiled origin (00000/blank for Autocoder, 00001 FORTRAN, size of IBCOBOL for COBOL), 41-45 COMMON size, col 72 = '5'. Termination card: col 1 'E', col 2 word separator, cols 3-7 entry point (blank for secondary subprogram), col 72 = '3' primary / '9' secondary. Load card: col 1 word separator, 2-6 load address, 7 word separator, 8-10 zeros, 11-12 count, 13-up instructions/constants, relocation indicators from col 71 downward (one per instruction/constant), col 72 = blank (absolute or linkage-symbol load address), '1' (upward-relocate load address) or '2' (downward). DCWS/DCWF calls are embedded as a word separator + 10-char subprogram name (count 7 / 5).",
+   "source": "https://archive.org/details/bitsavers_ibm1410C28_7642875 (C28-0319-4 pp.64-65)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "OS relocation indicator codes (Figure 13): no address '9' (with d-mod: '1'); single address upward '@' (4-8), downward '5-8' punch, none '>' (6-8); two addresses both upward '4'/'D', both downward '8'/'H', none '?' (12-0); address constant upward 'N', downward 'P', none 'Q'; DCWS 'S', DCWF 'T'; constant = blank; X-control ops 'J','K','L','M'. Other loader cards: DEFIN (symbol 6-15, value 21-30, col 71 blank/P/Q), BASE1/BASE2/PRTCT/ENTRY/CALL (col 72 '4'), Random Load (five 11-column address fields, col 72 'Z'), Clear Storage (cols 2-6 low, 8-12 high address, col 72 'Y'), Set WM/RM card, Clear WM card (col 72 'W').",
+   "source": "https://archive.org/details/bitsavers_ibm1410C28_7642875 (C28-0319-4 pp.65-67)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "OS Autocoder: if no ORG, assembly starts at 00000; relocation factor = BASE1 value minus the low origin in the TITLE card; ORG accepts actual, symbolic, blank, '*', '*+X00'; linkage and system symbols not allowed in ORG. END/SPEND operand gives the entry point making the subprogram 'primary'; blank operand makes it 'secondary'.",
+   "source": "https://archive.org/details/bitsavers_ibm1410C28r_7340037 (C28-0326-1 pp.36-38) and C28-0319-4 p.7",
+   "confidence": "verified"
+  },
+  {
+   "claim": "OS Autocoder operation-code groups: assembly control HEADR, RESEQ, EJECT, PST; subprogram control ORG, LTORG, END, SPEND; declaratives DA, DCW, DC, DS, EQU; Linkage Loader ops TITLE, BASE1, BASE2, CALL, DEFIN, PRTCT; subprogram linkage DCWF, DCWS; COMMON declaratives DAV, RSV; NOP and NOPWM special imperatives (NOPWM generates 'N' with word mark followed by an unconditional branch without word mark, for program switches).",
+   "source": "https://archive.org/details/bitsavers_ibm1410C28r_7340037 (C28-0326-1 Figure 21, p.21; TNL N28-1126)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1410 bootstrap without a Load key: the operator keys the initialization status character 'A' into location 00000 followed by a Load-mode read instruction addressing the System Operating File tape or the card Standard Input Unit (form 'L <X-control> 00012 R', occupying 00000-00011), sets Asterisk-Insert ON, presses Computer Reset then Start; the 'Bootstrap 1 routine card must be the first card in a card Standard Input Unit'. 'On the 7010, the Load key can be used instead of entering the read instruction into locations 00000-00011.'",
+   "source": "https://archive.org/details/bitsavers_ibm1410C28_8916972 (Operator's Guide C28-0351-5, Tables I/II pp.7-8 and p.32)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "The 1410 Principles of Operation documents I/O 'load mode': on input a single word separator becomes a word mark over the next character and two consecutive word separators become one word separator (shortening the record); on output word marks become word separators preceding the character and a stored word separator becomes two. This is the mechanism the condensed/Load card word-separator convention relies on.",
+   "source": "https://archive.org/details/bitsavers_ibm1410A22_14511698 (A22-0526-3 p.41)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "On the 1401, pressing LOAD on the 1402 reads a card into 001-080, sets a word mark at 001, clears word marks 002-080 and starts execution at 001 (1401 bootstrap/clear-storage card convention).",
+   "source": "https://en.wikipedia.org/wiki/IBM_1401",
+   "confidence": "likely"
+  },
+  {
+   "claim": "1401 compatibility feature: 'The compatibility switch (Figure 56), when at the 1401 setting, makes it possible to run IBM 1401 programs on the 1410'; it is on the 1415 console test panel with an I/O Check Stop switch and 1401 I/O Check-Reset switch operative only in 1401 mode; the sense-bit switches act as 1401 sense switches A-G only in 1401 mode; a 1401 Compatibility light shows the switch state.",
+   "source": "https://archive.org/details/bitsavers_ibm1410A22_14511698 (A22-0526-3 pp.56-58)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "In 1401 mode a 10K 1410 operates as an 8K 1401; all other 1410 sizes operate as a 16K 1401. Supported 1401 features: Multiply-Divide, Expanded Print Edit, Advanced Programming (Indexing, Store Address Register, Move Record), Print Storage, High-Low-Equal Compare, Read-Punch Release, Sense Switches. Not compatible: Column Binary, Compressed Tape, Punch Feed Read, Serial I/O Adapter devices (1009/1011/1012/1412/1418/1419), Process Overlap, Selective Tape Listing, Space Suppression.",
+   "source": "https://archive.org/details/bitsavers_ibm1410A22_14511698 (A22-0526-3 'IBM 1401-1410 Compatibility' p.98)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Documented 1401-mode behavioral differences: bad-parity input characters become '*' (1401 forced valid parity); zero quotient with blank B-field becomes zeros; B-address register after read/print/punch = 082/335/183 on 1410 vs 081/333/181 on 1401; no set-up character stored in 000 (&) or 100 (0) after read/punch; MLP-coded cards cause validity check; 1402 end-of-file resets only via Computer Reset; because of the 1414 read buffer the card image lags one card; 1401 read/punch release do not move cards; stacker-select timing window 8-82 ms vs ~10 ms; 51-column reads fill 1-14 and 66-80 with blanks; tape load-mode word-separator handling differs.",
+   "source": "https://archive.org/details/bitsavers_ibm1410A22_14511698 (A22-0526-3 pp.98-99)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Wikipedia: the 1410 'could also be run in what was termed 1401 compatibility mode. This was accomplished in hardware - the machine literally turned into a 1401 with the flip of a switch'; Autocoder source could with care be written to assemble for either system since nearly all 1401 instructions had 1410 equivalents with the same mnemonics.",
+   "source": "https://en.wikipedia.org/wiki/IBM_1410",
+   "confidence": "likely"
+  },
+  {
+   "claim": "Pre-OS '1410 FORTRAN' (J24-1468-1, ©1962, rev. May 1963) is a FORTRAN II-style dialect (SENSE LIGHT, IF (SENSE SWITCH), READ INPUT TAPE / WRITE OUTPUT TAPE, FUNCTION/SUBROUTINE/CALL, DEFINE FILE / FETCH / RECORD statements for 1301 disk); the program catalog labels the disk-system processor '1410 FORTRAN II PROCESSOR 1410-FO-945'. OS FORTRAN 1410-FO-970 (C28-0328-3, Dec 1965) compiles to relocatable format, has relational and arithmetic IF, symbolic I/O units, and supports mixing with Autocoder subprograms via the Linkage Loader.",
+   "source": "https://archive.org/details/bitsavers_ibm1410J24_2171471 ; https://archive.org/details/bitsavers_ibm1410C28_4676226 ; https://archive.org/details/bitsavers_ibm1410C208_4456778",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1410 COBOL existed both pre-OS (1410-CB-912 tape, 1410-CB-944 disk) and under 1410-PR-155 (1410-CB-969, manual C28-0327 / GC28-0327-5).",
+   "source": "https://archive.org/details/bitsavers_ibm1410C208_4456778 ; https://bitsavers.org/pdf/ibm/1410/ (C28-0327-1, C28-0327-5, GC28-0327-5)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1401 RPG manual 'Report Program Generator, IBM 1401 Card and Tape Systems' J24-0215-2 is © 1960, 1961 (obsoletes J24-0215-1); FARGO for IBM 1401 C24-1464-2 is © 1961, 1963, requires 4,000 positions and card input only, and is a report generator needing no programming knowledge.",
+   "source": "https://bitsavers.org/pdf/ibm/1401/J24-0215-2_cardTapeRPG.pdf ; https://bitsavers.org/pdf/ibm/1401/C24-1464-2_FARGO_for_IBM_1401_Jan63.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Wikipedia IBM RPG: RPG 'was introduced in 1959 for the IBM 1401'; FARGO ('fourteen-o-one automatic report generation operation') was the predecessor; both emulate the tab-machine cycle. First-hand recollections on ibm-1401.info say IBM announced RPG in January 1961 (initial compiler tape-resident, disk version after 1311), that RPG was designed by Barbara Wood / Bernie Silkowitz to mirror 407 panel wiring, and that FARGO 'appeared towards the end of 1961 as a Type III program' — a 2-pass card, interpretive 407 emulator of ~700 cards.",
+   "source": "https://en.wikipedia.org/wiki/IBM_RPG ; https://ibm-1401.info/RPG-1401.html",
+   "confidence": "likely"
+  },
+  {
+   "claim": "bitsavers 1401 directory holds the 1401 RPG family: J24-0215-2 card/tape RPG, C24-3166-1 Basic 4K RPG, C24-3267-0 4K RPG operating procedures, C24-3261-0/-1 RPG on Disk, C24-3334-0 RPG on Disk operating procedures, C24-1464-2/-3 FARGO.",
+   "source": "https://bitsavers.org/pdf/ibm/1401/",
+   "confidence": "verified"
+  },
+  {
+   "claim": "bitsavers /pdf/ibm/1410/ holds: C28-0309 and C28-0309-1 (1410 Autocoder), C28-0326-1/-2 (+TNLs N27-1223, N27-1267) OS Autocoder, J24-1433-2 Autocoder prelim spec 1961, N28-1069 TNL; OS: C28-0318-1/-3 concepts, C28-0319-1/-4 System Monitor, C28-0351-5 Operator's Guide, C28-0352-5 sysgen, C28-0354-2 sort, J28-0243 Processor OS prelim 1962; languages C28-0327-1/-5 & GC28-0327-5 COBOL, C28-0328-1/-3 FORTRAN, J24-1468-1 FORTRAN; A22-0526-x Principles of Operation; CE doc 223-2597 '1410 1401 Compatibility'; diagnostics M011A/M012A/M014A/M014B 1401 compatibility tests.",
+   "source": "https://bitsavers.org/pdf/ibm/1410/ and https://archive.org/advancedsearch.php?q=identifier:bitsavers_ibm1410*",
+   "confidence": "verified"
+  }
+ ],
+ "tables": [
+  "Autocoder source card layout (standalone C28-0309-1 and OS C28-0326-1)",
+  "Standalone 1410 Autocoder condensed object card (absolute)",
+  "OS (1410-PR-155) relocatable object cards — key formats",
+  "OS relocation indicator codes (Figure 13, System Monitor)",
+  "Autocoder pseudo-ops by version",
+  "1410 language / program availability (IBM program numbers)",
+  "1401 compatibility mode — feature matrix (1410 PrincOps A22-0526-3 p.98)"
+ ],
+ "open_questions": [
+  "What exactly was the 'basic Autocoder for the IBM 1410' that J24-1433 (1961) says the tape Autocoder supplements — a card-only assembler? No manual for it is on bitsavers /pdf/ibm/1410/ and the 1965 bibliography does not list it; check IBM 1410 bibliography editions from 1961-62 or J28-0243.",
+  "Exact punched contents of the standalone Autocoder 'load program' cards that precede a condensed deck (the loader that honors EX cards and has re-entry point 00281) — C28-0309-1 does not print the loader; look for the 1410 Processor Operating System operator's guide or an actual condensed deck listing.",
+  "Exact 1410 bootstrap read instruction keyed into 00000-00011 (the Operator's Guide OCR shows 'ALcBu00012$N' for tape and 'ALcde00012$r' for card); verify against the scanned page (C28-0351-5 Tables I/II) or the 1410 Instruction Card X22-6740 for the L (Load) op X-control field encoding.",
+  "Does the 1402 LOAD key exist / function in 1410 hardware when in 1401 compatibility mode (i.e. can a 1401 self-loading deck be booted the 1401 way)? The PrincOps compatibility section and Operator's Guide do not say; the 1410 in native mode has no Load key (7010 added one). CE manual 223-2597 '1410 1401 Compatibility' likely answers this.",
+  "RPG release date conflict: Wikipedia says 1959 for the 1401; the J24-0215 manual is ©1960/1961 and a first-hand account dates the announcement to January 1961; also whether FARGO preceded RPG (Wikipedia) or followed it as a late-1961 Type III program (ibm-1401.info recollection).",
+  "Whether RPG was ever carried into the 1410/7010 Operating System (1410-PR-155); the catalog lists 1410 RPG only under the pre-OS Processor Operating Systems.",
+  "Precise punch codes in the OS relocation-indicator table came from OCR and should be re-checked against the C28-0319-4 scan (Figure 13, p.65) before implementing a Linkage Loader.",
+  "The pre-OS 'IBM 1410 Utility Program Operating System' (C28-0295) and card/tape utilities (C28-0244) might describe a card-oriented job flow for small 1410 shops; not examined."
+ ],
+ "verdict": {
+  "topic": "IBM 1410 software stack: Autocoder formats, loaders, OS, languages, 1401 compatibility",
+  "refuted": [
+   {
+    "claim": "OS relocation indicator codes (Figure 13): no address with d-mod = '1'; two addresses no relocation = '?' (12-0)",
+    "why": "Read the scanned Figure 13 (C28-0319-4 p.65). The finder's OCR-derived table mis-assigned two entries. 'No address' with d-modifier is the letter I (card code 12-9, length 2), not the digit 1. 'Two addresses, no relocation' without d-modifier is the digit 0 (card code 0, length 11); the '?' (12-0) is the with-d-modifier form (length 12). The digit 1 is 'two addresses, only B-address upward' (without d-mod; 'A' = 12-1 with d-mod).",
+    "correction": "Figure 13 as scanned: No address: 9 / I(12-9). X-control B-up J(11-1), B-down K(11-2), B-none L(11-3), no B M(11-4), lengths 10/10/10/5. Single address up @(4-8), down :(5-8), none >(6-8); with d-mod lozenge(12-4-8), [ (12-5-8), <(12-6-8); lengths 6/7. Two addresses none 0 / ?(12-0); B-up 1/A(12-1); B-down 2/B(12-2); A-up 3/C(12-3); both up 4/D(12-4); A-up B-down 5/E(12-5); A-down 6/F(12-6); A-down B-up 7/G(12-7); both down 8/H(12-8); lengths 11/12. Address constant up N(11-5), down P(11-7), none Q(11-8), length 5. DCWS S(0-2) len 7; DCWF T(0-3) len 5; constant blank.",
+    "source": "https://bitsavers.org/pdf/ibm/1410/C28-0319-4_1410_sysMonitor.pdf (PDF page 65, Figure 13, read from scan)"
+   },
+   {
+    "claim": "OS relocatable Load card col 72 = blank for an absolute (or linkage-symbol) load address, '1' upward, '2' downward",
+    "why": "The scanned page 65 of C28-0319-4 reads: '72   0 (for load card with absolute location or ABCD/ linkage symbol as load address...) 1 (upward relocation factor...) 2 (downward...)'. Column 72 is the digit 0, not blank. A loader keyed on blank would misclassify every absolute Load card.",
+    "correction": "Load card col 72: '0' = absolute or linkage-symbol load address; '1' = apply upward relocation to numeric load address; '2' = apply downward relocation.",
+    "source": "https://bitsavers.org/pdf/ibm/1410/C28-0319-4_1410_sysMonitor.pdf (PDF page 65, 'Load Card' column list)"
+   },
+   {
+    "claim": "Bootstrap read instruction keyed into 00000-00011 is of the form 'L <X-control> 00012 R' (OCR 'ALcBu00012$N' / 'ALcde00012$r' left unresolved)",
+    "why": "Read Tables I/II from the scan. The d-character of the keyed Load instruction is '$', not 'R'. Per the 1410 PrincOps tape instruction table, d='$' with op L is 'Read tape with word marks, group-mark-word-marks in core have no effect, stop at IRG or end of storage' (mnemonic RTGW/RTBGW); d='R' is the ordinary RTW that stops at the first GMWM. The 12th character (00011) is not part of the read instruction: for tape it is an N (NOP, word-marked); for the card/disk case it is the op code of the 'branch if I/O channel status indicator on' instruction for the input channel (R = channel 1, X = channel 2; 7010: 3 = channel 3, 1 = channel 4), whose I-address and d-character are supplied by the first 6 columns of the Bootstrap 1 card read into 00012-00017 ('00018' + group-mark char), i.e. 'R 00018 ‡'.",
+    "correction": "Layout: 00000 = status char A (may carry WM); 00001 = L (WM); 00002-00004 = X-control (channel char % / lozenge / ? / !, unit-type char B=tape or 1=card reader, unit digit 0-9 or 0 for reader); 00005-00009 = 00012; 00010 = d '$'; 00011 = N (tape SOF) or the channel-status-branch op R/X/3/1 (card/disk SOF). Installation standard tape: 'A L %B0 00012 $ N' with word marks on L and N; Asterisk-Insert switch ON; press Computer Reset then Start (once per label record extra).",
+    "source": "https://bitsavers.org/pdf/ibm/1410/C28-0351-5_1410_operGuide.pdf (PDF pages 7-8, Tables I and II and Bootstrap 1 card images) ; https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (tape instruction table: 'Read tape RTG/RTBG d=$ ... group mark-word marks in core storage have no effect'; 'Branch if I/O channel status indicator on ... R op code for channel 1 or the X op code for channel 2')"
+   }
+  ],
+  "upgraded": [
+   {
+    "claim": "On the 1401, pressing the 1402 LOAD key reads a card, sets the I-address register to 001, sets a word mark at 001, removes all other word marks in 002-080, and starts executing at 001",
+    "source": "https://bitsavers.org/pdf/ibm/1401/A24-1403-5_1401_Reference_Apr62.pdf ('LOAD KEY: ...The I-address register is set to 001, and a word mark is set in address 001. All other word marks in addresses 002 through 080 are removed. When the card is read at the read and check station, the program starts and executes the instruction that is punched in the first columns of the card'; also 'Pressing the load key on the console causes a word mark to be set at location 001')"
+   },
+   {
+    "claim": "The compatibility switch at the 1401 setting makes it possible to run 1401 programs on the 1410; hardware feature; sense-bit switches act as sense switches A-G only in 1401 mode (Wikipedia 'flip of a switch' claim)",
+    "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf ('Compatibility Switch ... when at the 1401 setting, makes it possible to run IBM 1401 programs on the 1410. Ordinarily, the switch should be in the 1410 setting'; 'The sense-bit switches are active as sense switches (A through G) only when operation is in the 1401 mode'). Independently consistent with SimH i7010_cpu.c 1401 emulation mode (UNIT_MODEL 'Emulate a 1401', 1401 addressing modulo 16000)."
+   }
+  ],
+  "additions": [
+   {
+    "claim": "Standalone condensed card Figure 2 confirmed from the scan exactly as claimed, including cols 8-10 = zeros and the relocation-indicator/sequence/ident columns; the 'two adjacent word separators load one word separator' rule in the OS Load card additionally says 'Add only 1 to the count' (i.e., the loaded word separator counts as one character).",
+    "source": "https://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf (PDF p.7 Figure 2) ; https://bitsavers.org/pdf/ibm/1410/C28-0319-4_1410_sysMonitor.pdf (p.65 NOTE 1)",
+    "confidence": "verified"
+   },
+   {
+    "claim": "OS loader card type codes in col 72 beyond those listed: DEFIN card col 72 = '4' (col 71 = blank/P/Q for its value); Set Word Mark or Record Mark card col 72 = '8' (col 20 = record mark 0-2-8 for RM, blank for WM; col 71 = N/P relocation of the first address); Clear Word Mark card col 72 = 'W'; Clear Storage col 72 = 'Y'; Random Load col 72 = 'Z' with five 11-col fields (1-11, 12-22, 23-33, 34-44, 45-55) and per-field indicators in cols 71,70,69,68,67 (0-8 code: 0-2 load addr none, 3-5 addr up, 6-8 addr down; within each triple: chars none/up/down). BASE1/BASE2/PRTCT/ENTRY/CALL col 72 = '4'. TITLE col 72 = '5'; Termination 'E' card col 72 = '3' primary / '9' secondary. Random Load loads its five characters in Move mode (no word marks).",
+    "source": "https://bitsavers.org/pdf/ibm/1410/C28-0319-4_1410_sysMonitor.pdf (PDF pp.65-67, read from scan)",
+    "confidence": "verified"
+   },
+   {
+    "claim": "1401-mode B-address register after a print: the 1401 value is 333 for a buffered (Print Storage) printer and 335 for an unbuffered printer; the 1410 in 1401 mode gives 335 for op 2 and 082/183 for read/punch families (1/3 -> 082; 4/5/6/7 -> 183).",
+    "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf ('IBM 1401-1410 Compatibility', B-Address Register chart, footnote '*335 for an unbuffered printer')",
+    "confidence": "verified"
+   },
+   {
+    "claim": "Card character-set incompatibility the finder missed: the 1410 punches a core A-bit (blank-A, the 'substitute blank') as an 8-2 card combination and reads 8-2 as the A-bit; the 1401 punches an A-bit as a zero and reads 8-2 as an invalid character. No-charge RPQ 898148 makes a 1401 behave like the 1410.",
+    "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf ('Card Read-Punch Character Set')",
+    "confidence": "verified"
+   },
+   {
+    "claim": "Precise 1401-vs-1410 tape load-mode word-separator semantics (matters for an emulator running 1401 tape decks in compatibility mode): writing in load mode, a word separator in core is written as ONE word separator by the 1401 but TWO by the 1410; reading in load mode, the 1401 eliminates any run of one or more word separators and puts a word mark on the next non-WS character, whereas the 1410 reads a PAIR of adjacent word separators as one word separator with no word mark on the following character.",
+    "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf ('Read and Write Tape with Word Marks' under 1401-1410 Compatibility)",
+    "confidence": "verified"
+   },
+   {
+    "claim": "In 1401 mode, pressing a tape unit's reset/load-rewind/start keys in rapid succession and then addressing the unit before loading completes (tolerated on a real 1401) prevents the drive from starting on the 1410; recovery needs Stop, address-set to the tape instruction, Start.",
+    "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf ('Loading Tape Units')",
+    "confidence": "verified"
+   },
+   {
+    "claim": "1410 native I/O op-code facts needed to decode the bootstrap: R = 'branch if I/O channel status indicator on' for channel 1, X = same for channel 2 (format op IIIII d, d-bits select the indicators); tape d-characters with M/L: R = read (stop at first GMWM or IRG), W = write, $ = read ignoring GMWMs (stop at IRG or end of core), X = write erase-mode ('WTE'). Non-overlapped I/O uses % (ch1) or lozenge (ch2) as the first X-control character; an R/X status-branch must intervene between two I/O instructions on the same channel or the system stops.",
+    "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (tape instruction table; 'Branch if I/O Channel Status Indicator On'; 'Non-Overlap Operation')",
+    "confidence": "verified"
+   },
+   {
+    "claim": "The Bootstrap 1 card for the disk SOF (1410 version) begins '00018‡' then word-separated instructions 'L xF0 00066 R', 'y 00035 $', 'L xF1 00066 $', 'y 00035 2', 'y 00059 $', 'J 00138 ...' where x = %/lozenge (channel of SOF) and y = R/X (status-branch op for that channel); the 7010 card begins '~R00008‡' instead. This is the only IBM-published 1410 loader card image found; the standalone Autocoder 'load program' cards remain unpublished.",
+    "source": "https://bitsavers.org/pdf/ibm/1410/C28-0351-5_1410_operGuide.pdf (PDF p.8, Table II card images; x/y legend on the figure)",
+    "confidence": "verified"
+   },
+   {
+    "claim": "The SimH/Cornwell i7010 simulator (covers 1410 and 7010) implements 1401 compatibility mode as a CPU model option ('Emulate a 1401'), decodes 1401 3-character zone-tagged addresses (hundreds-position zone x4000, thousands zone) modulo 16000 with 1401 index registers at 87-99, and its sim_load returns SCPE_NOFNC, i.e. it has no Autocoder-deck loader; a new emulator cannot borrow a condensed-card loader from it.",
+    "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_cpu.c ; https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_sys.c",
+    "confidence": "verified"
+   }
+  ],
+  "notes": "Method: downloaded the bitsavers scans (C28-0309-1, A22-0526-3, C28-0351-5, C28-0319-4, A24-1403-5) plus archive.org OCR text, and read the load-bearing pages as images. Confirmed unchanged: standalone card layout, condensed card Figure 2 (incl. cols 8-10 zeros), 00500 default origin, 00281 re-entry, EX/XFR/END semantics, address types/indexing examples (pp.8-10), 1401-mode 8K/16K mapping and feature lists, compatibility switch, behavioral-difference list, 7010 Load key vs 1410 manual entry. Three refutations are all in areas that would change loader/bootstrap code (Figure 13 codes, Load-card col 72, bootstrap d-character). Not checked against a primary source: RPG 1959-vs-1961 date and FARGO ordering (J24-0215-2 copyright 1960/61 is the only primary evidence; leave as open), the 'basic Autocoder for the IBM 1410' referenced by J24-1433 (no manual on bitsavers), whether the 1402 LOAD key functions in 1410 1401-mode (CE doc 223-2597 not examined), and whether RPG shipped under 1410-PR-155. No 1401/1410 confusion found in the verified claims; the finder correctly attributed the 1402 LOAD-key behavior to the 1401 only. OCR of C28-0309-1 also does not list 'NOP/NOPWM' as standalone ops explicitly in the pages checked; the pseudo-op table row 'NOP/NOPWM yes/yes' for the standalone assembler is unverified by me."
+ }
+}

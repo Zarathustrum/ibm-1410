@@ -1,0 +1,129 @@
+{
+ "topic": "IBM 1410 operator experience: 1415 console, 1402/1403 physical facts, card, colors, Autocoder listing",
+ "refuted": [
+  {
+   "claim": "Computer Reset resets ... all machine indicators; not the inquiry latches or tape density latch.",
+   "why": "PrincOps A22-0526-3 p.49 says: 'The inquiry latches (except the console inquiry latch) and the tape density latch are not reset.' The console inquiry latch IS reset by Computer Reset (Computer Reset includes a Program Reset, which resets the console inquiry latch — 1415 CE manual S223-2648 p.76 'Computer Reset: 1. Program reset and start reset').",
+   "correction": "Computer Reset = program reset + start reset + reset of check circuits, timing clocks and all machine indicators (overflow, compare). Remote/other inquiry latches and the tape-density latches are NOT reset; the console inquiry latch IS reset.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.49; http://bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1415_Console/S223-2648_CE_Instruction_1415_Console_Model1.pdf p.76"
+  },
+  {
+   "claim": "Indicator light panel boxes left to right: CENTRAL PROCESSING UNIT, I/O CHANNEL CONTROL, I/O CHANNEL STATUS, SYSTEM CHECK, POWER, SYSTEM CONTROLS.",
+   "why": "The STATUS group (B>A, B=A, B<A, OVERFLOW, DIVIDE OVERFLOW, ZERO BALANCE) is omitted; the CE manual Fig.3 photo shows it as a labeled column immediately to the right of ARITH, before I/O CHANNEL CONTROL.",
+   "correction": "Left to right: CENTRAL PROCESSING UNIT (I RING, A RING, CLOCK, SCAN/SUB SCAN, CYCLE, ARITH) | STATUS | I/O CHANNEL CONTROL (CH1, CH2) | I/O CHANNEL STATUS (CH1, CH2) | SYSTEM CHECK (PROCESS, PROGRAM) | POWER | SYSTEM CONTROLS.",
+   "source": "S223-2648 Fig.3 p.8 (read from PDF)"
+  },
+  {
+   "claim": "1410 OS Autocoder listing ends with 'NUMBER OF FLAGGED STATEMENTS n'.",
+   "why": "The actual listing in Appendix C prints 'NUMBER OF FLAGGED STATEMENTS NONE' when there are no flags, followed by '1410/7010 AUTOCODER...SYSTEM /MID/ 0001'. The text (p.11) says a following line lists sequence numbers of flagged statements (max 20) when there are any.",
+   "correction": "Trailer: 'NUMBER OF FLAGGED STATEMENTS NONE' (or a count, then a line of up to 20 flagged sequence numbers), then '1410/7010 AUTOCODER...SYSTEM /MID/ 0001'.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/C28-0326-2_1410_OS_Autocoder.pdf p.57 Exhibit IV Part B; p.11"
+  }
+ ],
+ "upgraded": [
+  {
+   "claim": "1415 I/O printer pin-feed platen: horizontal pin-hole spacing 9 3/8 in, vertical 1/2 in, form width 9 7/8 in (already marked verified — re-confirmed by reading the page image).",
+   "source": "S223-2648 p.78 'Form Size'"
+  },
+  {
+   "claim": "Stop/display print-out matrix positions: S/C/E/B/#/D(address line) print-outs occupy matrix position 35; Display data line, Alter, Console Inquiry and Console Reply occupy position 30.",
+   "source": "S223-2648 Fig.5 p.9 (read)"
+  },
+  {
+   "claim": "Mode switch physical layout: RUN top, ADDRESS SET upper-left, DISPLAY upper-right, I/E CYCLE lower-left, ALTER lower-right, C.E. bottom (clockwise from RUN: DISPLAY, ALTER, CE, I/E CYCLE, ADDRESS SET).",
+   "source": "A22-0526-3 Fig.47 p.49 and S223-2648 Fig.2 photo p.7"
+  },
+  {
+   "claim": "Real console log sample (Appendix C Exhibit II) reads exactly: '# ØØØØØ' / 'S 149ØØ 1bbbb 11622 bb bbb bbbb' / 'D ØØØØØ' / 'D bbbb...' / 'A AC%BØØØØ12$N' (word marks overstruck) / 'R DATE 64Ø15' / 'R SØ1 JOB  SAMPLE' / 'R ASGN MJB,A1' / 'R MODE GO' / 'R ASGN MGO,A6' / 'R EXEQ AUTOCODER' / 'R 1Ø1Ø1 NR1 M@4Ø144ØØW' / 'R EXEQ LINKLOAD' / 'R EXEQ SAMPLE,MJB' / 'R   EOJ' / 'R END' / 'R END SIU' / 'R ENTER B MESSAGES' / '# ØØØØØ'.",
+   "source": "C28-0326-2 p.55 Exhibit II (read)"
+  },
+  {
+   "claim": "OS Autocoder listing page heading is: date (64015) at left, HEADR text centered ('SAMPLE PROGRAM USING 1410/7010 AUTOCODER'), 'PAGE n', then 5-char identification ('SAMPL'); column heads 'SEQNO PGLIN LABEL  OPCOD OPERAND ... REL CT ADDRS INSTRUCTION  CARD FLAG'; flags F,M,N,O,R,U,W; 55 lines/page normal, /LIN/ below 30 rejected.",
+   "source": "C28-0326-2 pp.10-11, 56-57 (read)"
+  },
+  {
+   "claim": "Basic (non-OS) 1410 Autocoder error flags are F (format), U (undefined label), M (multiply defined), O (invalid op).",
+   "source": "http://bitsavers.org/pdf/ibm/1410/C28-0309-1_1410_autocoder.pdf p.20 'Diagnostic Aids'"
+  },
+  {
+   "claim": "Physical-planning spec table values: 1402 57-1/2 x 29 x 35 in, 1,400 lb; 1403 47-3/4 x 28-1/2 x 53-1/4, 750 lb; 1414-1,2,7 37-1/2 x 31-1/2 x 70, 500 lb; 1414-4,5,6 74 x 32 x 70, 1,200 lb; 729 29-1/8 x 33-7/8 x 69-1/4, 1,160 lb; 1014 24 x 29 x 35, 175 lb. (Re-read the table; the 35 in figure for the 1402 is what IBM printed — I could not cross-check it against a 1401 physical-planning manual, none is on bitsavers.)",
+   "source": "http://bitsavers.org/pdf/ibm/1410/GC22-6681-4_1410_7000_Series_IO_Components_Physical_Planning.pdf p.14"
+  },
+  {
+   "claim": "UW Madison 1410 had red 'skins'; Wisconsin Dept of Administration's had blue; 1411+1414 about 729 height and together about four 729 widths; 1415 lights are decimal/character-oriented, not binary-encoded. (Confirmed the text is on Jaeger's pages; remains secondary — no IBM source.)",
+   "source": "https://www.computercollection.net/index.php/the-ibm-1410-data-processing-system/ ; https://www.computercollection.net/ibm1410/ibm1410.htm"
+  },
+  {
+   "claim": "1401 (not 1410) console: 'The various labels light up in red if there is a fault in that component' — confirmed the page says this; still secondary and 1401-only, do not apply to the 1415.",
+   "source": "https://ibm-1401.info/KensConsole-1.html"
+  }
+ ],
+ "additions": [
+  {
+   "claim": "Program Reset (emulator-relevant detail): resets cycle/scan control latches, I- and A-ring triggers, sets Op register, Op-modifier register and A-data register to C-bit only (i.e., blank with correct parity), sets the 'branch to 00001' latch, resets the storage address register, set-check circuits, 1401 control latches, arithmetic control latches, logic clocks, console control latches, and triggers a Start Reset. Start Reset clears address-check and address-exit error latches so the operator can proceed after a master error stop.",
+   "source": "S223-2648 p.75 'Program Reset', 'Start Reset'",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Power-On Reset = program reset + start reset + computer reset, plus a System Reset that clears all seven address registers (CAR, BAR, AAR, DAR, IAR, EAR, FAR — all latches off) and the inquiry-request control latch. Tape density latches are never reset by any reset key.",
+   "source": "S223-2648 pp.76-77",
+   "confidence": "verified"
+  },
+  {
+   "claim": "The stop print-out prints channel-2 unit-select/unit-number registers only if the system has two channels; unit sel/num for CH1 and CH2 print as one 4-character group with no space between channels (Fig.42 shows 'XXXX'). In the real log the empty unit-select/number group prints as underlined 'bbbb' (invalid-parity underscore), so emulators should underline register fields whose contents have bad/absent parity.",
+   "source": "S223-2648 p.6; A22-0526-3 Fig.42 p.46; C28-0326-2 p.55 Exhibit II",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Selectric element usage on the 1415: 44 characters are lower case and 20 are upper case of the 64-character set; 128 odd-parity bit patterns (64 chars with/without WM) can be entered, and 128 even-parity patterns can be printed (underscored) via the error-underscore feature.",
+   "source": "S223-2648 p.6",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Modified Selectric key mapping: INQUIRY REQUEST is the repurposed Carrier Return key lever, INQUIRY RELEASE is the repurposed Backspace key, INQ CAN is the repurposed Index key; tab, margin release and power on/off keys are locked out; word mark and space keys are non-repeating. Carrier return, backspace and index are impossible from the keyboard.",
+   "source": "S223-2648 p.78; A22-0526-3 p.45",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Mode switch and print-outs: any change of the mode-switch setting (not just STOP) causes a stop print-out once the current instruction completes; ADDRESS SET also works with the CE ADDRESS ENTRY switch to load A–F registers, and the switch must be returned to NORMAL before pressing START.",
+   "source": "A22-0526-3 p.50",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Display wraparound: on 10K machines display/alter end at the last storage location; on 20K–80K machines display continues from 00000 after the last location unless it carried a word mark, and alter wraps to 00000 unless the last character was printed at end of line or has a word mark.",
+   "source": "A22-0526-3 p.51",
+   "confidence": "verified"
+  },
+  {
+   "claim": "OFF NORMAL light conditions: print-out control INHIBITED, asterisk insert OFF, cycle control not OFF, check control not STOP NORMAL, storage scan not OFF while mode switch at CE, or address entry not NORMAL. STOP light = system stopped needing operator intervention; 1401 COMPAT light follows the compatibility toggle.",
+   "source": "A22-0526-3 p.56",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Check Control switch semantics: STOP NORMAL = immediate stop + error print-out on any CPU/input-parity error (with asterisk insert OFF); RESTART = same stop and print-out then automatic restart; RESET & RESTART = error print-out, computer reset, then restart. ASTERISK INSERT ON replaces bad-parity input characters with '*' and continues.",
+   "source": "A22-0526-3 p.56",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Console Fig.43 key tops: 1-9 digits; '4' carries ':', '5' carries '@ and apostrophe, '6' carries square-root, '7' carries '>', '0' key is printed as slashed Ø with 'b' above, next key carries 'ƀ' (blank) over '‡' (group mark), then '=#'; QWERTY row keys carry IBM specials (# over W, ')' over E, '%' etc.) — which of two glyphs prints depends on the type element (arrangement A report-writing vs H program-language).",
+   "source": "A22-0526-3 Fig.43 p.47; S223-2648 Fig.8 p.11",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1403 front panel photo (Fig.69) shows two rows: top row keys/lights PRINT READY, END OF FORMS, then FORMS CHECK; second row CARRIAGE RESTORE, CARRIAGE SPACE, SINGLE CYCLE, PRINT CHECK, SYNC CHECK, with CHECK RESET and CARRIAGE STOP; the operator-facing PRINT START (dark key) / PRINT STOP (light key) pair is repeated on the rear (Fig.70). Print-density lever positions A (darkest) to E (lightest), C normal; up to six-part forms.",
+   "source": "A22-0526-3 pp.68-69 Figs.69-71",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1402 stacker pockets in the Fig.58/59 layout read left to right 0 (NP), 4, 8/2, 1, 0 (NR); cards with validity errors or hole-count errors are automatically stacked in NP/NR. Reader-start feeds three cards; punch-start feeds two.",
+   "source": "A22-0526-3 pp.60-61",
+   "confidence": "verified"
+  },
+  {
+   "claim": "The 1963 PrincOps system photo (Fig.57) shows the 1415 desk with a light top and dark pedestals, the light panel on a stand behind the typewriter, and the control console at the operator's right; the 1411 is a long, tall, dark cabinet with vertical panel seams, the 1414 a narrow tall cabinet, floor raised checkered tile.",
+   "source": "A22-0526-3 Fig.57 p.59",
+   "confidence": "verified"
+  }
+ ],
+ "notes": "Method: read the relevant page images of A22-0526-3 (pp.45-61, 67-69), S223-2648 (pp.5-9, 75-78), GC22-6681-4 p.14, C28-0326-2 (pp.55-60) and OCR text of C28-0309-1 and C28-0351-5, all from local bitsavers copies in the scratchpad. Nearly all 'verified' claims held; the three refutations are small but the Computer Reset one matters for emulator behavior. 1401-vs-1410 confusion check: none found — the finder correctly attributes the red-fault-labels claim and the SEQ/PG/LIN listing heading to the 1401, and the 1410 facts (no address dials, register contents via typewriter, sense switches only active in 1401 mode) are confirmed in the 1410 PrincOps. Could not check: card hole/pitch geometry (0.087/0.250/0.055/0.125) — quadibloc unreachable (ECONNREFUSED) and archive.org blocked; ANSI X3.21 not available; leave 'likely'. Card 7 3/8 x 3 1/4 x 0.007 and 1964 square-to-round corners are from Wikipedia (which cites IBM 1401 Reference Manual 1962 and an IBM archives page); I searched the local 1401 Reference Manual A24-1403-5 text and did not find the dimensions there, so that citation is doubtful — keep 'likely'. Green-bar geometry and whether 1961-65 1410 sites used green-bar: not checked against any primary. Noyes 'Color for Computers' names: esotericsurvey cites paulrand.design, still secondary. 1402 height of 35 in is what IBM's GC22-6681-4 table prints; no 1401 physical-planning manual (A24-1409) exists on bitsavers to cross-check, and the 1402 CE manuals on bitsavers were not opened. 1411/1415 cabinet dimensions remain unlocated: the local 'Preliminary Installation Instructions for the IBM 1410' (Oct 1962, install1410.pdf) has a 1415 section (3-17) about cabling only, no dimensions. Actual 1415 lamp/lens color: no primary source found; the CE Fig.2/3 photos are B&W with white legends on a dark panel."
+}

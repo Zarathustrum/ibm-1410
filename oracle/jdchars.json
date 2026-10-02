@@ -1,0 +1,320 @@
+{
+  "source": "opcodes.md §6.1 / A22-0526-3 p.36 Figure 35 and appendix p.101; cross-checked against 223-2588-2 p.20 and C28-0309-1 p.46",
+  "note": "Two normalisations against the printed §6.1 table, both for lookup: the single `A`-`G` sense-switch row is expanded to seven rows, and the second `K` row (1401-mode End of Reel) is folded into the 1410 tape-indicator row's notes, because a d-character table indexed by glyph cannot hold the same key twice. A22-0526-3 Figure 35 itself lists 18 d-characters; the N, H and % rows come from the Autocoder mnemonic table and are feature-dependent additions, not base machine.",
+  "unverifiedNotEncoded": "BQPR2's d-character (opcodes.md §9.1) — A22-0530-1 p.8 prints a double dagger, that manual types the group mark the same way, and SimH uses a third character (CHR_TRM, octal 017). Not encoded.",
+  "rows": [
+    {
+      "d": " ",
+      "autocoder": [
+        "B"
+      ],
+      "indicator": "(none — unconditional)",
+      "notes": "Branch Unconditionally. The blank d position must be present",
+      "tag": "[verified]"
+    },
+    {
+      "d": "Z",
+      "autocoder": [
+        "BAV"
+      ],
+      "indicator": "Arithmetic overflow",
+      "notes": "Turned off by this test, or by computer reset",
+      "tag": "[verified]"
+    },
+    {
+      "d": "W",
+      "autocoder": [
+        "BDV"
+      ],
+      "indicator": "Divide overflow",
+      "notes": "Turned off by this test, or by computer reset",
+      "tag": "[verified]"
+    },
+    {
+      "d": "V",
+      "autocoder": [
+        "BZ"
+      ],
+      "indicator": "Zero balance",
+      "notes": "Turned off by computer reset and by power-on reset",
+      "tag": "[verified]"
+    },
+    {
+      "d": "S",
+      "autocoder": [
+        "BE"
+      ],
+      "indicator": "Compare equal (B = A)",
+      "notes": "Reset as a group by the next Compare / Table Lookup / BCE",
+      "tag": "[verified]"
+    },
+    {
+      "d": "U",
+      "autocoder": [
+        "BH"
+      ],
+      "indicator": "Compare high (B > A)",
+      "notes": "",
+      "tag": "[verified]"
+    },
+    {
+      "d": "T",
+      "autocoder": [
+        "BL"
+      ],
+      "indicator": "Compare low (B < A)",
+      "notes": "Computer reset turns this ON",
+      "tag": "[verified]"
+    },
+    {
+      "d": "/",
+      "autocoder": [
+        "BU"
+      ],
+      "indicator": "Compare unequal",
+      "notes": "Computer reset turns this ON",
+      "tag": "[verified]"
+    },
+    {
+      "d": "9",
+      "autocoder": [
+        "BC9",
+        "BC91"
+      ],
+      "indicator": "Carriage channel 9, channel 1 (1403)",
+      "notes": "On when the channel-9 hole is sensed; off when any other carriage-tape channel is sensed",
+      "tag": "[verified]"
+    },
+    {
+      "d": "!",
+      "autocoder": [
+        "BC92"
+      ],
+      "indicator": "Carriage channel 9, channel 2",
+      "notes": "",
+      "tag": "[verified]"
+    },
+    {
+      "d": "@",
+      "autocoder": [
+        "BCV",
+        "BCV1"
+      ],
+      "indicator": "Carriage overflow (channel 12), channel 1",
+      "notes": "Same on/off rule as channel 9",
+      "tag": "[verified]"
+    },
+    {
+      "d": "⌑",
+      "autocoder": [
+        "BCV2"
+      ],
+      "indicator": "Carriage overflow (channel 12), channel 2",
+      "notes": "",
+      "tag": "[verified]"
+    },
+    {
+      "d": "R",
+      "autocoder": [
+        "BPCB",
+        "BPCB1"
+      ],
+      "indicator": "Printer carriage busy, channel 1",
+      "notes": "",
+      "tag": "[verified]"
+    },
+    {
+      "d": "L",
+      "autocoder": [
+        "BPCB2"
+      ],
+      "indicator": "Printer carriage busy, channel 2",
+      "notes": "",
+      "tag": "[verified]"
+    },
+    {
+      "d": "Q",
+      "autocoder": [
+        "BNQ",
+        "BNQ1"
+      ],
+      "indicator": "Inquiry request, channel 1",
+      "notes": "Set by the 1415 console INQUIRY REQUEST key",
+      "tag": "[verified]"
+    },
+    {
+      "d": "*",
+      "autocoder": [
+        "BNQ2"
+      ],
+      "indicator": "Inquiry request, channel 2",
+      "notes": "",
+      "tag": "[verified]"
+    },
+    {
+      "d": "1",
+      "autocoder": [
+        "BOL1"
+      ],
+      "indicator": "Overlap in process, channel 1",
+      "notes": "Must be tested before any R/X status branch when Processing Overlap is installed, or the overlapped operation reverts to non-overlap",
+      "tag": "[verified]"
+    },
+    {
+      "d": "2",
+      "autocoder": [
+        "BOL2"
+      ],
+      "indicator": "Overlap in process, channel 2",
+      "notes": "",
+      "tag": "[verified]"
+    },
+    {
+      "d": "K",
+      "autocoder": [],
+      "indicator": "Tape indicator",
+      "notes": "Documented 'for CE use' in A22-0526-3. In 1401 mode the same character is End of Reel — a different indicator on the same glyph",
+      "tag": "[verified]"
+    },
+    {
+      "d": "N",
+      "autocoder": [
+        "BOQ",
+        "BOQ1"
+      ],
+      "indicator": "Outquiry, channel 1",
+      "notes": "Not in Figure 35 — feature-dependent (1414 model 4/5 serial adapter). C28-0309-1 p.46: BOQ  BRANCH OUTQUIRY - CHANNEL 1  J 56789 N. Distinct from BQPR1 = Y 56789 N",
+      "tag": "[verified]"
+    },
+    {
+      "d": "H",
+      "autocoder": [
+        "BB1"
+      ],
+      "indicator": "Binary card, channel 1",
+      "notes": "Not in Figure 35 — needs the column-binary card feature. C28-0309-1 p.46: BB1 … J 56789 H",
+      "tag": "[verified]"
+    },
+    {
+      "d": "%",
+      "autocoder": [
+        "BB2"
+      ],
+      "indicator": "Binary card, channel 2",
+      "notes": "C28-0309-1 p.46: BB2 - CHANNEL 2  J 56789 %",
+      "tag": "[verified]"
+    },
+    {
+      "d": "4",
+      "autocoder": [],
+      "indicator": "Overlap in process, channel 3",
+      "notes": "7010 only",
+      "tag": "[likely]"
+    },
+    {
+      "d": ")",
+      "autocoder": [],
+      "indicator": "Overlap in process, channel 4",
+      "notes": "7010 only",
+      "tag": "[likely]"
+    },
+    {
+      "d": "X",
+      "autocoder": [],
+      "indicator": "Floating-point exponent underflow",
+      "notes": "7010 only, optional FP feature; reset by the test",
+      "tag": "[likely]"
+    },
+    {
+      "d": "Y",
+      "autocoder": [],
+      "indicator": "Floating-point exponent overflow",
+      "notes": "7010 only, optional FP feature; reset by the test",
+      "tag": "[likely]"
+    },
+    {
+      "d": "A",
+      "autocoder": [
+        "BSS A"
+      ],
+      "indicator": "Sense switch A",
+      "notes": "1401 mode only (Compatibility feature). Not valid in native 1410",
+      "tag": "[verified]"
+    },
+    {
+      "d": "B",
+      "autocoder": [
+        "BSS B"
+      ],
+      "indicator": "Sense switch B",
+      "notes": "1401 mode only",
+      "tag": "[verified]"
+    },
+    {
+      "d": "C",
+      "autocoder": [
+        "BSS C"
+      ],
+      "indicator": "Sense switch C",
+      "notes": "1401 mode only",
+      "tag": "[verified]"
+    },
+    {
+      "d": "D",
+      "autocoder": [
+        "BSS D"
+      ],
+      "indicator": "Sense switch D",
+      "notes": "1401 mode only",
+      "tag": "[verified]"
+    },
+    {
+      "d": "E",
+      "autocoder": [
+        "BSS E"
+      ],
+      "indicator": "Sense switch E",
+      "notes": "1401 mode only",
+      "tag": "[verified]"
+    },
+    {
+      "d": "F",
+      "autocoder": [
+        "BSS F"
+      ],
+      "indicator": "Sense switch F",
+      "notes": "1401 mode only",
+      "tag": "[verified]"
+    },
+    {
+      "d": "G",
+      "autocoder": [
+        "BSS G"
+      ],
+      "indicator": "Sense switch G",
+      "notes": "1401 mode only",
+      "tag": "[verified]"
+    },
+    {
+      "d": "?",
+      "autocoder": [],
+      "indicator": "Reader error",
+      "notes": "1401 mode only",
+      "tag": "[verified]"
+    },
+    {
+      "d": "‡",
+      "autocoder": [],
+      "indicator": "Printer error",
+      "notes": "1401 mode only. Record mark, octal 032",
+      "tag": "[verified]"
+    },
+    {
+      "d": "I",
+      "autocoder": [],
+      "indicator": "Punch error",
+      "notes": "1401 mode only",
+      "tag": "[verified]"
+    }
+  ]
+}

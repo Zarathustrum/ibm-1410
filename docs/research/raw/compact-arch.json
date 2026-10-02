@@ -1,0 +1,309 @@
+{
+ "topic": "arch",
+ "summary": "The IBM 1410 (1411 Processing Unit) is a variable-word-length, character-addressed, decimal machine. Storage is offered in five models: 10,000 / 20,000 / 40,000 / 60,000 / 80,000 character positions (Models 1–5, \"A\" suffix = fifth E frame). Each position holds a BCD character with bits B A 8 4 2 1, plus a word-mark (WM) bit and a check (odd-parity C) bit; parity is computed over BA8421+WM. 64 code points exist; the collating sequence is blank=00 lowest through 9=63 highest (Figure 2 of the PrincOps gives the full table and card codes). Special characters relevant to control: record mark (‡, BCD A82), group mark (⧧, BA8421), word separator (~, 0-5-8 card code), and the group-mark-with-word-mark (GM-WM) that terminates I/O records. Addresses are always FIVE decimal digits, 00000 to as high as 79999 on an 80K system, so no zone encoding is needed to reach high addresses (unlike the 1401's 3-character addresses). Zone bits over the hundreds and tens positions of an address instead select one of 15 index registers (A-bit over tens = 1, B over tens = 2, A over hundreds = 4, B over hundreds = 8; sum = index register number, none = no indexing). Index registers live in core at 00025–00029 (IR1) through 00095–00099 (IR15), 5 chars each; the factor's sign is taken from its units-position zone bits and is added algebraically to the address after it enters the address register; word marks in the index area are ignored; overflow during indexing does not set the arithmetic overflow latch; the result must be a valid address or an address check stop occurs. Zone bits in the units, thousands or ten-thousands address positions are invalid; only characters with a 0–9 numeric total are legal in an address (a \"&\", \"$\", \"#\" cause an address check). Address 00000 is valid only for incrementing operations; the top address (e.g. 59999 on 60K) only for decrementing ones, with a console and read/write-to-end-of-core exception.\n\nRegisters: IAR (instruction address register, 5 chars, steps by one per character read; reset/program reset load 00001), AAR and BAR (5-char A- and B-address registers; they are decremented per character when a field is addressed by its low-order end, incremented when addressed by the high-order end), CAR (C-address register, used by Store Address Register, multiply, divide, table lookup; not programmer-visible except via G), DAR (multiply/divide/recomplement scratch), EAR and FAR (channel 1 and 2 I/O address registers, overlap feature), STAR (storage address register, indirect access to core via any address register). Single-character registers: A-data register, B-data register (8-bit: BCD + C + WM), Op register (7 bits, WM dropped), Op-modifier register (holds d-character), I/O channel select, Unit Select and Unit Number registers per channel, and channel E1/E2, F1/F2 data registers. Addresses in registers are held in two-out-of-five code and retranslated to BCD on store. Instruction forms (exact lengths, PrincOps p.11): O (1), O d (2), O xxx d (5), O aaaaa (6), O aaaaa d (7), O xxx bbbbb d (10), O aaaaa bbbbb (11), O aaaaa bbbbb d (12). The first character (op) must carry a word mark; the instruction contains no other word marks; the WM on the next instruction's op code terminates instruction read-out. Instruction-length validity is checked (Instruction Check light). Chaining: a one-character instruction reuses AAR and BAR left from the previous operation; a 6-character form of a two-address instruction supplies only A and chains the B-address, and \"uses the last previous operation modifier\"; an 11-character instruction blanks the op-modifier register, so subsequent chained ones get a blank d. Each instruction description tabulates IAR/AAR/BAR after the operation (e.g. Add two-field: NSI, A-LW, B-LB; Compare: NSI, A-LW, B-LW; unconditional branch: IAR=NSIB, AAR=BI, BAR=NSIB; one-address conditional branch not taken: IAR=NSI, AAR=BI, BAR=BI; two-address branch not taken: AAR=BI, IAR=NSI, BAR=B-1). On a taken branch the old IAR (the NSIB) is placed in BAR, the branch address moves from AAR into STAR, and IAR = branch address + 1 after the op is read; storing BAR with G (C) B in the subroutine captures the return address.\n\nArithmetic (add-to-storage, no accumulators): fields are addressed at their units (rightmost) position and processed right to left; the B-field's word mark defines the field length and stops the operation. The A-field needs a word mark only if it is shorter than the B-field, in which case zeros are added/subtracted into the remaining high-order B positions; if A is longer, its excess high-order positions are simply not processed (no error). Sign is in the units-position zone bits: B-bit only = minus (11 zone); no zones, B+A (12 zone), or A only (0 zone) = plus. The machine generates B+A for plus and B for minus. Zone bits in other positions of B are preserved; A-field zones are ignored except in the units position. True-add vs complement-add per Figure 12; the sign of the result of a complement add is the sign of the greater value (after the A sign is changed for subtract). Characters whose numeric bits exceed 9 or have no numeric bits are treated as: blank/&/-/substitute blank -> 0, others drop the 8 bit (e.g. # (821) -> 3; group mark -> G or 7). Overflow: carry out of the high-order B position is lost and the arithmetic overflow indicator turns on (add/subtract only; it is not set by ZA/ZS/multiply/divide); tested and reset by J (I) Z or a computer reset. Zero balance: set when the result of add, subtract, ZA, ZS or multiply is zero; reset by the next such operation (except divide) with a non-zero result; tested by J (I) V (branch does not reset it). Divide overflow is a separate indicator (J (I) W; division by zero always sets it). Compare (C): compares B to A character by character from the units end using BA8421 bits only (not C or WM), ended by the first word mark in either field; sets B>A (high), B=A (equal), B<A (low) and unequal indicators according to the collating sequence; if the A-field is shorter, high is turned on; if the B-field is shorter or equal length the results are correct for the compared portion; negative fields compare as ordinary characters (e.g. 4444444D > 4444444M in the example set). The four compare indicators are reset by the next compare, table lookup, or branch-if-character-equal; computer reset turns on low and unequal. Table lookup (T) also sets compare indicators. The Priority feature (Special Feature 5620, Extension 5621) is an interrupt system: when in priority alert mode (entered by Y (I) E, exited by Y (I) X or by an interrupt) and a priority request indicator turns on (overlap, I/O unit, inquiry, outquiry, seek, attention — per channel), the system, while reading the op code of an interruptible unchained instruction, branches to 00101 and leaves priority alert mode; the priority routine stores BAR, subtracts 6, and uses that as the I-address of the Y (I) E that returns to the main program. Test-and-branch Y (I) d instructions with d = 1,2 (overlap ch1/2), U,F (I/O unit), Q,* (inquiry), N,‡ (outquiry), S,T (seek), A,B (attention). 1401 compatibility: a console COMPATIBILITY toggle (1410/1401) puts the machine in 1401 mode; a 10K 1410 acts as an 8K 1401, larger ones as a 16K 1401; supported 1401 features include Advanced Programming (indexing, SAR, move record), multiply-divide, expanded print edit, print storage, high-low-equal compare, sense switches (console sense-bit switches A–G); differences listed on PrincOps pp.98–100 (invalid parity input becomes * instead of being corrected; quotient blanks converted to zeros; card read buffer lags; BAR differs after card/print ops, e.g. read leaves 082 rather than 081; single-character edit differs). No storage-protection feature appears anywhere in the 1410 PrincOps (A22-0526-3 or May-63 edition TOC); it is a 7010 feature (unverified here). The 1410 Accelerator feature shortens the core cycle from 4.5 to 4.0 µs but changes no semantics.",
+ "facts": [
+  {
+   "claim": "Five 1411 models: Model 1/1A = 10,000; 2/2A = 20,000; 3/3A = 40,000; 4/4A = 60,000; 5/5A = 80,000 storage positions. Suffix A models have a fifth (E) frame. Core cycle is 4.5 µs per character (4.0 µs with the 1410 Accelerator).",
+   "source": "IBM 1410 Principles of Operation, Form A22-0526-3, p.5 and p.96 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Character format: BCD bits B A 8 4 2 1, plus a word-mark bit and a check bit. Parity is odd over BA8421 plus WM; the check bit is added when the count of BA8421+WM bits is even. Examples on p.5: A (BA1) no WM -> C not added -> 'BA1'; A with WM -> 'WMCBA1' (check bit added); C (BA21) no WM -> CBA21; X (A421) with WM -> WMA421.",
+   "source": "A22-0526-3 p.5 'Character Coding' — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "There are 64 code points; collating sequence is ascending from blank (00) to 9 (63); Figure 2 (p.6) lists every character with card code and BCD bits. Key controls: record mark ‡ = A 8 2 (card 0-2-8); group mark = B A 8 4 2 1 (card 12-7-8); word separator ~ = C A 8 4 1 (0-5-8); substitute blank = C A (2-8); & = C B A (12); - = B (11).",
+   "source": "A22-0526-3 p.6 Figure 2 'Standard BCD Interchange Code' — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Word mark functions: (1) marks the first character (op code) of an instruction, (2) defines the size of a data field, (3) signals the end of an instruction. Every instruction must be followed by a word mark (the next op's WM) which stops instruction reading. Word marks remain until changed by clear storage, clear word mark, set word mark, or a data move that specifies WM transfer.",
+   "source": "A22-0526-3 p.7–8 'Word Marks' — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Addresses are 5 characters, valid 00000 up to 79999 on an 80K system. No zone-bit encoding is needed for the address magnitude (unlike the 1401). Zone bits are permitted only in the tens and hundreds positions (index tags); any zone bits in the units, thousands or ten-thousands positions make the address invalid; any position without a 0–9 numeric total (e.g. &, $, #) is invalid. Legal characters in tens/hundreds: numerals, letters, and / ? ! ‡.",
+   "source": "A22-0526-3 p.8 'Addressing' — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Boundary rules: for decrementing operations 00001 is the lowest usable position; addressing 00000 in a decrementing op stops with an address-check error (no exceptions). 00000 is always valid for incrementing ops. For incrementing ops, the top address minus 1 (59998 on 60K) is the highest usable; the top address (59999) causes an address check except for console display/alter and read/write 'to end of core' I/O. The top address is valid for decrementing ops.",
+   "source": "A22-0526-3 p.8 'Addressing' — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Address registers: IAR, AAR, BAR (programmer visible), CAR (used by Store Address Register G, multiply, divide, table lookup; not programmer accessible), DAR (multiply/divide/recomplement), EAR/FAR (channel 1/2 overlap I/O), STAR (storage address register; all storage access goes through it). Address characters are translated to two-out-of-five code before entering an address register; more or fewer than two bits per character = address channel error. Contents are retranslated to BCD when stored by G.",
+   "source": "A22-0526-3 p.8–9 'Address Registers', Figure 5 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "IAR: 5-character instruction counter. Holds the op-code address at start of read-out; increased by one each storage cycle during instruction read; at end of read-out holds the op address of the NSI. Changed by (1) console load, (2) normal stepping, (3) successful branch: branched-to address plus one replaces IAR during execution of the branched-to instruction, (4) program reset / computer reset loads 00001.",
+   "source": "A22-0526-3 p.8 'I-Address Register' — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "AAR/BAR: 5-character registers holding the addresses of the units positions (normally) of data fields. After each character is acted on the address is decreased by one (field addressed at low-order) or increased by one (addressed at high-order, i.e. left-to-right record moves and I/O). BAR holds the I/O address during non-overlapped I/O.",
+   "source": "A22-0526-3 p.8 'A- and B-Address Registers' — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Single-character registers: B-data register (8-bit: BCD, check, WM; loaded on every storage read-out and written back on regeneration), A-data register (8-bit, loaded from B-data register when needed), Op register (7 bits, WM bit dropped), Op-modifier register (7-bit d-character), I/O channel select (hundreds position of x-control), Unit Select (tens) and Unit Number (units) per channel, E1/E2 and F1/F2 channel data registers.",
+   "source": "A22-0526-3 p.9–10 'Single-Character Registers' and p.92 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Instruction form: Op (1 char), A-address or I-address (5) or x-control field (3), B-address (5), d-character (1). Valid lengths: O=1, O d=2, O xxx d=5, O aaaaa=6, O aaaaa d=7, O xxx bbbbb d=10, O aaaaa bbbbb=11, O aaaaa bbbbb d=12. Instruction-length checking is performed per op code (Instruction Check light).",
+   "source": "A22-0526-3 p.11 'Instruction Form' and 'Instruction Length Validity' — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Instruction word marks: each instruction must have a WM over the op code and must not contain WMs elsewhere; a WM must be set in the location immediately right of the last character (normally the next instruction's op). That WM stops instruction read-out.",
+   "source": "A22-0526-3 p.11 'Instruction Word Marks' — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "x-control field (I/O instructions M, L, U, F, etc.): hundreds position selects channel and overlap mode (% = ch1 non-overlap, @ = ch1 overlap, ⌑ (lozenge) = ch2 non-overlap, * = ch2 overlap); tens = device type (1 reader, 2 printer, 4 punch, U tape, T console printer, B tape odd-parity, F disk, etc.); units = unit number / specific operation. x-control fields and G instructions cannot be indexed.",
+   "source": "A22-0526-3 p.11, p.14, p.92, p.105 Figure 107 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Chaining: an op code alone reuses the AAR/BAR contents left by the prior instruction (e.g. after A 05985 06985 with LA=5, LB=6, AAR=05980, BAR=06979; a following bare S subtracts 05980 field from 06979 field). If a two-address instruction does not require a d-character (11-char), the op-modifier register is blanked, so chained instructions after it get a blank d. For D, W, B, V, T (two-address ops with d) 'an instruction length of 6 chains the B-address and uses the last previous operation modifier'.",
+   "source": "A22-0526-3 p.12 'Chaining Instructions', p.25, p.30, p.38 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Branch register effects. If branch occurs: after read-out IAR has stepped; IAR (the NSIB) is transferred to BAR; AAR holds the branch address, which goes to STAR during read of the branched-to instruction and IAR = that address + 1 thereafter. So a G (C) B in the subroutine stores the return address. If no branch (two-address branch): AAR=BI, IAR=NSI, BAR=B-1 (allows re-testing the next lower position by chaining). If no branch (one-address branch): AAR=BAR=BI, IAR=NSI. Unconditional branch J (I) blank: IAR=NSIB, AAR=BI, BAR=NSIB.",
+   "source": "A22-0526-3 p.12–13 and p.36 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Fifteen index registers occupying core 00025–00029 (IR1), 00030–00034 (IR2), ... 00095–00099 (IR15), i.e. IRn at 00020+5n through 00024+5n. Selected by zone bits on the tens and hundreds address positions: value = (A over tens ? 1 : 0) + (B over tens ? 2 : 0) + (A over hundreds ? 4 : 0) + (B over hundreds ? 8 : 0); 0 = no indexing. A-, B- and I-addresses can each be tagged independently.",
+   "source": "A22-0526-3 p.14 Figures 9 and 10 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Indexing semantics: the index factor is a 5-digit number added algebraically (sign from units-position zone bits of the factor; B-bit = minus; no bits or BA = plus) to the address after it enters the address register and before execution; the instruction in storage is not changed. Word marks in 00025–00099 are ignored by indexing; zone bits in the index registers are undisturbed and ignored except in the units (sign) position. Arithmetic overflow latch is NOT set by indexing overflow. Result must be a valid address or the system stops with an error. On a 10K system the high-order position of an address being indexed must contain zero. Cost: 34.5 µs per address indexed (30.67 with Accelerator). Examples p.15 (e.g. A-address 009Z6 = 00996 tagged IR1 with factor 0001J = -00011 -> 00985).",
+   "source": "A22-0526-3 p.14–15 'Indexing' — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Sign representation: sign determined by zone bits in the units position. Minus = B bit only (card 11 zone). Plus = no zone, B and A (12 zone), or (less commonly) A only (0 zone). When the machine generates/changes a sign it writes B+A for plus and B for minus.",
+   "source": "A22-0526-3 p.16 'Sign Change or Development', Figure 11 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Add/subtract cycle type (Figure 12): Add with like signs = true add, result sign = common sign; unlike signs = complement add, result sign = sign of greater value. Subtract first inverts the A-field sign then adds. Digit coding: characters with numeric bits totalling 0–9 (numerals, letters, / ? ! ‡) are used by value; blank, &, -, substitute-blank become 0; other specials (8+2, 8+4 etc.) drop the 8 bit (e.g. # (821) -> 3, group mark BA8421 -> 7, or 'G' if zones retained).",
+   "source": "A22-0526-3 p.16 'Add Cycles' and 'Digit Coding' — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Field-length governance for A/S/ZA/ZS (two fields): the B-field word mark stops the operation and defines the length. The A-field needs a word mark only if it is shorter than B; then zeros are added/subtracted (or zeroed for ZA/ZS) into B's remaining high-order positions up to and including the WM position. If A is longer than B, the excess high-order A positions are not processed. B-field zone bits are unchanged except in the sign position; A-field zone bits are ignored except in the sign position. Registers after: IAR=NSI, AAR=A-LW, BAR=B-LB (LW = length of shorter field).",
+   "source": "A22-0526-3 p.17–18 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Overflow: if the result exceeds the B-field limit (B word mark) the carry is lost and the arithmetic overflow indicator turns on; tested and turned off by J (I) Z (BAV); also reset by computer reset. Overflow can be detected only in add and subtract, not ZA, ZS, multiply, divide.",
+   "source": "A22-0526-3 p.17 'Overflow' and p.53 'Overflow' light — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Zero balance: turned on if the result of any add, subtract, multiply, ZA or ZS is zero; turned off by the next arithmetic instruction (any except divide) whose result is non-zero; tested by J (I) V (BZ). Also reset by computer reset.",
+   "source": "A22-0526-3 p.17 'Zero Balance' and p.53 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "One-field forms: A (A) image-adds the field to itself (doubling), S (A) subtracts from itself (zeroes numerics, zones unchanged), ZA (A) strips zones except sign and forces B+A for plus, ZS (A) strips zones except sign and reverses the sign. Registers after: NSI, A-LA, A-LA.",
+   "source": "A22-0526-3 p.17–19 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Zero and Subtract two-field sign table (Figure 13): A no B/no A (plus) -> B minus (B bit); A B-bit (minus) -> B plus (B and A); A B+A (plus) -> B minus; A A-only (plus) -> B minus.",
+   "source": "A22-0526-3 p.18 Figure 13 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Multiply @ (A)(B): A = multiplicand (units-addressed), B = product field whose high-order positions initially hold the multiplier image; B-field length must be LA + LM + 1; product replaces multiplier; sign = product of signs placed in units of B; zones in multiplicand undisturbed. Divide % (A)(B): A = divisor (units-addressed), B-address = LEFTMOST position of the dividend; B-field length = L(divisor) + L(dividend) + 1; quotient develops in leftmost positions, remainder in rightmost; dividend must be signed in its units position; divide overflow indicator (J (I) W) on divide by zero or improperly addressed dividend; registers after: NSI, A-LA, tens position of quotient field.",
+   "source": "A22-0526-3 p.19–21 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Compare C (A)(B): compares B to A character by character on BA8421 bits only (not C or WM), collating per Figure 2; sets high (B>A), equal (B=A), low (B<A), and unequal (on with either high or low). Ended by the first word mark in either field. If A is shorter than B, the high indicator is turned on (example 5, even when the compared portions are equal). If B is shorter or equal, indicators correctly reflect the compared portion. Negative values compare as characters (example 6: 4444444D vs 4444444M -> B high). Indicators reset by next compare, table lookup, or branch-if-character-equal; computer reset turns off zero result and turns on low and unequal. Registers after: NSI, A-LW, B-LW.",
+   "source": "A22-0526-3 p.28–29 'Comparing', p.37, p.53 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Conditional one-address branch J (I) d, with d: Z overflow, 9/! carriage 9 ch1/ch2, R/L carriage busy, @/⌑ carriage overflow 12, S equal, U high, T low, / unequal, W divide overflow, Q/* inquiry request ch1/ch2, 1/2 overlap in process, K tape indicator (CE), V zero balance. Registers: branch IAR=NSIB, AAR=BI, BAR=NSIB; no branch IAR=NSI, AAR=BI, BAR=BI. Length 1 or 7.",
+   "source": "A22-0526-3 p.36 Figure 35 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Branch if I/O channel status indicator on: R (I) d for channel 1, X (I) d for channel 2; d bits: 1 not ready, 2 busy, 4 data check, 8 condition, B-bit (‘-’) wrong length record, A-bit (substitute blank) no transfer; group mark (all bits) tests all six. Branch if any bit in d matches. An R/X status test (branch, or R (I) group-mark) must follow each I/O instruction on a channel before the next, else the channel interlock stops the system. Indicators reset at the beginning of the next I/O operation.",
+   "source": "A22-0526-3 p.37–38 Figure 36; Priority bulletin p.8 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Two-address branches: B (I)(B) d = branch if character at B equals d (BA8421 compare, WM and C excluded; also sets high/low/equal indicators); W (I)(B) d = branch if any bit of B-char matches any bit of d; V (I)(B) d = branch if word mark present (d bit 1) and/or zone test (d bit 2 with B/A zones: 1 WM, 2 zones absent, B zones=BA, K zones=B, S zones=A, 3 WM or no zones, C WM or BA, L WM or B, T WM or A). Length 1, 6 or 12; 6 chains the B-address and prior d. Registers: branch NSIB/BI/NSIB; no branch NSI/BI/B-1.",
+   "source": "A22-0526-3 p.38–39 Figure 37 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Move D (A)(B) d: d bits 1 = transfer numeric portion, 2 = zone portion, 4 = word marks, none = scan only; 8-bit set = left-to-right (record) move, terminating on A-field record mark (A-bit), A-field GM-WM (B-bit), either (A and B bits), or first WM in either field (no A/B); 8-bit off = right-to-left field move terminating after one position (no A/B), A-field WM (A-bit), B-field WM (B-bit), first WM in either (A and B). Full 64-entry table Figure 22 p.27. Registers per Figure 20 (e.g. R-to-L stop at either WM: A-LW, B-LW; L-to-R record mark: A+LA, B+LA).",
+   "source": "A22-0526-3 p.25–27 Figures 19, 20, 22 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Move Characters and Suppress Zeros Z (A)(B): A-field WM defines length; high-order zeros and commas in B replaced by blanks; sign zone bits removed from B units; B-field WMs within the area including leftmost are removed. Registers after: NSI, A-LA, B+1.",
+   "source": "A22-0526-3 p.27–28 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Table lookup T (A)(B) d: A = search argument (units-addressed, WM at leftmost), B = rightmost char of table; each table field has function (leftmost) + argument (rightmost) with a WM at the field's leftmost; d = 1 low, 2 equal, 3 low/equal, 4 high, 5 low/high, 6 equal/high, 7 any, blank = to end. Stops one position left of matching argument; BAR = address of rightmost function char; AAR = A-LW; sets compare indicators; a short table field ends the search with high indicator on.",
+   "source": "A22-0526-3 p.30 Figure 25 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Processing-control ops: G (C) d — Store Address Register (d = A, B, E, F) stores the register at the C-address (rightmost) without changing AAR; cannot be indexed; 69.75 µs; registers after NSI, Ap, Bp. Set Word Mark ',' (A)(B) and Clear Word Mark ⌑ (A)(B): one or two addresses or chained; registers A-1, B-1. Clear Storage / (B): clears data and WMs from B down to nearest hundreds boundary, BAR=bbb00-1 (e.g. / 12590 clears 12590–12500, BAR=12499); with I-address = clear storage and branch. Halt '.' (length 1) or Halt and Branch . (I). NOP N: any length.",
+   "source": "A22-0526-3 p.22–24 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Computer reset: resets check circuits, IAR to 00001, timing clocks, and all machine indicators (overflow latches, compare triggers etc.); program reset: check circuits, IAR to 00001, A/B data registers, Op and Op-modifier registers, console inquiry latch.",
+   "source": "A22-0526-3 p.49 and p.52 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Priority Feature (Special Feature 5620; Extension 5621 adds channel 2 I/O unit/inquiry/outquiry): interrupt system providing an automatic branch to storage location 00101 when a priority request indicator turns on while the system is in priority alert mode. Entering alert mode: Y (I) E (BEPA), which also branches; exit: Y (I) X (BXPA) or the interrupt itself. Interrupt happens during instruction read-out, before execution, and only for unchained, interruptible op codes at interruptible lengths (Figure 1: ? ! A S @ % E Z C / ' ⌑ at length 11; W V D B T at 12; J R X at 7; Y N M L G . U F K never). The request indicator turning on also turns off alert mode.",
+   "source": "IBM 1410 Priority Feature, Form A22-0530-1, pp.3–5 — https://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Priority request indicators per channel: overlap (Y(I)1 / Y(I)2; set at completion of an overlapped read/write/write-check, reset by R(I)d / X(I)d), I/O unit (Y(I)U / Y(I)F; set by priority select switch device finishing, or priority select on-off key), inquiry (Y(I)Q / Y(I)*), outquiry (Y(I)N / Y(I)‡), seek (Y(I)S / Y(I)T), attention (Y(I)A / Y(I)B). Return from the priority routine: store BAR (which holds the interrupted instruction address + read-out steps), subtract 6, and use it as the I-address of the Y (I) E at the end of the routine. Arithmetic/compare indicators are not saved automatically.",
+   "source": "A22-0530-1 pp.4–8 — https://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "I/O NOP instruction (Priority feature only): M/L x x x BBBBB d with d = Q (input status) or V (output status); identical to a read/write but no data transfer; used to set the I/O channel status indicators for the device that interrupted.",
+   "source": "A22-0530-1 pp.8–9 Figure 3 — https://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1401 compatibility: a COMPATIBILITY toggle on the 1415 console CE panel (1410 / 1401) puts the machine in 1401 mode (1401 COMPAT light). A 10K 1410 runs as an 8K 1401; all larger 1410s run as a 16K 1401. Supported 1401 features: additional storage, multiply-divide, expanded print edit, advanced programming (indexing, SAR, move record), print storage, high-low-equal compare, read-punch release, sense switches. NOT supported: column binary, compressed tape, punch feed read, serial I/O adapter units, process overlap, selective tape listing, space suppression.",
+   "source": "A22-0526-3 p.98 'IBM 1401-1410 Compatibility', p.56–58 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1401-mode behavioural differences: bad-parity input becomes '*' rather than being corrected; blank quotient positions are converted to zeros; 1410 does not put the 1401 set-up character in 000/100 after read/punch; BAR after card/print ops differs (read: 1401 081 vs 1410 082; print 333 vs 335; punch 181 vs 183); 1402 EOF not reset by new deck (only computer reset); 8-2 card punch reads as A-bit (1401 reads it invalid); in load mode the 1410 writes two word separators per WM on tape and reads a pair as one separator without setting a WM; single-character edit is transferred by the 1410 but not the 1401; 1311 BAR ends at least one greater; 51-column read fills positions 1–14 and 66–80 with blanks.",
+   "source": "A22-0526-3 pp.98–100 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Processing overlap / Data Channel 2 are special features; each channel has E1/E2 (ch1) or F1/F2 (ch2) data registers and EAR/FAR address registers; the x-control hundreds character selects channel and overlap; only M and L ops with x1 (or x4 console) can overlap; at end of an overlapped read EAR is two positions right of the last stored character (checking for GM-WM). Both channels can overlap simultaneously; a non-overlap op on one channel converts the other's overlap to non-overlap; channel 1 has priority on simultaneous requests.",
+   "source": "A22-0526-3 pp.92–96 — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "The 1410 Principles of Operation (A22-0526-3, 1961 reprint incorporating TNL N22-0169-0; and the A22-0526 October-1962 major revision with pages revised 5/1/63) contain no storage-protection section in the table of contents or the System Features chapter; the 1410 as documented has no storage protection feature.",
+   "source": "A22-0526-3 p.3 contents, pp.92–100; A22-0526 May-63 p.3 contents — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf , https://bitsavers.org/pdf/ibm/1410/A22-0526_1410_princOpsMay63.pdf",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Storage protection existed as a feature on the IBM 7010 (the 1410's faster successor), not on the 1410.",
+   "source": "memory; 7010 PrincOps A22-6726 at https://bitsavers.org/pdf/ibm/1410/A22-6726_7010_PrincOps.pdf not read in this session",
+   "confidence": "unverified"
+  },
+  {
+   "claim": "Edition/form numbers: A22-0526-3 (reprint of A22-0526-2 + TNL N22-0169-0, ©1960/1961, 111 pages); A22-0526 'Major Revision October 1962' with pages revised 1/15/63 (TNL N22-0070) and 5/1/63 (TNL N22-0083), obsoleting the earlier Reference Manual A24-1407-1/-2 and TNLs N22-0030 (1401/1410 compatibility), N22-0032 (overlap), N22-0045 (accelerator), N22-0054, N22-0059. Priority Feature bulletin is A22-0530-1 (©1962, obsoletes A22-0530-0). Page numbering in both PrincOps PDFs matches printed page numbers (PDF page N = printed page N).",
+   "source": "A22-0526-3 pp.1–2; A22-0526 May-63 pp.1–2; A22-0530-1 p.1 — https://bitsavers.org/pdf/ibm/1410/",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Console 1415 sense-bit switches A–G act as program-testable sense switches only in 1401 mode; the 1410 mode has no sense switches.",
+   "source": "A22-0526-3 p.58 'Sense-Bit Switches' — https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+   "confidence": "verified"
+  }
+ ],
+ "tables": [
+  "Valid instruction lengths (IBM 1410)",
+  "Index register tag bits (zone bits over address tens/hundreds positions)",
+  "Sign encoding (units-position zone bits)",
+  "Add / Subtract cycle type and result sign",
+  "Core instruction op codes (actual op character, Autocoder mnemonic) — from Appendix and text",
+  "One-address conditional branch d-characters (J (I) d)",
+  "Priority feature: interruptible op codes and lengths"
+ ],
+ "open_questions": [
+  "Exact state of IAR/BAR at the moment of a priority interrupt (bulletin says 'store BAR and decrement by six' to get the return address for Y(I)E; the precise register snapshot for each interruptible op length should be confirmed against the CE manual 1410_CE_Manual_Oct61.pdf or the 1410 System Fundamentals 223-2589).",
+  "1401-mode address decoding: in 1401 mode the 1410 must interpret 3-character 1401 addresses (with zone bits encoding thousands, the 1401 scheme); the PrincOps compatibility section (pp.98–100) does not spell out the mapping or how 16K-1401 addresses map onto 1410 core — needs the TNL N22-0030 '1401/1410 Compatibility' or the CE manual.",
+  "Move Characters and Edit (E) rules (p.31–35) were not read in this pass.",
+  "Whether the May-1963 edition (A22-0526, pages revised 5/1/63) changes any of the addressing/indexing/chaining rules relative to A22-0526-3 (its contents page shows re-paginated sections, e.g. Indexing p.19, Compatibility p.95); diff not performed.",
+  "Storage protection on the 7010 (A22-6726) — asserted from memory only; verify before relying on it for a 7010 mode.",
+  "Exact behaviour of the Address Check when an indexed address overflows into an invalid value on 20K/40K/60K systems vs wrapping (manual says 'system will stop on an error')."
+ ],
+ "verdict": {
+  "topic": "IBM 1410 core architecture (storage, character format, addressing, indexing, registers, instruction formats, chaining, word marks, arithmetic/compare model, Priority feature, 1401 compatibility)",
+  "refuted": [
+   {
+    "claim": "Storage protection existed as a feature on the IBM 7010, not on the 1410 (asserted from memory, unverified)",
+    "why": "Partially wrong as stated. The 7010 Principles of Operation A22-6726 table of contents (pp.3, read this session) has no storage-protection section either — it lists System Concepts, Arithmetic, Data Ops, Branch, I/O, Channel Interlock, Processing Overlap, Priority Processing, Console, Reference. The only source found that treats storage protection as a 7010 feature is Richard Cornwell's SimH i7010 emulator (SET CPU PROT 'enables memory protection feature', listed under 'For the IBM 7010 the following options can be enabled', implemented as low_addr/high_addr bounds + reloc flag in i7010_cpu.c). That is a secondary source; no IBM primary for it was located.",
+    "correction": "Neither the 1410 PrincOps (A22-0526-3, A22-0526 May-63) nor the base 7010 PrincOps (A22-6726) documents storage protection. Treat 7010 storage protect as 'likely, secondary-source only' (SimH), not as a documented base feature. For a 1410 emulator: no storage protection, period.",
+    "source": "https://bitsavers.org/pdf/ibm/1410/A22-6726_7010_PrincOps.pdf p.3 (TOC); https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_cpu.c (OPTION_PROT, cpu_help)"
+   },
+   {
+    "claim": "1401-mode BAR after print: '1401 333 vs 1410 335'",
+    "why": "Manual's chart reads '333*' for the 1401 with footnote '*335 for an unbuffered printer'; i.e. the 1401 value itself depends on whether the 1401 has print storage. Minor, but an emulator that hard-codes 333 for the 1401 side would be wrong for unbuffered-printer 1401s.",
+    "correction": "1401: 333 (buffered / print storage) or 335 (unbuffered printer); 1410 in 1401 mode: 335 always. Read: 081 vs 082; Punch: 181 vs 183; ops 5/6/7: 181 vs 183.",
+    "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.99 'B-Address Register' chart"
+   }
+  ],
+  "upgraded": [],
+  "additions": [
+   {
+    "claim": "Priority interrupt has an extra precondition the finder omitted: the main-routine interrupt occurs only when (a) the op code being read is interruptible, (b) 'the channel to be used is not busy', (c) system is in priority alert mode, and (d) a priority request indicator is on. Also: if an overlap priority request arrives too late during read-out of an interruptible instruction and the NEXT instruction is a Branch-if-I/O-Channel-Status-On (R/X), the request indicator is reset by that R/X and NO interrupt occurs; otherwise the interrupt fires at the read-out of the next interruptible instruction.",
+    "source": "https://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf pp.3–4, 6",
+    "confidence": "verified"
+   },
+   {
+    "claim": "A priority request indicator turning on turns OFF the priority-alert-mode indicator (if on) and causes the branch to 00101; the attention priority request indicator is only temporarily reset by program/computer reset and re-asserts at the next instruction read-out. Inquiry request indicator is turned off automatically when all inquiry requests are serviced by a read directed to the causing unit (console release key resets console-caused ones); seek request turns off automatically when seek-complete status of all access mechanisms is reset by a read/write/I-O NOP to those units.",
+    "source": "https://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf pp.4–5 Figure 2, p.7",
+    "confidence": "verified"
+   },
+   {
+    "claim": "Channel interlock removal rule (Priority bulletin wording): the channel-1 interlock is removed by an R(I)‡ (group-mark d, tests all six) OR by any R(I)d that results in a branch; likewise X(I)‡ / branching X(I)d for channel 2. An R/X test that does NOT branch (and is not the group-mark form) does not release the interlock.",
+    "source": "https://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf p.8",
+    "confidence": "verified"
+   },
+   {
+    "claim": "Write Tape Mark (U x T x M) is the only short-form (2-char) I/O instruction that can actually be overlapped; a following J(I)1/2 reports overlap in process because it uses the same circuits as an M/L with a zero-length field. Any other short-form I/O instruction coded in overlap mode runs as non-overlap. No two I/O devices can operate simultaneously on the same channel.",
+    "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.94 'Processing Overlap' (OCR lines ~10740–10760)",
+    "confidence": "verified"
+   },
+   {
+    "claim": "Compare/indicator reset detail: computer reset turns OFF the zero-result (zero balance) indicator and turns ON the low-compare and unequal-compare indicators; overflow and divide-overflow indicators are reset only by the testing branch (J(I)Z / J(I)W), computer reset, or power-on reset. Zero-balance light is set/reset only by A, S, ZA, ZS, @ (multiply) — never by divide.",
+    "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.36 (Branch Conditionally, indicator reset paragraph) and p.53 (Overflow / Divide Overflow / Zero Balance lights)",
+    "confidence": "verified"
+   },
+   {
+    "claim": "ZA one-field sign rule precisely: numeric data unchanged, zones stripped from all but the sign position, sign polarity kept; a plus sign NOT composed of B+A (i.e. no-zone or A-only) is rewritten as B+A. Example: A-field '#b&-bn%' zero-added to itself becomes 300004D; ABCD5 becomes 1234E. Registers after: NSI, A-LA, A-LA.",
+    "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.18 'Zero and Add (One Field)'",
+    "confidence": "verified"
+   },
+   {
+    "claim": "Divide result placement: units position of the quotient = address of units of dividend − length of divisor − 1; remainder sign = sign of original dividend; quotient sign per algebraic rules placed over the quotient units. Divisor with no zone bits in units is assumed positive; the dividend MUST carry a B+A or B sign in its units (the sign stops the division). Quotient positions must be zero at start.",
+    "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf pp.20–21 'Divide'",
+    "confidence": "verified"
+   },
+   {
+    "claim": "1401-mode card code difference in detail: in 1410 (both modes) an A-bit-only core character (substitute blank) is punched as 8-2 and an 8-2 column reads as A-bit; the 1401 punches it as a 0 and reads 8-2 as invalid (no-charge RPQ 898148 makes a 1401 behave like the 1410). MLP-coded cards cause a 1402 validity check on the 1410: in 1401 mode it is a reader check in the 1411; in 1410 mode it sets the data-check channel status indicator.",
+    "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.99 'Card Read-Punch Character Set' / 'Card Read-Punch Operations'",
+    "confidence": "verified"
+   },
+   {
+    "claim": "SimH i7010 (Cornwell) is the only existing open-source 1410/7010 CPU emulator found; it is a combined 1401/1410/7010 model (SET CPU 1401 | 7010), memory 10K–100K in 10K steps, options PRIORITY, FLOAT (7010 decimal floating point), PROT (7010 memory protection with low/high bounds and relocation). Useful as a behavioral cross-check for compare/arith edge cases but its 1410-vs-7010 distinctions are not always explicit in code.",
+    "source": "https://raw.githubusercontent.com/rcornwell/sims/master/I7000/i7010_cpu.c (header comment, cpu_mod table, cpu_help)",
+    "confidence": "verified"
+   }
+  ],
+  "notes": "Method: used a text-layer OCR of A22-0526-3 already present in the scratchpad (princops_a22-0526-3.txt, 348 KB; page numbering per the finder) plus fresh image reads of A22-0530-1 (Priority) pp.3–9 and A22-6726 (7010 PrincOps) pp.1–6, and Cornwell's SimH i7010_cpu.c. Direct bitsavers HTTPS fetches return 403 without a browser User-Agent; use curl -A with a Mozilla UA over http.\n\nIndependently re-confirmed in the primary source (all were already marked 'verified' by the finder, so not listed under 'upgraded'): address bounds (00000 always valid incrementing; 00000 decrementing = address check, no exceptions; top address rules incl. console display/alter and 'to end of core' exceptions); index register block 00025–00099 and Figure 10 tag table (all 15 rows match); indexing semantics (algebraic add after entering address register, WMs ignored, zones ignored except sign position, overflow latch NOT set, 10K high-order-must-be-zero note, 34.5 µs / 30.67 µs with Accelerator); IAR behaviour incl. reset to 00001 and branch-address+1; CAR/DAR/EAR/FAR/STAR descriptions; chaining incl. op-modifier blanking after 11-char instructions; branch register effects (two-address no-branch BAR = B−1; one-address no-branch AAR=BAR=BI; branch: NSIB→BAR, AAR→STAR, IAR=+1); Figure 11 sign table incl. A-only = plus; digit coding (blank/&/−/substitute-blank → 0, others drop 8-bit, GM → G or 7, # → 3); Figure 12 add-cycle table; overflow and zero-balance rules; compare rule that a shorter A-field turns on HIGH and reset-by-compare/table-lookup/BCE; divide addressing (B = leftmost of dividend, length = Ldivisor+Ldividend+1, BAR after = tens of quotient); MCS registers NSI/A-LA/B+1; G stores at C-address without touching AAR; clear-storage ends with BAR at bbb00−1; computer reset vs program reset lists; 1401 compat feature lists, 8K/16K rule, parity-→'*', quotient-blank→zero, two-word-separator tape behaviour; sense-bit switches act as sense switches only in 1401 mode; Priority Figure 1 interruptible-length table (every row matches), 00101 interrupt address, Y(I)d table, I/O NOP Q/V, R/X d-bit meanings; EAR ends two positions right of last character read on overlapped tape write.\n\nNot testable this session: the open questions on 1401-mode 3-character address decoding (PrincOps compat section indeed does not describe it; needs 1410 CE manual or TNL N22-0030), exact IAR/BAR snapshot at interrupt (bulletin only says 'store BAR and subtract 6'), and Move-and-Edit (E) rules. No 1401-vs-1410 confusion was found in the finder's claims; the one soft spot is the 1401-side print-BAR value (333 vs 335 depends on 1401 print storage)."
+ }
+}

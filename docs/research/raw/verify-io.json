@@ -1,0 +1,72 @@
+{
+ "topic": "IBM 1410 input/output architecture (1411/1414/channels, I/O instruction form, status/interlock, 1402/1403/1415/729/1311 programming)",
+ "refuted": [
+  {
+   "claim": "J-op conditional branch: 'I' = carriage channel 9, channel 2 (BC92).",
+   "why": "Figure 35 (A22-0526-3 p.36, read from the page image) lists 'Branch if Carriage 9 (Ch 2) — BC92 — d-char !'. The OCR text also renders it as '!', and the SimH i7010 emulator decodes it as CHR_EXPL ('! Carriage 9 CH2'). 'I' is a mis-transcription; on the 1410 the exclamation point (the zero-and-subtract op code graphic) is the d-character.",
+   "correction": "J (I) ! = branch if carriage channel 9 on channel 2. Full I/O-related J d-chars: 9 / ! (carriage 9 ch1/ch2), R / L (carriage busy), @ / lozenge (carriage overflow 12), Q / * (inquiry request), 1 / 2 (overlap in process), K (tape indicator, CE).",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.36 Figure 35; SimH i7010_cpu.c (case CHR_EXPL: /* ! Carriage 9 CH2 */)"
+  },
+  {
+   "claim": "Carriage-busy branch mnemonics are BCPB / BPCB2.",
+   "why": "Figure 35 prints 'BPCB or BPCB1' for channel 1 and 'BPCB2' for channel 2. 'BCPB' is a transposition.",
+   "correction": "BPCB / BPCB1 (ch1, d=R), BPCB2 (ch2, d=L). Only affects assembler mnemonic tables, not machine behaviour.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.36 Figure 35"
+  },
+  {
+   "claim": "1311 direct seek address is *ncc#xxxx with n = drive, cc = 2 x cylinders to move.",
+   "why": "A22-6704 p.8 says 'The three digits ncc are determined by specifying the drive number and the number of cylinders to be moved and multiplying this number by two.' The worked examples confirm the whole three-digit number is doubled: drive 1, 1 cylinder inward = *202#0000 (2 x 101); drive 1, 53 cylinders outward = *30O#0000 (306 = 2 x 153, sign carried on the last digit as O = -6). So the first digit is twice the drive number (0,2,4,6,8), not the drive number.",
+   "correction": "ncc = 2 x (100 x drive + cylinders_to_move), written as three digits with the direction sign over-punched on the third (fourth position counting the *); + or no sign = inward, - = outward; # in the fifth position marks a direct seek. With the alternate-code form the leading * is replaced by the same doubled drive digit (0002#0000, 2002#0000, ...).",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-6704_1311_Disk_for_1410_7010.pdf p.8 (Direct Seek, Figure 7, examples 1 and 2)"
+  }
+ ],
+ "upgraded": [],
+ "additions": [
+  {
+   "claim": "Priority Feature (special feature 5620/5621, A22-0530-1): an interrupt system that branches to fixed location 00101 when a priority request indicator turns on while in priority alert mode. Y (I) d ops: Y(I)E enter alert mode + branch (BEPA), Y(I)X exit + branch (BXPA); per-channel test-and-reset branches Y(I)U/F I/O unit request, Y(I)1/2 overlap request, Y(I)Q/* inquiry request, Y(I)N/‡ outquiry request, Y(I)S/T seek complete, Y(I)A/B attention. Priority routine returns via BAR-6 stored at the time of interrupt. Only unchained ops of listed lengths can be interrupted (Figure 1); M, L, U, F, K, R, X, G, N, halt cannot.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf p.3-8 (Figure 1, Figure 2)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "I/O NOP (d = Q for input status, V for output status; priority feature only) executes exactly like a read/write on the addressed device - including the interlock and status-indicator sequence - but transfers no data (except that a file address is still transferred for disk). It is used after an interrupt to load the six status indicators for the device. The channel-1 interlock is removed by R(I)‡ or an R(I)d that branches; channel 2 by X(I)‡ / X(I)d, restating the PrincOps rule.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf p.8; A22-6704 p.8",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Overlap priority request indicator (priority feature) is turned on at completion of any overlapped read/write/write-check on that channel and is turned OFF by the R(I)d / X(I)d status-branch instruction for that channel - so R/X have a side effect beyond the interlock on priority-equipped systems. If the overlap request arrives too late to interrupt and the next instruction is an R/X, the request is reset and no interrupt occurs.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0530-1_1410_priorityFea.pdf p.5-6",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1311 seek (XF0): the d-character may be any of R, $, W or X; it is present only to make a valid instruction length and has no effect on the seek. A seek with a disk control field (*AAAAASSS) at B is a return-to-home seek (moves outward past cylinder 00 first; avg 250 ms, max ~400 ms); a direct seek address (# in 5th position) is a relative move (avg 150 ms, max ~250 ms). Seek failure is only detected as a Condition on the following read/write.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-6704_1311_Disk_for_1410_7010.pdf p.8-9",
+   "confidence": "verified"
+  },
+  {
+   "claim": "1311 sector mode (XF1) transfer terminates on any of: GMWM sensed in storage; sector count register reaching 000; end of cylinder; sector-address compare failure (1311 sends end + condition after two index pulses without a match). Sector address register increments and count register decrements per sector; when the last sector of a track is passed the next head in the cylinder is selected automatically. Both registers are set by every 1311 op except store disk control field; the address register is not incremented during track-sectors-with-addresses.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-6704_1311_Disk_for_1410_7010.pdf p.6, p.9",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Alternate drive digit in the disk control field: 0,2,4,6,8 in place of * selects drive 0,1,2,3,4 and overrides the drive implied by the sector address; this lets a pack with addresses 80000-99999 be mounted on any drive (e.g. 080000xxx reads it on drive 0). 1311 Model 5 (the 1410/7010 controller drive) controls up to four 1311 Model 2 drives, 14.9M characters total, and does odd-bit parity checking that sets Data Check.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-6704_1311_Disk_for_1410_7010.pdf p.6",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Figure 107 lists 'code alternate' graphics for the x1 channel symbols: the BCD codes for %, @ and lozenge are also printed as ( , ) and ' on alternate type heads/chains, and SimH decodes % and ( (CHR_RPARN), lozenge and ) (CHR_LPARN), @ and ' (CHR_QUOT) as the same channel selectors. An emulator/assembler must key the X-field decode on the BCD code, not the ASCII glyph.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.105 Figure 107 ('Code Alternate' column); SimH i7010_cpu.c X1 decode switch",
+   "confidence": "likely"
+  },
+  {
+   "claim": "Console write (M/L %T0 B W) prints 'R', a space, then data until GMWM, then carrier return + vertical space; a valid blank in storage spaces the printer. On load-mode write blanks print as small 'b' and each word mark prints as an inverted circumflex over its character. A console printer parity error prints and underlines the bad character, sets Data Check, and the reply continues; a CPU processing error during the transfer ends the routine with an error print-out.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.48-49 (Console Reply Routine, Console Load Read and Write Operations, Figure 46)",
+   "confidence": "verified"
+  },
+  {
+   "claim": "Non-overlap tape read of a 100-character 729 II/556 cpi record interlocks processing for 13.1 ms (10.5 ms start + 2.4 ms data + 0.2 ms record check); in overlap the first character arrives after 10.5 ms + 1 char, each later character steals 4.5 us with ~19.5 us average available between characters, tape stop is 2.1 ms with 0.45 ms of that still processing-interlocked. Useful constants for a timing-accurate channel model.",
+   "source": "http://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf p.93-94 Figures 104, 105",
+   "confidence": "verified"
+  }
+ ],
+ "notes": "Method: local copies of A22-0526-3 (PDF + OCR text), A22-6704 (1311 on 1410/7010), A22-0530-1 (priority feature) and the SimH i7010 sources in the scratchpad were used; bitsavers directory listing fetched to confirm filenames (A24-3070-1_1410_Disk_Storage_IO_Instructions.pdf, A22-6701 1414 OEM, A22-6670/A22-6788 1301 all exist). Pages 36, 41-42, 47-49, 62-63, 80-81, 87-88, 92-95, 105 of the PrincOps and 6-9 of A22-6704 were read as images; the remaining PrincOps claims (1402 timing/EOF/51-column p.59-66, 1403 model specs p.67-72/82, tape densities p.84-86, 1415 keyboard/inquiry p.45-46, Figure 40 p.42-43, Computer Reset p.49, 1414 models p.40) were cross-checked against the OCR text where grep hit and no contradictions were found. Independently confirmed as written: the interlock rule and its two release conditions (p.42, and restated in A22-0530-1 p.8), the nine-step Figure 40 sequence, Figure 36 d-chars (No Transfer = blank/A-bit, WLR = minus/B-bit, group mark = all six), Figure 62/63 reader/punch status tables including the two-SSF / two-%19 No Transfer rule, Figure 88-91 printer and carriage-control tables, Figure 97-99 tape unit-control d-chars and status tables, the three overlap exceptions on p.92 (console printer overlappable but channel 2 inapplicable), E-address = last data +2 on p.94, and the 1311 X-field op digits, Q/V, and the *27883 = drive1/cyl39/surface4/sector3 worked example. Not checked (no primary source read): the exact 1402 access-time numbers, 1403 chain composition, and the 1415 asterisk-insert switch behaviour (p.50-58 not read). 1401-vs-1410 confusion hunt: none found in the findings themselves; the SimH source comments mark J d-chars 9 and R as '1401 same' while the 1410-only ch2 codes (!, L) differ, and the finder correctly quarantined A24-3070-1 as the 1401/1440/1460 disk form. One caution on the SimH 7010 source: it decodes four channels (?, ! and $, = as ch3/ch4 x1 symbols) and a K x2 device (communications) - those are 7010 extensions, not 1410 features."
+}

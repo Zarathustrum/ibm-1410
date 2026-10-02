@@ -1,0 +1,188 @@
+{
+  "topic": "gap-mce-registers-after",
+  "summary": "The IBM 1410 Principles of Operation is a dead end on this: every edition (A22-0526, -2, -3, the May-63 reprint), the A22-1407-2 Reference Manual, and even the 7010 PoO A22-6726 print the identical row for op E - I-Address Reg = NSI, A-Address Reg = A-LA, B-Address Reg = 'Varies with result of edit' - and never give a rule. The rule does survive, in two places the PoO reader would not think to look. First, PoO A22-0526-3 Figure 34 (pp.34-35) is a complete 46-step cycle-by-cycle trace of one edit with all three address registers printed at every cycle, so the two-scan zero-suppression case is directly readable off the page. Second, and decisively, the CE Instruction manual S223-2698 (IBM 1411 Processing Unit, Instructions and Special Features, 1961), pp.50-51, states the address-modification mechanism explicitly: BAR is modified by -1 on every B-cycle of the first and third scans and by +1 on every B-cycle of the second scan, including the terminating cycle, and it names the exact character on which each scan terminates. Between the printed trace (which pins the sign convention) and the stated mechanism, all termination cases resolve.\n\nThe answers. IAR after MCE is always NSI. AAR after is always A-LA - one position to the left of the A-field's high-order word mark - because A-cycles stop the moment the A-field word mark is sensed (the extension latch is set) and scans 2 and 3 use B-cycles exclusively; verified numerically in Figure 34 (A-address 12163, 8-character A-field 00257426 at 12156-12163, AAR after = 12155). The caveat is that A-LA only holds for legal usage: if the A field is longer than the number of blanks-and-zeros in the control-word body, the first scan is terminated early by the B-field word mark and AAR stops wherever it got to. BAR after has four cases. (1) No zero-suppression code '0' anywhere in the control word: one scan only, BAR = addr(B-field high-order word mark) - 1, i.e. it points at the units position of the field to the left of the control word. (2) Two-scan termination - plain zero suppression, asterisk protection, sign control left, and decimal control when the field does contain a significant digit: BAR = addr(zero-suppression code position in the B field) + 1. This is the case Figure 34 traces: suppression code at 04676, BAR after = 04677. (3) Three-scan floating dollar sign: the third scan runs leftward and stops the instant the '$' is stored in the first blank it finds, so BAR = addr(the position where '$' was written) - 1, which is two positions left of the leftmost significant character of the edited result. (4) Three-scan decimal control with no significant digits: the third scan stops when the decimal point is read out and replaced, so BAR = addr(decimal point in the B field) - 1. If both floating-dollar and decimal-control latches are on, the third scan ends on whichever of a blank or a decimal it reads first, same -1 convention.\n\nBoth word-mark questions are definitively yes. The high-order B-field word mark is always removed, during the first scan, in every case including the single-scan no-suppression case: the PoO editing text says 'the B-field (high-order) word mark is sensed and removed' for every variant, and Figure 34 step 37 shows the word-marked '$' read out and put back into storage without its word mark, with the B-FIELD AT END OF CYCLE column losing that mark on exactly that step. The automatically-set word mark at the suppression-code position is likewise always erased before the operation ends - PoO says so in all five editing variants, and Figure 34 step 46 (the last step) shows the word-marked '4' read out and put back plain, with no mark left in the B field. There is a harmless documentation inconsistency about when: the PoO attributes the erasure to the second forward scan in the floating-dollar case and to the end of the reverse scan everywhere else; the CE manual puts it on the scan-2 terminating cycle in all cases. End state is identical either way.\n\nTwo further things an implementer needs. MCE performs a 'skid' B-cycle at each scan boundary: at scan 1 to scan 2 it reads and rewrites unchanged the byte at (B_high - 1), one position outside the control word; at scan 2 to scan 3 it reads and rewrites unchanged the byte at (suppression code + 1). Both are real storage references - they cost cycles and they touch memory outside the B field, which matters for address wrap and for the storage-protection feature. And the A field in storage is not modified: PoO Figure 27 prints the A-field as 00257426 both before and after, so 'any sign in the units position of the data field is removed during the operation' means the zone is stripped from the character moved into the B field, not from the A field itself. rcornwell's simh i7010_cpu.c OP_MCE independently reproduces the verified two-scan BAR result and the -1/+1/-1 convention, with one deviation noted below.",
+  "facts": [
+    {
+      "claim": "IBM 1410 PoO A22-0526-3 p.31, 'Move Characters and Edit', Address Registers after Operation: I-ADDRESS REG = NSI, A-ADDRESS REG = A-LA, B-ADDRESS REG = 'Varies with result of edit'. No rule for BAR is given anywhere in the instruction description.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, p.31)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The 'Varies with result of edit' wording is identical in every 1410 manual edition and in the 7010 PoO: A22-0526-2, A22-0526 (May 63), A22-1407-2 Reference Manual (Figure 41, 'Editing', p.38) and A22-6726 7010 PoO. It is not an omission fixed in a later edition.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/A22-1407-2_1410ref_Nov61.pdf (A22-1407-2, p.38, Figure 41); https://bitsavers.org/pdf/ibm/1410/A22-6726_7010_PrincOps.pdf",
+      "confidence": "verified"
+    },
+    {
+      "claim": "PoO A22-0526-3 Figure 34, 'Step-by-Step Editing Process' (pp.34-35), is a 46-step cycle-by-cycle trace with columns TYPE OF CYCLE / ADDRESS REGISTERS (I, A, B) / DATA REGISTER (B, A) / PUT BACK INTO STORAGE / B-FIELD AT END OF CYCLE. The same trace appears as Figures 23A and 23B on pp.52-53 of CE manual S223-2698. This is the primary-source answer for the two-scan case.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, pp.34-35); https://bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/S223-2698_CE_Instruction_1411_Instructions_and_Special_Features_1961.pdf (S223-2698, pp.52-53)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Figure 34 traced case: instruction E 12163 04685 occupying 00001-00011 (NSI = 00012). A-field = 00257426 at 12156-12163 (word mark at 12156, high order). Control word = $bbb,bb0.bb&CR&** at 04669-04685 (word mark at 04669, high order). Zero-suppression code '0' at 04676. Final registers at step 46: IAR = 00012, AAR = 12155, BAR = 04677.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, Figure 27 p.31 and Figure 34 pp.34-35)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "AAR after MCE = A - LA, i.e. one position left of the A-field high-order word mark. Verified numerically: A-address 12163, A-field length 8, AAR after = 12155. AAR is untouched by scans 2 and 3, which are B-cycles exclusively.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, p.31 register table + Figure 34 step 46); https://bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/S223-2698_CE_Instruction_1411_Instructions_and_Special_Features_1961.pdf (S223-2698, pp.50-51)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "A-LA holds only for legal usage. S223-2698 p.50: 'If the A-channel word mark ... is sensed before the B-channel word mark is detected, the body latch is reset, and the extension latch is set' - AAR stops there. Conversely 'Other A-field characters are not processed after the B-channel word mark is detected. For this reason, the A-field should not contain more characters than the number of blanks and zeros in the body of the control word.' If the A field IS longer, AAR ends at A minus the number of characters actually consumed, not A-LA.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/S223-2698_CE_Instruction_1411_Instructions_and_Special_Features_1961.pdf (S223-2698, p.50)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Address-modification convention, stated in S223-2698 p.50-51: BAR is modified by -1 on each B-cycle of the first scan, by +1 on each B-cycle of the second scan, and by -1 on each B-cycle of the third scan - including on the cycle that terminates the scan. Confirmed against Figure 34: step 37 reads the word-marked '$' at 04669 and shows BAR = 04668; step 46 reads the word-marked '4' at 04676 and shows BAR = 04677.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/S223-2698_CE_Instruction_1411_Instructions_and_Special_Features_1961.pdf (S223-2698, pp.50-51); A22-0526-3 Figure 34 steps 37 and 46",
+      "confidence": "verified"
+    },
+    {
+      "claim": "CASE 1 (single scan, no '0' in control word): S223-2698 p.50 - 'If the zero suppress latch is not set when the B-field word mark is sensed, the first scan and the edit operation end (no zeros in the control word).' Since first-scan BAR is -1 per cycle, BAR after = addr(B-field high-order word mark) - 1, i.e. the units position of the field to the left of the control word.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/S223-2698_CE_Instruction_1411_Instructions_and_Special_Features_1961.pdf (S223-2698, p.50)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "CASE 2 (two-scan termination: plain zero suppression, asterisk protection, sign control left, and decimal control when a significant digit exists): BAR after = addr(zero-suppression code position in the B field) + 1. Directly printed in Figure 34: suppression code at 04676, final BAR = 04677.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, Figure 34 steps 25 and 46, pp.34-35)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Two-scan termination conditions, S223-2698 p.51: 'The edit operation is terminated at the end of the second scan if the floating dollar latch is off and either: 1. The decimal control or zero suppress latches are off when the B-field word mark is sensed, or 2. The character read out of storage with the word mark is a significant digit. If the floating dollar latch was set during first scan, a third scan is required regardless of conditions established during second scan.' Asterisk fill is done inside scan 2, so asterisk protection is a two-scan operation.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/S223-2698_CE_Instruction_1411_Instructions_and_Special_Features_1961.pdf (S223-2698, p.51)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "CASE 3 (three-scan floating dollar sign): S223-2698 p.51 - 'If the floating dollar latch is set, a $ replaces the first B-field blank detected on third scan and terminates the edit operation ... The operation ends when the $ is stored in the B-field.' With third-scan BAR at -1 per cycle including the terminating cycle, BAR after = addr(position where the '$' was stored) - 1.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/S223-2698_CE_Instruction_1411_Instructions_and_Special_Features_1961.pdf (S223-2698, p.51)",
+      "confidence": "likely"
+    },
+    {
+      "claim": "CASE 4 (three-scan decimal control, all-blank result / no significant digits): S223-2698 p.51 - 'If the decimal control and zero suppress latches are set when a decimal is sensed during third scan, the decimal is replaced with a blank or asterisk, and the edit operation ends ... The edit operation is complete when the decimal is read out and replaced with a blank.' BAR after = addr(decimal point in the B field) - 1. Matches PoO A22-0526-3 p.33: 'The operation stops at the decimal column.'",
+      "source": "https://bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/S223-2698_CE_Instruction_1411_Instructions_and_Special_Features_1961.pdf (S223-2698, p.51); https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, p.33)",
+      "confidence": "likely"
+    },
+    {
+      "claim": "CASE 5 (both floating dollar and decimal control latches set): S223-2698 p.51 - 'If both the floating dollar and decimal control latches are set, the third scan and the edit operation are complete when either a decimal or blank is read out of memory and the appropriate character is returned to the B-field.' BAR after = addr(that terminating character) - 1. Note PoO A22-0526-3 p.32 warns this combination misbehaves (control field bb$.bb with A-field 00025 edits to '.25', not '$.25').",
+      "source": "https://bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/S223-2698_CE_Instruction_1411_Instructions_and_Special_Features_1961.pdf (S223-2698, p.51); https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, p.32)",
+      "confidence": "likely"
+    },
+    {
+      "claim": "ANSWER 2a - the high-order B-field word mark is ALWAYS removed, during the first scan, in every editing variant. PoO A22-0526-3 states 'the B-field (high-order) word mark is sensed and removed' in the zero-suppression forward scan (p.31), the asterisk-protection forward scan (p.32), the floating-dollar first forward scan (p.32) and the decimal-control first forward scan (p.33). Figure 34 step 37 shows the '$' at 04669 read out WITH its word mark and put back into storage WITHOUT it; the B-FIELD AT END OF CYCLE column carries two word marks at step 36 and only one (over the '4') at step 37.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, pp.31-33 and Figure 34 steps 36-37); S223-2698 p.48",
+      "confidence": "verified"
+    },
+    {
+      "claim": "ANSWER 2b - the automatically set word mark at the suppression-code position is ALWAYS erased before the operation ends, in every variant. PoO A22-0526-3: zero suppression reverse scan 'it is erased and the operation ends' (p.32); asterisk protection 'It is erased, and the operation stops' (p.32); floating dollar second forward scan 'The word mark is erased, and the scan continues' (p.32); sign control left 'This word mark is erased and the operation ends' (p.33); decimal control reverse scan 'The automatically set word mark is erased' (p.33). Figure 34 step 46, the last step, shows the '4' at 04676 read out with its word mark and put back plain, leaving no word mark in the B field.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, pp.32-33 and Figure 34 step 46); S223-2698 p.48",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Documentation inconsistency, no behavioural difference: PoO attributes the auto word-mark erasure to the end of the reverse scan for zero suppression / asterisk / sign-control-left, but to the START of the second forward scan for floating dollar ('The word mark is erased, and the scan continues'). S223-2698 puts it on the scan-2 terminating B-cycle in all cases. Final memory state is identical; only an intra-instruction observer could tell.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, p.32); S223-2698 p.51",
+      "confidence": "verified"
+    },
+    {
+      "claim": "SKID CYCLES - MCE touches storage outside the B field. S223-2698 p.50: 'Because the BAR was modified by -1 on the last B-cycle of the first scan, the BAR addresses the low-order character in the next field when the second scan begins. The CPU performs a skid B-cycle to read out and return the character to its storage position unchanged.' p.51 says the same for the scan-2-to-scan-3 boundary ('the BAR addresses the character to the right of the desired position'). Figure 34 step 38 is labelled 'Skid B' in the CE printing, at BAR 04669, remark 'Units Position of next Field'. So: one read/rewrite at (B_high - 1) at the scan 1-2 boundary, one at (suppression code + 1) at the scan 2-3 boundary.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/S223-2698_CE_Instruction_1411_Instructions_and_Special_Features_1961.pdf (S223-2698, pp.50-51, Figure 23B p.53 step 38)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The A field is NOT modified in storage by MCE. PoO A22-0526-3 Figure 27 (p.31) prints the A-field as 00257426 both in 'Storage' and in 'Result of Edit / Storage'. The statement 'Any sign in the units position of the data field is removed during the operation' (p.31) refers to the zone being stripped from the character moved into the B field. All A-cycles are read-only.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, Figure 27 and Function paragraph, p.31)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "When the A-field word mark is sensed the extension latch is set and remaining commas in the B field are set to blanks; no further A-field characters are transferred. Figure 34 steps 36-37 show '0' and ',' positions being blanked after the A word mark at step 35.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, p.31 'Word Marks'); S223-2698 pp.47, 50",
+      "confidence": "verified"
+    },
+    {
+      "claim": "CROSS-CHECK: rcornwell/sims I7000/i7010_cpu.c 'case OP_E' independently reproduces the rules. Scan 1 does ReadP(BAR) then DownReg(BAR), breaking on the B word mark; then UpReg(BAR) and scan 2 does ReadP then UpReg, breaking on the auto word mark - leaving BAR = suppression code + 1, matching Figure 34's 04677. Scan 3 does DownReg(BAR) then ReadP/DownReg, breaking immediately after writing '$' at a blank, or after writing blank/asterisk over a decimal point - leaving BAR = terminating address - 1. Its writeback always strips the word mark, so both the high-order B word mark and the auto word mark are always erased. The header i7010_defs.h annotates OP_E as '/* NSI ALA ? */' - the author also could not determine BAR from the PoO.",
+      "source": "https://github.com/rcornwell/sims/blob/master/I7000/i7010_cpu.c (case OP_E); https://github.com/rcornwell/sims/blob/master/I7000/i7010_defs.h (#define OP_E)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "SIMULATOR DEVIATION worth not copying: i7010_cpu.c decides the single-scan case with 'if ((cy & 0x1) == 0 && (ReadP(BAR) & 077) != CHR_0) break;' - it reads the byte at the already-decremented BAR, which is OUTSIDE the control word (the units position of the next field to the left), and tests it for '0'. S223-2588/S223-2698 condition this only on the zero-suppress latch. Implement the CE manual's rule (latch only), not the simh test.",
+      "source": "https://github.com/rcornwell/sims/blob/master/I7000/i7010_cpu.c (case OP_E); https://bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/S223-2698_CE_Instruction_1411_Instructions_and_Special_Features_1961.pdf (S223-2698, p.50)",
+      "confidence": "likely"
+    },
+    {
+      "claim": "The 1410 CE Handbook 223-2588-2 does NOT contain the answer. Its 'Brief Op Code Descriptions' Editing row reads only: 'Editing  E(A)(B)  Move characters and edit. For detailed explanation, refer to Section in Reference Manual (Form A24-1407-2).' No register-after data. Its separate 1401-vs-1410 B-Address Register comparison chart covers card and print operations only, not edit.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/223-2588-2_1410_CE_Handbook_196404.pdf (223-2588-2, 'Brief Op Code Descriptions', Editing row; and pp.52-53 1401/1410 differences)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "1410-vs-1401 difference relevant to MCE, from CE Handbook 223-2588-2 p.53: 'Single Character Edit - If the specified A-field in an edit operation contains a word mark in the units position (a single character field), the 1401 system will not transfer this single-character field to the B-field. The 1410 will transfer and edit this single-character field.' Do not port 1401 edit behaviour for the 1-character A-field case.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/223-2588-2_1410_CE_Handbook_196404.pdf (223-2588-2, p.53)",
+      "confidence": "verified"
+    },
+    {
+      "claim": "MCE timing formula, PoO A22-0526-3 p.31: T = 4.5 (L + 1 + A + 1.5B + 1.5Z + 1.5D) microseconds, L = 1, 6 or 11. A = A-field length, B = B-field length, Z = second-scan length, D = third-scan length. S223-2698 Figure 25 is 'Edit Operation Timings'.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf (A22-0526-3, p.31)",
+      "confidence": "verified"
+    }
+  ],
+  "tables": [
+    {
+      "title": "IBM 1410 MCE (op E) - registers after operation, by termination case",
+      "markdown": "| Termination case | Scans | IAR after | AAR after | BAR after | Confidence |\n|---|---|---|---|---|---|\n| No `0` (zero-suppression code) anywhere in control word | 1 | NSI | A - LA | `addr(B-field high-order word mark) - 1` | verified (S223-2698 p.50) |\n| Plain zero suppression | 2 | NSI | A - LA | `addr(zero-suppression code in B field) + 1` | verified (A22-0526-3 Fig 34) |\n| Asterisk protection (`*` left of the `0` code) | 2 | NSI | A - LA | `addr(zero-suppression code in B field) + 1` | verified (asterisk fill is done inside scan 2, S223-2698 p.51) |\n| Sign control left (`CR`/`-` in high-order status) | 2 | NSI | A - LA | `addr(zero-suppression code in B field) + 1` | verified (A22-0526-3 p.33) |\n| Decimal control, field HAS a significant digit | 2 | NSI | A - LA | `addr(zero-suppression code in B field) + 1` | verified |\n| Decimal control, NO significant digit (all-blank result) | 3 | NSI | A - LA | `addr(decimal point in B field) - 1` | likely (derived from S223-2698 p.51 + verified ±1 convention) |\n| Floating dollar sign | 3 | NSI | A - LA | `addr(position where `$` was stored) - 1` | likely (same derivation) |\n| Floating dollar AND decimal control both on | 3 | NSI | A - LA | `addr(first blank-or-decimal read in scan 3) - 1` | likely (same derivation) |\n\n`A - LA` = A-address minus A-field length = one position left of the A-field's high-order word mark. Valid only when the A field is not longer than the count of blanks+zeros in the control-word body.",
+      "source": "A22-0526-3 pp.31-35 (Figure 34) + S223-2698 pp.50-51"
+    },
+    {
+      "title": "A22-0526-3 Figure 34 / S223-2698 Figures 23A-23B - the verified trace (key steps)",
+      "markdown": "| Step | Cycle | IAR | AAR | BAR | Data reg (B) | Put back | B-field at end of cycle | Remark |\n|---|---|---|---|---|---|---|---|---|\n| 12 | I-11 | 00012 | 12163 | 04685 | op | op | `$bbb,bb0.bb&CR&**` | Op code and next instruction |\n| 13 | A | 00012 | 12162 | 04685 | 6 | 6 | same | Execute EDIT instruction |\n| 14 | B | 00012 | 12162 | 04684 | `*` | `*` | same | status portion, `*` undisturbed |\n| 16 | B | 00012 | 12162 | 04682 | `&` | blank | `$bbb,bb0.bb&CRb**` | `&` -> blank |\n| 20 | B | 00012 | 12162 | 04678 | b | 6 | `$bbb,bb0.b6bbbb**` | first blank: body starts |\n| 25 | B | 00012 | 12160 | 04675 | 0 | 4 | `$bbb,bb4.26bbbb**` | **Zero Suppress**: `0` at 04676 replaced by A digit, word mark auto-set here |\n| 35 | A | 00012 | 12155 | 04670 | 0 (WM) | 0 | same | A-field word mark sensed; AAR stops at 12155 |\n| 36 | B | 00012 | 12155 | 04669 | b | 0 | `$002,574.26bbbb**` | two word marks still in B field (`$` and `4`) |\n| 37 | B | 00012 | 12155 | 04668 | `$` (WM) | `$` (no WM) | `$002,574.26bbbb**` | **Sense Word Mark - Rev. Scan**; high-order B word mark REMOVED; only the auto WM over `4` remains |\n| 38 | **Skid B** | 00012 | 12155 | 04669 | ? | ? | unchanged | **Units position of next field** - reads/rewrites 04668, outside the B field |\n| 40 | B | 00012 | 12155 | 04671 | 0 | blank | `$b02,574.26bbbb**` | reverse scan blanking |\n| 42 | B | 00012 | 12155 | 04673 | 2 | 2 | same | first significant digit: suppression off |\n| 46 | B | 00012 | 12155 | 04677 | 4 (WM) | 4 (no WM) | `$bb2,574.26bbbb**` | **LAST STEP** - auto word mark ERASED, operation ends. Final: IAR 00012, AAR 12155, BAR 04677 |\n\nSetup: `E 12163 04685` at 00001-00011. A-field `00257426` at 12156-12163 (WM at 12156). Control word `$bbb,bb0.bb&CR&**` at 04669-04685 (WM at 04669). Zero-suppression code `0` at 04676. Result `$  2,574.26    **`.",
+      "source": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf pp.34-35; S223-2698 pp.52-53"
+    },
+    {
+      "title": "Implementation recipe (derived, ready to code)",
+      "markdown": "| Phase | Direction | BAR delta per B-cycle | Starts at | Ends when | Word-mark action |\n|---|---|---|---|---|---|\n| Scan 1 (forward) | right to left | -1 | B-address (units of control word) | B-field high-order word mark is read | reads it, writes the char back WITHOUT the word mark |\n| Skid (1->2) | - | +1 | (B_high - 1) | one cycle | reads and rewrites that byte unchanged - it is OUTSIDE the control word |\n| Scan 2 (reverse) | left to right | +1 | B_high | auto word mark at the `0` code is read | reads it, writes the char back WITHOUT the word mark |\n| *(stop here if no floating-$ latch AND (zero-suppress or decimal-control latch off OR the word-marked char is 1-9))* | | | | | BAR = suppression code + 1 |\n| Skid (2->3) | - | -1 | (suppression code + 1) | one cycle | reads and rewrites that byte unchanged |\n| Scan 3 (forward) | right to left | -1 | suppression code position | `$` stored into first blank, or decimal point read out | BAR = terminating address - 1 |\n\nA-cycles run only during scan 1, decrementing AAR, and stop at the A-field word mark (extension latch). IAR is untouched throughout and holds NSI.",
+      "source": "derived from S223-2698 pp.50-51 and A22-0526-3 Figure 34"
+    }
+  ],
+  "open_questions": [
+    "No printed cycle-by-cycle trace exists for any three-scan case (floating dollar, all-blank decimal control). The BAR values for those are derived from S223-2698 p.51's explicit statement that BAR is modified by -1 on every third-scan B-cycle plus the termination wording ('the operation ends when the $ is stored in the B-field', 'the edit operation is complete when the decimal is read out and replaced with a blank'), calibrated against the verified two-scan trace. A cycle-level ALD check (bitsavers /pdf/ibm/1410/drawings/, logic pages 12.30.x scan control and 14.71.41/14.71.42 address modify) would upgrade these from 'likely' to 'verified'.",
+    "S223-2698 Figures 24B and 24C ('Edit, Second Scan' / 'Edit, Third Scan', pp.55-56) are flowcharts whose boxes did not survive pdftotext cleanly. If a three-scan BAR value is ever disputed, read those two pages as images - they are the next-best primary source short of the ALDs.",
+    "Whether the terminating third-scan B-cycle in the 'both floating-$ and decimal-control set' path modifies BAR identically to the single-latch paths is assumed, not shown. This combination is documented as misbehaving anyway (A22-0526-3 p.32) and should be avoided in generated code rather than emulated exactly.",
+    "The exact number of storage cycles consumed by the two skid cycles is not stated per-scan in the timing formula T = 4.5(L + 1 + A + 1.5B + 1.5Z + 1.5D); S223-2698 Figure 25 'Edit Operation Timings' (image, not extracted) would settle whether the skids are inside the B/Z/D counts. Only matters for cycle-accurate timing, not for register state.",
+    "Not checked: cube1us/1410 (Borland C++ cycle-level 1410 simulator, GPL-3.0). It was not needed - the CE manual plus the printed trace settle the question - but it is the natural third cross-check if a discrepancy ever surfaces, since it is ALD-derived rather than behaviour-derived.",
+    "Behaviour when the control word contains no zero-suppression code AND the B-field high-order word mark sits at address 00000 (address wrap during the -1 modification) is not documented; likewise the storage-protection interaction with the two skid cycles that touch bytes outside the declared B field."
+  ],
+  "sources": [
+    {
+      "title": "IBM 1410 Principles of Operation, A22-0526-3",
+      "url": "https://bitsavers.org/pdf/ibm/1410/A22-0526-3_1410_princOps.pdf",
+      "note": "pp.31-35. p.31 = MCE instruction form, register table with 'Varies with result of edit', Function, Word Marks. p.32 = Figure 28 editing specifications, Figure 29 zero suppression + reverse scan, Figure 30 asterisk protection, Figure 31 floating dollar. p.33 = Figure 32 sign control left, Figure 33 decimal control. pp.34-35 = Figure 34, the 46-step cycle-by-cycle trace with I/A/B address registers - THE primary-source answer for the two-scan case."
+    },
+    {
+      "title": "IBM 1411 Processing Unit, Instructions and Special Features - CE Instruction manual, S223-2698 (1961)",
+      "url": "https://bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/1411_CPU/S223-2698_CE_Instruction_1411_Instructions_and_Special_Features_1961.pdf",
+      "note": "THE decisive source. p.47 Edit Instruction intro + Word Marks; p.48 editing specifications and per-feature scans; pp.50-51 the CPU-action narrative that states the -1/+1/-1 BAR modification, the skid cycles, and every scan-termination condition verbatim; pp.52-53 Figures 23A/23B (same trace as PoO Fig 34, but with step 38 explicitly labelled 'Skid B'); pp.54-56 Figures 24A/24B/24C first/second/third-scan flowcharts; Figure 25 Edit Operation Timings. NOTE: bitsavers returns 403 on https for this path - fetch over http with a browser User-Agent."
+    },
+    {
+      "title": "IBM 1410 Customer Engineering Handbook, 223-2588-2 (Apr 1964)",
+      "url": "https://bitsavers.org/pdf/ibm/1410/CE_Instruction_Reference_Maintenance/223-2588-2_1410_CE_Handbook_196404.pdf",
+      "note": "Checked and NEGATIVE for register-after. 'Brief Op Code Descriptions' Editing row just points at A24-1407-2. Its 1401-vs-1410 B-Address Register chart (p.52) covers card/print ops only. Does carry one useful MCE fact on p.53: single-character A-field IS edited on the 1410, not on the 1401."
+    },
+    {
+      "title": "IBM 1410 Reference Manual, A22-1407-2 (Nov 1961)",
+      "url": "https://bitsavers.org/pdf/ibm/1410/A22-1407-2_1410ref_Nov61.pdf",
+      "note": "p.38, Figure 41 'Editing': same NSI / A-LA / 'Varies with result of edit'. Confirms the omission is consistent across the manual family, not an edition artefact."
+    },
+    {
+      "title": "IBM 7010 Principles of Operation, A22-6726",
+      "url": "https://bitsavers.org/pdf/ibm/1410/A22-6726_7010_PrincOps.pdf",
+      "note": "Carries the identical 'NSI / A-LA / Varies with result of edit' row for op E. The 7010 edit is the 1410 edit."
+    },
+    {
+      "title": "rcornwell/sims - I7000/i7010_cpu.c, case OP_E",
+      "url": "https://github.com/rcornwell/sims/blob/master/I7000/i7010_cpu.c",
+      "note": "Behaviour-derived simh implementation. Independently reproduces the -1/+1/-1 convention and the verified BAR = suppression code + 1 two-scan result, and always strips both word marks. One deviation not to copy: it decides the single-scan case partly by reading a byte outside the control word. i7010_defs.h annotates OP_E as 'NSI ALA ?' - the author could not derive BAR from the PoO either."
+    },
+    {
+      "title": "cube1us/1410 - IBM 1410 cycle-level simulator (GPL-3.0)",
+      "url": "https://github.com/cube1us/1410",
+      "note": "Not consulted this pass - the CE manual settled the question. Listed as the ALD-derived third cross-check if a three-scan BAR value is ever disputed."
+    }
+  ]
+}

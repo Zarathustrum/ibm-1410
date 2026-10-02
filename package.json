@@ -1,0 +1,30 @@
+{
+  "name": "ibm-1410",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build:tools": "tsc -p tsconfig.tools.json",
+    "oracles": "npm run build:tools && node build/tools/fetch-oracles.js",
+    "pretest": "npm run oracles",
+    "test": "vitest run --exclude 'test/tier4-*.test.ts'",
+    "presmoke": "npm run oracles",
+    "smoke": "vitest run test/tier4-",
+    "demo": "npm run build:tools && node build/tools/run-deck.js",
+    "asm": "npm run build:tools && node build/tools/asm.js",
+    "rpg": "npm run build:tools && node build/tools/rpg.js",
+    "cc01": "npm run build:tools && node build/tools/run-cor.js oracles/cc01.cor --iar 02000 --expect-cc01",
+    "dev": "vite",
+    "build": "vite build",
+    "check:deferred": "bash scripts/check-deferred.sh"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.0",
+    "vite": "^8.0.0",
+    "vitest": "^4.0.0"
+  }
+}

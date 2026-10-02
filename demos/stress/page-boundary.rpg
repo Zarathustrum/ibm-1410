@@ -1,0 +1,13 @@
+RG                                                                         02010
+CAA  001 CC                              01                                03010
+DTEXT  004         CAA 005004                                              04010
+DPAGENO003         PAG                                                     04020
+ACOUNT 003                   PAGENO003A         D                          05010
+LHA1X         01    1P                                                     06010
+K                                 008          004PAGE                     06020
+F                           PAGENO012         Z                            06030
+LHB1X         01    OF                                                     06040
+K                                 008          004PAGE                     06050
+F                           PAGENO012         Z                            06060
+LD11X       01      01                                                     06070
+F                           TEXT  004                                      06080

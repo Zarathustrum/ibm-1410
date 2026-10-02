@@ -1,0 +1,9 @@
+RG                                                                         02010
+CAA  001 CC                              01                                03010
+DAMT   005         CAAN006005                                              04010
+DPAGENO003         PAG                                                     04020
+ATOT   006                   AMT   005S         D                          05010
+LT11X       01      LC                                                     06010
+K                                 010          006SIGNED                   06020
+B                           TOT   020             WORD01                   06030
+W                           WORD01             008   ,   -                 06040
