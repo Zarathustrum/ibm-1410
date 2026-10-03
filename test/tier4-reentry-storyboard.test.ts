@@ -324,7 +324,7 @@ const rpgJob = extract();
 // `rpgJob` above each build a FRESH machine through `desk()`, so they could not see what the
 // first job leaves in core — and it left a word mark at 01963, inside the generated program's
 // card image, which shortened `ZA C006,TIME` to three digits and printed 52 wrong extract lines.
-// Tom's ruling (2026-10-02): the generated program must not assume clean core.
+// Zarathustrum's ruling (2026-10-02): the generated program must not assume clean core.
 const shared = desk();
 trajectory(shared);
 const sharedRpgJob = extract(shared, rekeyTheBootstrap);

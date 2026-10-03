@@ -21,7 +21,7 @@ The checker treats the first ```bash``` code block inside an entry as the trigge
 ### DEFERRED-01: `HALT_TYPES_NO_PRINTOUT` contradicted by S223-2648 p.6
 
 - **Status:** RESOLVED
-- **Tripped:** 2026-09-04 — by `docs/plans/phase-6-reentry.md` (and its panel dossier) arriving on `feature/phase-6-reentry`; discharge scheduled as Phase 6 wave 0 (plan §9), the first build commit after Tom's go
+- **Tripped:** 2026-09-04 — by `docs/plans/phase-6-reentry.md` (and its panel dossier) arriving on `feature/phase-6-reentry`; discharge scheduled as Phase 6 wave 0 (plan §9), the first build commit after Zarathustrum's go
 - **Source:** `docs/research/open-questions.md` Phase 4 section (§11.1 primary read, wave 0); `src/core/machine.ts:65`
 - **Target:** before Phase 6 (the reentry showcase)
 - **Added:** 2026-09-02
@@ -67,7 +67,7 @@ ls docs/plans/phase-6-*.md >/dev/null 2>&1
 `display()` stopped at the top of installed storage on every machine size — the 10K rule.
 A22-0526-3 p.51 §4: on a 20K-80K machine display continues from 00000 after the last location
 unless it carried a word mark, and alter wraps with it. The draft offered two discharges, ~15 lines
-plus two cases or a dated accepted-divergence ruling; **Tom chose the implementation** (2026-10-02).
+plus two cases or a dated accepted-divergence ruling; **Zarathustrum chose the implementation** (2026-10-02).
 `DISPLAY_WRAPS_ABOVE_10K = true`, `[verified]`; six cases in `test/machine-console.test.ts`; 10K
 byte-for-byte unchanged.
 

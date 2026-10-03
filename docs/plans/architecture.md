@@ -1,6 +1,6 @@
 # IBM 1410 emulator — whole-system architecture
 
-Status: design, awaiting Tom's approval. Companion: [phase-1-cpu-core.md](phase-1-cpu-core.md).
+Status: design, awaiting Zarathustrum's approval. Companion: [phase-1-cpu-core.md](phase-1-cpu-core.md).
 Every hardware behaviour below cites a file in `docs/research/`. Where the research is
 `[unverified]`, the fallback from `open-questions.md` is named at the point of use.
 
@@ -830,7 +830,7 @@ ALTER (display-then-alter, ending at a word mark) comes with it, because without
 has no way to put a hand-keyed program into storage at all. In Phase 4 the whole surface
 becomes a tab and Phase 4 reuses these controls verbatim; nothing is thrown away.
 
-The cycle counter is named `microsecondsSimulated` and is never rendered as a clock. Tom's
+The cycle counter is named `microsecondsSimulated` and is never rendered as a clock. Zarathustrum's
 settled decision is instruction-accurate with a cycle counter and **no cycle-accurate timing
 claims**.
 
@@ -838,7 +838,7 @@ claims**.
 
 ## 7. Phase sequence, each ending on a demo
 
-**Build order (Tom, 2026-08-30): 1 → 1b ∥ 2 → 3 → 5 → 4 → 6.** RPG builds before the period
+**Build order (Zarathustrum, 2026-08-30): 1 → 1b ∥ 2 → 3 → 5 → 4 → 6.** RPG builds before the period
 UI — the green-bar report is the showcase and needs no chrome, and Phase 4 then dresses a real
 job. Phase numbers are stable names, not the sequence.
 
@@ -851,7 +851,7 @@ Gated. Approval before each (`CLAUDE.md`).
 | **2 — Unit record** | `Card`, 1402 reader/punch, 1403 Model 2, 1415 read/inquiry, the condensed loader | Paste a hand-punched deck into the browser, key `AL%1000012$R` into 00000-00011, COMPUTER RESET + START — a card image lands in core and a line hits the printer. **This demo depends on the §9 C17 ruling** that `$` is decoded at channel level and suppresses the GM-WM record test on a *card* read; `io.md` §3 reads A22-0526-3 p.62 as allowing only `R` there. If C17 goes the other way, the demo bootstraps with `R` and a pre-set GM-WM instead, and the keyed string changes. |
 | **3 — Autocoder** | `SourceCard[] → { ListingLine[], ObjectDeck }` | Type Autocoder in a textarea; see the 1403-format listing and the punched object deck side by side; load the deck; run it. |
 | **4 — Period UI** | Consumes `ConsoleLine[]`, `PrintEvent[]`, `Deck` — **no core changes** | The whole machine as the operator saw it: Selectric log, MODE rotary, card hopper, green-bar. Internals becomes a tab. |
-| **5 — RPG** | `spec sheets → SourceCard[]`, **on the host** — the real RPG processor was tape-resident (20K + 1402 + two tapes) and cannot run on this configuration (`software.md` §12.5, §5 step 0) | An RPG business report — file description, input specs over a card file, calculation specs with level breaks, output specs with edit codes — printed on green-bar. Tom's flagged candidate for the *first* showcase, **which reverses the order in `CLAUDE.md` and `PROJECT-BRIEF.md` — see §11 item 3**. |
+| **5 — RPG** | `spec sheets → SourceCard[]`, **on the host** — the real RPG processor was tape-resident (20K + 1402 + two tapes) and cannot run on this configuration (`software.md` §12.5, §5 step 0) | An RPG business report — file description, input specs over a card file, calculation specs with level breaks, output specs with edit codes — printed on green-bar. Zarathustrum's flagged candidate for the *first* showcase, **which reverses the order in `CLAUDE.md` and `PROJECT-BRIEF.md` — see §11 item 3**. |
 | **6 — Reentry showcase** | An Autocoder program, no new machinery | A ballistic reentry trajectory printed in twelve columns on the 132-position carriage, framed honestly as a reconstruction. |
 
 The Phase-1 period-reader demo is the half-cycled add, not the diagnostic banner. It needs one thing the
@@ -896,7 +896,7 @@ would silently drop — `INDEX_US = 34.5` per address indexed (`architecture.md`
 device `I/O` term (0 in Phase 1, with a comment that the 1415's 932 char/min is not modelled),
 and the ops whose timing is a **constant, not a formula**: `G` = 69.75, `.` at L=6 = 36,
 `F`/`K` = 13.5 (`opcodes.md` §1.5, §2). These tests fail loudly if someone edits the code
-without editing the research — the property Tom wants from a project that cites its sources.
+without editing the research — the property Zarathustrum wants from a project that cites its sources.
 
 Named negative tests, each a documented trap: `R`/`X` at length 1 or 6 → Instruction Check;
 `D`/`T` at 2/7/11 → Instruction Check; an 11-character instruction blanks the op-modifier
@@ -1057,7 +1057,7 @@ Every conflict the design review found, with the ruling and its citation.
 | **C16** | MCE address wrap during the `−1` BAR modification, and the skid cycles that touch bytes outside the declared B field. | Undocumented in every manual. We **trap** rather than wrap — `open-questions.md` offers "follow cube1us's wrap-with-latch reading, or trap the case if the emulator does not model wrap", and we do not model wrap. Named constant, `// OPEN:` comment. The skid at `B_high − 1` is not a wrap and is implemented, preserving the word mark it finds (`opcodes.md` §7.5). |
 | **C17** | Is `$` a legal d-character on a **card** read? `software.md` §4's d-modifier table lists `$` under "`M`/`L` tape **or card** read", §10.2 keys it into the card bootstrap `AL%1000012$R`, and §10.4 argues it is load-bearing there. `io.md` §3 said the opposite as `[verified]`: "Read a Card allows only d-character `R` (A22-0526-3 p.62). The `$`/`X` d-modifier that suppresses GMWM termination is a **tape** facility." | **Ruled for `software.md` (2026-08-30, eyes-on read; research files corrected; `open-questions.md` #13): `$` is legal on a card read `[verified]` and is decoded at channel level, before device dispatch.** Settling evidence: C28-0351-5 p.8 Table II ("Not using 7010 Load Key", step 2) prescribes `ALcde00012$r` with `$` as a fixed literal while the device selector `d` varies (1 = card reader, B = tape), and step 1 puts the Bootstrap 1 card first in a card Standard Input Unit — IBM itself keying `$` on a 1402 read. A22-0526-3 names the end-of-core class device-independently on pp.9 and 92 (p.86 is the tape instruction page, not a definition); p.62's `R`-only d-column is silence, not a prohibition, and the PoO defines no I/O d-character validity check anywhere. SimH agrees structurally (`CHAN_NOREC` set in `chan_cmd()`, all GMWM tests guarded on it). What `$` *does* on a 1402 is `[likely]`, derived from p.86: suppress the GM-WM termination test, store all 80 buffer columns, set no WLR — the 80-column buffer, not core, bounds the transfer. Note the corrected rationale: an `R` read *does* stop at 80 columns; the bootstrap needs `$` to avoid a wrong-length-record check and early truncation on a load-mode-created GMWM, not because `R` "has no terminator". **Consequence for the code:** `Channel.decodeD()` carries this ruling and the C28-0351-5 citation in a comment; `decodeD` is the one place that moves if it is ever overturned. |
 | **R1** | The RPG specification-sheet card layout. | **Do not encode.** `software.md` §12.5 documents only that RPG is a preprocessor emitting Autocoder-format source; the sheets (X24-1336..X24-1339) and manual (C28-1443) are named in the bibliography and are not on bitsavers. An H/F/I/C/O form-type column is later-RPG (RPG II) knowledge and encoding it would violate the `[unverified] — do not encode` rule in `research/README.md`. We freeze only the **output** boundary (`SourceCard[]`) and schedule a research pass. See §11. |
-| **UI1** | "Every phase must end with something demonstrable in a browser" — attributed to `CLAUDE.md`, which does not say it. | `CLAUDE.md` says phases are gated and need approval; `PROJECT-BRIEF.md` says Phase 1 is "CPU core + memory + instruction tests (no UI)". We add a ~310-line unstyled internals page in Phase 1 anyway, because `DECISIONS.md` 2026-08-30 makes the internals view a settled deliverable and Phase 4 reuses every line of it. **This is a deliberate deviation from the brief and it is Tom's to accept.** See §11. |
+| **UI1** | "Every phase must end with something demonstrable in a browser" — attributed to `CLAUDE.md`, which does not say it. | `CLAUDE.md` says phases are gated and need approval; `PROJECT-BRIEF.md` says Phase 1 is "CPU core + memory + instruction tests (no UI)". We add a ~310-line unstyled internals page in Phase 1 anyway, because `DECISIONS.md` 2026-08-30 makes the internals view a settled deliverable and Phase 4 reuses every line of it. **This is a deliberate deviation from the brief and it is Zarathustrum's to accept.** See §11. |
 
 ---
 
@@ -1096,7 +1096,7 @@ the line. `NOTICE` carries the attribution.
 
 ---
 
-## 11. Open — genuinely needs Tom
+## 11. Open — genuinely needs Zarathustrum
 
 1. **Phase 1 ships a browser page.** `PROJECT-BRIEF.md` says Phase 1 is "no UI";
    `DECISIONS.md` 2026-08-30 makes the internals view settled. We propose ~310 unstyled
@@ -1111,16 +1111,16 @@ the line. `NOTICE` carries the attribution.
    PR-108 tape image (phases RPG1..RPG13, `RG` control card, 1410 IOCS emission), which is the
    oracle for Phase 5. Only the >999 record-position widening stays `[unverified]`; cap at 999
    with an explicit error.
-3. **The phase order in §7 inverts the brief's, and that should be Tom's call too.**
+3. **The phase order in §7 inverts the brief's, and that should be Zarathustrum's call too.**
    `CLAUDE.md` gives "CPU core → cards/reader/printer → Autocoder assembler → web UI →
    reentry showcase → optional RPG/FORTRAN/tape", and `PROJECT-BRIEF.md` schedules Phase 5
    reentry, Phase 6 optional RPG. §7 puts RPG at 5 and reentry at 6, on the strength of
    `DECISIONS.md` 2026-08-30 — which tags "an RPG report may be the first showcase" as
    `[flexible]`, not settled. Flagging it here for the same reason as item 1: this document
    flags its deviations rather than making them quietly. **The dependency is now satisfied:** item 2
-   resolved to (a), so RPG at Phase 5 and reentry at Phase 6 stands unless Tom flips it; a
+   resolved to (a), so RPG at Phase 5 and reentry at Phase 6 stands unless Zarathustrum flips it; a
    flip swaps the two phases and nothing else in the plan moves — Phase 6 needs no new
-   machinery beyond an Autocoder program. **RESOLVED 2026-08-30: Tom set the build order to
+   machinery beyond an Autocoder program. **RESOLVED 2026-08-30: Zarathustrum set the build order to
    3 → 5 → 4 → 6 ("revise the plan") — RPG builds before the period UI, reentry closes on the
    finished UI; numbering unchanged. Recorded in DECISIONS.md and §7's build-order line.**
 

@@ -1,6 +1,6 @@
 # Phase 6 (reentry showcase) — design-panel dossier
 
-Output of the FULL design panel, workflow run `wf_cf69d70d-d3a`, 2026-09-03 on `voltron`, against
+Output of the FULL design panel, workflow run `wf_cf69d70d-d3a`, 2026-09-03 on `host-b`, against
 `main` at `53b46d4`. Three Opus architects (exact-solution-first / paper-first / reuse-first) -> three
 Opus judges (period fidelity / buildability / testability) -> this Opus synthesis. 7 agents, 1.61M
 tokens, ~53 min, 0 errors. The main session (the orchestrator) wrote the kickoff brief and the
@@ -252,7 +252,7 @@ deliverable is a page. Each is corrected below from a loser or from this synthes
   louder disclosure of the model's central assumption than a footnote, for seven print positions and
   zero arithmetic. All three cut MACH for the same correct reason (`avco-and-reentry.md` §9 calls it
   "an extra tabulated function" needing a speed-of-sound table on a non-exponential temperature
-  profile) and that refusal is ratified. Tom may overrule to eleven live columns — see below.
+  profile) and that refusal is ratified. Zarathustrum may overrule to eleven live columns — see below.
 
 **Q. Is paper-first's fixed-point simulator an oracle?**
 
@@ -421,7 +421,7 @@ deliverable is a page. Each is corrected below from a loser or from this synthes
   set by the author who will supervise the build, and the cheapest way past a red gate is to widen the
   tolerance or edit the reference. The plan needs one line: a tolerance published in
   `docs/BUILD-LOG-6.md` before the golden may not be widened, and the reference may not be edited to
-  match the program, without Tom's authorisation — and any such change is its own commit with its own
+  match the program, without Zarathustrum's authorisation — and any such change is its own commit with its own
   reason.
 - **The reconstruction disclaimer must be asserted on the RPG page too.** All three assert the framing
   line per form of the trajectory page; each also produces a second printed artifact with its own
@@ -435,7 +435,7 @@ deliverable is a page. Each is corrected below from a loser or from this synthes
 
 ---
 
-## Decisions that are Tom's
+## Decisions that are Zarathustrum's
 
 1. **Integrate or tabulate — the spine ruling itself.** The panel ruled INTEGRATE, on
    `architecture.md:1031`. The alternative is exact-solution-first's altitude-grid tabulation, which
@@ -445,7 +445,7 @@ deliverable is a page. Each is corrected below from a loser or from this synthes
    other way.
 2. **The band.** 150,000 ft (panel's recommendation, from exact-solution-first) against 400,000 ft
    with a gravity note (paper-first as written). At 150,000 ft and dt = 0.5 the run is 46 rows on one
-   form; keeping three forms means dt = 0.25 and ~92 rows at double the emulated time. Tom owns which
+   form; keeping three forms means dt = 0.25 and ~92 rows at double the emulated time. Zarathustrum owns which
    of {rows, forms, dt, band} gives.
 3. **The job shape and the punch station.** Panel: the deck punches and the drawn ruling is retired
    with the minimum edit set, no new module. Alternatives: paper-first's full station (~765 lines,

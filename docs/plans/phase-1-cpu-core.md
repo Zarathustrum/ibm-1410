@@ -127,10 +127,10 @@ is Phase 2; the `read` entry point itself is stubbed as above — MICR, column b
 `io.md` §2, `software.md` §10.3), and an overlap x1 (`@`/`*`) raising an unsupported-feature
 stop (`io.md` §4).
 
-**Deviation from `PROJECT-BRIEF.md`, flagged for Tom.** The brief says Phase 1 is "CPU core
+**Deviation from `PROJECT-BRIEF.md`, flagged for Zarathustrum.** The brief says Phase 1 is "CPU core
 + memory + instruction tests (no UI)". We add a ~310-line unstyled internals page (~250 panel + ~60 of MODE/key controls), because
 `DECISIONS.md` 2026-08-30 makes the internals view a settled deliverable and Phase 4 reuses
-every line of it as a tab. Tom's call; the terminal harness alone is a valid Phase 1 if he
+every line of it as a tab. Zarathustrum's call; the terminal harness alone is a valid Phase 1 if he
 prefers it.
 
 ---
@@ -812,7 +812,7 @@ clean under `strict` with `noUncheckedIndexedAccess` and `exactOptionalPropertyT
 `src/core/` provably DOM-free; and `PHASE-1-NOTES.md` recording which open questions were
 hit and which fallback was taken.
 
-**Gate:** Tom runs `npm test`, `npm run cc01` and `npm run dev`, and approves Phase 2.
+**Gate:** Zarathustrum runs `npm test`, `npm run cc01` and `npm run dev`, and approves Phase 2.
 
 ---
 

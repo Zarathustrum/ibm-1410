@@ -1,6 +1,6 @@
 # Project brief — IBM 1410 emulator
 
-Source: Tom's request 2026-08-29, rewritten via `/optimize`. This is the spec.
+Source: Zarathustrum's request 2026-08-29, rewritten via `/optimize`. This is the spec.
 
 ## Context
 
@@ -27,7 +27,7 @@ A browser-based IBM 1410 emulator in TypeScript with an attractive web interface
 - Phase 4: Period web UI: editor, card punch/deck viewer, console/front panel, printer.
 - Phase 6: Reentry trajectory showcase program + walkthrough. FORTRAN/tape/disk: out (architecture §12).
 
-(Build order revised by Tom 2026-08-30: 3 → 5 → 4 → 6. Phase numbers stay as stable names; see docs/plans/architecture.md §7 and docs/DECISIONS.md.)
+(Build order revised by Zarathustrum 2026-08-30: 3 → 5 → 4 → 6. Phase numbers stay as stable names; see docs/plans/architecture.md §7 and docs/DECISIONS.md.)
 
 Approval before each phase.
 
@@ -49,4 +49,4 @@ Approval before each phase.
 | 4 | UI direction: period-accurate console aesthetic vs. clean modern dashboard with period-accurate artifacts? | **Period accurate** — Selectric console log, MODE rotary and keys, punched cards, green-bar 1403 output. The inspectable internals view is a deliberate anachronism, kept visually separate. |
 | 5 | Does the family member have surviving listings, decks, manuals, or memories of specific programs/outputs to reproduce? | **No.** Their recollection is the only source; the demos are reconstructions. |
 | 6 | Should the RPG business work become a second showcase program? | **Maybe the first showcase** ("oddly"). An RPG business report may ship before the reentry trajectory program. |
-| 7 | Runtime target: fully static site, run locally? Repo on Gitea? | **Run local; repo on Gitea** (vaultwest). Static Vite site. |
+| 7 | Runtime target: fully static site, run locally? Repo on Gitea? | **Run local; repo on Gitea** (private-git-host). Static Vite site. |

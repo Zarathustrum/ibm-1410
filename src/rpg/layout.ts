@@ -283,7 +283,7 @@ export const RESERVED_AREAS_ARE_PAIRWISE_DISJOINT_AND_THE_PRINT_AREA_CLEARS_THE_
 export const PRINT_AREA_IS_HUNDREDS_ALIGNED = true;
 
 /**
- * OPEN: `CARD_AREA_IS_CLEARED_AT_ENTRY_AND_HUNDREDS_ALIGNED` — our ruling (Tom, 2026-10-02) over a
+ * OPEN: `CARD_AREA_IS_CLEARED_AT_ENTRY_AND_HUNDREDS_ALIGNED` — our ruling (Zarathustrum, 2026-10-02) over a
  * `[verified]` instruction. The generated program may not assume clean core: the desk keeps one
  * machine for the page, and a trajectory job's word mark at 01963 once shortened a `ZA` reading
  * CDIN to three digits. A move-mode read leaves core word marks where they are (A22-0526-3

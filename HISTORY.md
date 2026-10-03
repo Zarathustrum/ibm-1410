@@ -9,3 +9,8 @@ The records in this tree cite commits by SHA: the PHASE notes, the BUILD-LOGs,
 history and do not resolve here. They are left as written, because rewriting a record
 to point at commits that never held that work would be worse than a dangling
 reference. Read a SHA as a name for "the change described in that sentence".
+
+Personal attribution uses the account name Zarathustrum. Lab hostnames are
+anonymized consistently as `host-a`, `host-b` and `private-git-host`, and the
+private repository address is omitted. Model attribution, dates, decisions,
+review findings and private-history commit references are retained.

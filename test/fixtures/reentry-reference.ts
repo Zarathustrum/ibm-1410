@@ -35,7 +35,7 @@
 //    print path are §7's business; every quantity here is a number at its scale.
 //  · It models no gravity. `// OPEN: GRAVITY_IS_NOT_IMPLEMENTED` — a ruling (plan §4.1, §15 row 9).
 //    Fallback: add `-g0 sin gamma_E` to dV/dt, one constant and one add per derivative evaluation;
-//    what would settle it is Tom's word, and the price is that eq.13 stops being an oracle (123.77
+//    what would settle it is Zarathustrum's word, and the price is that eq.13 stops being an oracle (123.77
 //    ft/s of physics in a column designed to print 0.07 ft/s of arithmetic).
 //  · It asserts nothing. The assertions are `test/reentry-reference.test.ts`,
 //    `test/reentry-tables.test.ts` and `test/reentry-scaling.test.ts`, which a separate wave-1
@@ -98,7 +98,7 @@ export const C1 = Math.log10(RHO0_OVER_RHO_SL);
 /** C2 = beta log10(e) = 1.97406583e-5 per ft. [verified] */
 export const C2 = BETA * LOG10_E;
 
-/** The eighty columns of the case card, as numbers (plan §4.2, Tom's decision 5; §6.12). */
+/** The eighty columns of the case card, as numbers (plan §4.2, Zarathustrum's decision 5; §6.12). */
 export interface ReentryCase {
   /** ft/s at h_E — the card's `V-E`. The run does NOT start here; see `Derived.v0`. */
   readonly vE: number;
@@ -121,7 +121,7 @@ export interface ReentryCase {
 }
 
 /**
- * Plan §4.2's card, Tom's decision 5. Defensible, arbitrary within a factor of two, and generic.
+ * Plan §4.2's card, Zarathustrum's decision 5. Defensible, arbitrary within a factor of two, and generic.
  *
  * `// OPEN: BALLISTIC_COEFFICIENT_IS_GENERIC` — [unverified] as a vehicle number, plan §15 row 3.
  * avco-and-reentry.md:154 is explicit that representative Mark-4/5/11 ballistic coefficients "are
@@ -1003,7 +1003,7 @@ export const PRODUCTS: readonly ProductRow[] = [
 //
 // THE RULE, verbatim, and it is not negotiable inside the build: a tolerance published in
 // docs/BUILD-LOG-6.md before the golden may not be widened, and the reference may not be edited to
-// match the program, without Tom's authorisation; any such change is its own commit with its own
+// match the program, without Zarathustrum's authorisation; any such change is its own commit with its own
 // reason.
 // ---------------------------------------------------------------------------------------------
 

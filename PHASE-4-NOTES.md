@@ -112,7 +112,7 @@ number is the exported declaration.
   2 added"), which is the gated site and therefore the one that matters. The reviewer also found a
   pre-existing slip:
   §3.2 and §6.1 list `box` among `panel.ts`'s frozen exports and `panel.ts` has never exported one.
-  **The plan was not patched** — Tom's standing ruling that no wave edits the plan — so both
+  **The plan was not patched** — Zarathustrum's standing ruling that no wave edits the plan — so both
   corrections live in `docs/BUILD-LOG-4.md` and here.
 - **The plan's `?raw` duplicate-declaration measurement was right about the merge and wrong about
   why.** §3.1 and §10.6 item 1 say duplicate ambient `declare module '*.cards?raw'` blocks exit 0
@@ -196,7 +196,7 @@ number is the exported declaration.
   match that swallows live code to the next `*/` (measured at 79% of such a file). It was latent,
   not active: `hopperView.ts` carries no such comment, so wave 3's negative guard read what it
   claimed to. The two `.replace` calls were swapped so `//` strips first. No behaviour, no new case.
-- **Wave 5 was split, as §14 R13 pre-declared, and two items moved across the cut.** Tom ruled the
+- **Wave 5 was split, as §14 R13 pre-declared, and two items moved across the cut.** Zarathustrum ruled the
   split before the wave: **5a** = `desk.ts`, `period/mount.ts`, `period/session.ts`, `period.css`
   and the four wave-5 tests (`48fec7e`); **5b** = the two authoring stations' `git mv` and restyle
   (`21b86a1`). Two commits, two reviews, two gates, five screenshots in the phase. Two items sit in
@@ -321,7 +321,7 @@ number is the exported declaration.
   with silently. **Amended 2026-09-03 with M2's fix (§4):** that live label now also names where
   the machine-room rotary is pointing when the two disagree, so what the stale `<select>` costs is
   a widget the page contradicts in words rather than a disagreement nothing on the page states.
-- **The model policy changed mid-phase, by Tom's decision.** `CLAUDE.md` names Fable for the
+- **The model policy changed mid-phase, by Zarathustrum's decision.** `CLAUDE.md` names Fable for the
   main-session orchestrator and the build orchestrator. This phase's main loop ran on Opus and
   started phase work without raising it; the rule was amended in `6e2f29c` to make the substitution
   a gate — ask, and on a yes substitute Opus for Fable at both orchestrator seats. Worker seats are
@@ -425,7 +425,7 @@ number is the exported declaration.
   **SYSTEM CONTROLS**, and §5 follows the latter — a two-source difference, not an error. Both were
   ruled at wave 2 (main session, 2026-09-02): §5's labels and box order stay wave 4's diff target,
   and whether `console-and-physical.md` gets an escalation commit is the main session's call at
-  merge. **(2) closed 2026-09-03: Tom ruled for the photograph — "go with the photograph" — and §5
+  merge. **(2) closed 2026-09-03: Zarathustrum ruled for the photograph — "go with the photograph" — and §5
   was reversed to SYSTEMS CONTROLS in an escalation commit. `lamps.ts`, `lightsView.ts` and two test
   files moved in the SAME commit, because `test/period-light-panel-vs-research.test.ts` carries no
   golden and slices §5's table live in both directions, titles included. (1) needed no action: wave
@@ -477,7 +477,7 @@ number is the exported declaration.
 ## 4. Open items carried out of Phase 4
 
 - **Criterion 17's "opens from the filesystem" clause is unmeetable as built, and was accepted rather
-  than fixed (Tom, 2026-09-02).** `dist/index.html` emits `<script type="module" crossorigin>`, and a
+  than fixed (Zarathustrum, 2026-09-02).** `dist/index.html` emits `<script type="module" crossorigin>`, and a
   module script is refused by CORS over a `file://` origin in every current browser — the origin is
   opaque, so the fetch cannot satisfy the check. The `base: './'` work of wave 0 is real and
   necessary (both assets are referenced relatively, `grep -c 'src="/assets'` is 0, and the only
@@ -558,9 +558,9 @@ number is the exported declaration.
   unreachable (the coding station had no ASSEMBLE control until wave 5); wave 5b's shot measures it
   at 336 × 146 px, 2.30 against the card's 2.269, cut upper left, captioned `object deck, card 1`
   over `load address 00500, count 50, sequence 001`. The item wave 3 carried is closed.
-- **Criterion 19's human walk is pending Tom's sitting.** §1's fourteen steps walked by a person,
+- **Criterion 19's human walk is pending Zarathustrum's sitting.** §1's fourteen steps walked by a person,
   recorded in `docs/BUILD-LOG-4.md` by name and date — the Phase-3 criterion 11b and Phase-5
-  criterion 13b precedent. Two things are named for it in advance, both flagged as Tom's rather
+  criterion 13b precedent. Two things are named for it in advance, both flagged as Zarathustrum's rather
   than the plan writer's: §14 R12, the textareas in drawn frames, and §14 R2′, typing in the coding
   sheet with the machine room visible (which held in wave 4's and 5a's drives — `00000` typed after
   START with no click anywhere, nothing reaching a textarea).
@@ -618,7 +618,7 @@ number is the exported declaration.
   `main.ts:92-96`, which turns a silent stall into a START that visibly does not latch. The first
   explains, the second refuses; whichever is taken, it is a behaviour change to `src/ui/main.ts` or
   `internals/mount.ts` and it did not belong in a merge-gate commit after eight gated waves.
-  **REOPENED AND FIXED 2026-09-03 (Tom, through the console-defect audit): CANDIDATE 1, applied to
+  **REOPENED AND FIXED 2026-09-03 (Zarathustrum, through the console-defect audit): CANDIDATE 1, applied to
   BOTH directions of the disagreement.** `internals/mount.ts` exports `modeNote(mode, rotary)` —
   one pure function of two strings, so it is asserted in node without a DOM — and the live MODE
   label draws `MODE = RUN — the machine-room MODE switch is at DISPLAY, and nothing executes until

@@ -87,7 +87,7 @@ declared domains that carry **no** `OPEN:` name; that is a fact about them, not 
 
 ### The largest deviation of the build, and it is provisional
 
-**Ruled 2026-10-02 — ACCEPTED.** Tom accepted the 20K machine as built, and the provisional reading
+**Ruled 2026-10-02 — ACCEPTED.** Zarathustrum accepted the 20K machine as built, and the provisional reading
 below is closed: the desk is a 20,000-position 1411 Model 2/2A, and **criterion 6 as written
 (high-water ≤ 09,000 on a 10,000-position machine) is formally superseded** by the measured 11,132 on
 20K that `test/tier3-reentry-integration.test.ts` gates. The armed `DISPLAY_WRAPS_ABOVE_10K` was
@@ -96,7 +96,7 @@ divergence. The bullet is kept as written at wave 7.
 
 - **The machine moved from 10,000 to 20,000 positions (wave 4).** §2.3 lists *"the machine is 10K"*
   first among the things the plan restates and does not re-open, and §11.4's protocol does not name
-  the machine among the artifacts a wave may move. It was taken by the orchestrator without Tom's
+  the machine among the artifacts a wave may move. It was taken by the orchestrator without Zarathustrum's
   word and flagged to him three times. **Read it as provisional until he rules.** The forcing
   condition: the page reached 09,991 of 10,000 and wave 5's punch needed ~291 positions against 12
   free; the alternatives were to cut the page or drop the punch, and dropping the punch loses
@@ -111,12 +111,12 @@ divergence. The bullet is kept as written at wave 7.
   `test/period-console.test.ts:283`'s comment about a 10K desk is now false **in prose** while its
   own rig still builds 10K; and `DISPLAY_WRAPS_ABOVE_10K` is now armed (§4).
 - **`src/ui/main.ts` was edited after all, and §3.10's file count is therefore wrong in both
-  directions.** §3.10 says the phase touches nine `src/` files, eight if Tom declines the pacing
+  directions.** §3.10 says the phase touches nine `src/` files, eight if Zarathustrum declines the pacing
   item. The pacing item **was** declined — and `main.ts` was still edited, by one line
   (`createMachine({ size: 10_000 })` → `20_000`), as 20K fallout. The measured whole-phase figure is
   **ten** `src/` files, no file created, criterion 7 green at every commit.
   *Corrected 2026-10-02:* "was declined" is **false** and contradicts this file's own process note
-  below and §4 item 2, and `docs/BUILD-LOG-6.md`: the pacing item was **never put to Tom** through
+  below and §4 item 2, and `docs/BUILD-LOG-6.md`: the pacing item was **never put to Zarathustrum** through
   wave 7. He ruled on 2026-10-02 to build it, and it is built (`002e9b7`). The ten-file figure was
   measured at wave 7 and stands for the build. The close-out moved it to **thirteen**: the pacing and
   the wrap touch `main.ts` and `machine.ts` again, the two-job fix adds `src/rpg/layout.ts` and
@@ -176,7 +176,7 @@ divergence. The bullet is kept as written at wave 7.
   machine"*. At 20K the measured high-water is **11,132**, `PLGM` decisive by all three routes, with
   8,867 free above it. `test/tier3-reentry-integration.test.ts` gates the real figure;
   §10.3's step-4 row still asks for the 10K-era number and asserting it would fail on a correct
-  build. *2026-10-02:* superseded, not relaxed — Tom accepted the 20K machine, and criterion 6 is
+  build. *2026-10-02:* superseded, not relaxed — Zarathustrum accepted the 20K machine, and criterion 6 is
   read as the 20K figure the integration test gates.
 
 ### Process deviations, recorded rather than tidied away
@@ -199,7 +199,7 @@ divergence. The bullet is kept as written at wave 7.
   tree-wide and 118 are stale; every file carrying them is do-not-touch under §3.9 or outside wave 0's
   ownership list. A uniform drift with a stated offset is checkable; a partial fix would not be.
   Carried to §4.
-- **The pacing item was not built and was never put to Tom.** §2.4 marks it decision 6 with a
+- **The pacing item was not built and was never put to Zarathustrum.** §2.4 marks it decision 6 with a
   recommended default of "build it". Building it on a default would be inventing his decision, so
   `src/ui/main.ts` carries no pacing code and `test/period-pacing.test.ts` does not exist. Both the
   wave-6 worker and the orchestrator think it is worth putting to him; §4 carries it as an open
@@ -314,7 +314,7 @@ escalation commit `03d0dee`/`a8d80cc` set as the pattern.
   `avco-and-reentry.md`'s **Implementer summary** (item 1, `:5`) and §2's table said there was *no
   evidence any IBM 1410 was ever installed at AVCO*, and the Phase 6 plan hardened that into a line
   the showcase printed.
-  Tom reports that a family member — who analysed reentry-trajectory output at Avco, and is the reason
+  Zarathustrum reports that a family member — who analysed reentry-trajectory output at Avco, and is the reason
   this project exists — **remembers being in the room with the 1410 and using it**. Two escalation
   commits landed most of the retraction (`ed0ee84`, then `f5d2456` for two sites the first pass
   missed) — **and wave 7's review found two more still standing**, both outside any build wave's
@@ -388,12 +388,12 @@ that file is not in wave 7's ownership list — so each is drafted here with its
 trigger, ready for the orchestrator to add with `/tripwire add` at merge. `docs/STATUS.md` and
 `docs/DECISIONS.md` are the orchestrator's at merge under §16 item 9.
 
-### Open decisions for Tom — the only two things in this list that are waiting on a person
+### Open decisions for Zarathustrum — the only two things in this list that are waiting on a person
 
 1. **The 20K machine.** Taken by the orchestrator in wave 4 without his word and flagged to him three
    times; recorded as provisional (§2). It re-opened §2.3's settled ground. Everything downstream —
    the page, the punch, the RPG job, four goldens — is built on it, and 10K is no longer reachable.
-   **Owner: Tom, at merge.** If he rules against it the phase does not re-cut; the page loses the
+   **Owner: Zarathustrum, at merge.** If he rules against it the phase does not re-cut; the page loses the
    punch, which loses criteria 16 and 17.
    **RULED 2026-10-02 — accepted.** Criterion 6 as written is superseded (§2); item 9's
    consequence was discharged by building the wrap.
@@ -401,7 +401,7 @@ trigger, ready for the orchestrator to add with `/tripwire add` at merge. `docs/
    (§2). At 27 frames the desk run is over before a person's eye reaches the 1403, so the item is the
    difference between a demonstration and a thing you can watch. Its oracle would be a text scan over
    `src/ui/main.ts`, which is a weaker instrument than anything else in the phase, and that is worth
-   saying when it is offered. **Owner: Tom.** Both the wave-6 worker and the orchestrator recommend
+   saying when it is offered. **Owner: Zarathustrum.** Both the wave-6 worker and the orchestrator recommend
    taking it.
    **RULED 2026-10-02 — build it.** Built in `002e9b7`: default ON, a `1411 SPEED` checkbox, the
    text-scan oracle with its weakness stated in its header. Measured at the desk in Chrome the same
@@ -447,7 +447,7 @@ trigger, ready for the orchestrator to add with `/tripwire add` at merge. `docs/
    false by the 20K move, and they were **drawn** text, which is worse: the RPG station's framing
    (`src/ui/period/specs/mount.ts:32`, "this 10K, one-channel, tape-free configuration") and the
    coding sheet's (`src/ui/period/coding/sheetView.ts:73`, "this machine, which has 10K"). Both
-   conclusions survive at 20K on the tape requirement, so on Tom's word both now read 20K. Two
+   conclusions survive at 20K on the tape requirement, so on Zarathustrum's word both now read 20K. Two
    comments in `src/ui/period/console/session.ts` (`:232`, `:374`) that called `10000` refused were
    corrected with them, as was `test/tier4-reentry-storyboard.test.ts`'s "27 frames is the desk's
    own frame shape", which is now true only with `1411 SPEED` off. The three sites above stay as
@@ -475,7 +475,7 @@ trigger, ready for the orchestrator to add with `/tripwire add` at merge. `docs/
    > already true. Discharge is either ~15 lines in `display()` and `alter()` plus two cases, or a
    > dated accepted-divergence ruling in `docs/DECISIONS.md` saying the desk never displays there.
 
-   **DISCHARGED 2026-10-02, by implementation** — Tom chose the wrap over the accepted divergence.
+   **DISCHARGED 2026-10-02, by implementation** — Zarathustrum chose the wrap over the accepted divergence.
    `f5dd292`: `DISPLAY_WRAPS_ABOVE_10K = true`, `[verified]` against A22-0526-3 p.51, six cases in
    `test/machine-console.test.ts`, 10K byte-for-byte unchanged. DEFERRED-02 enters the register as
    **RESOLVED** at the merge, as an audit trail; the trigger drafted above would never fire again,
@@ -573,13 +573,13 @@ trigger, ready for the orchestrator to add with `/tripwire add` at merge. `docs/
     (`CDIN` 01960), and `ZA C006,TIME` stopped at it: 52 extract lines printed the wrong time.
     `test/tier4-reentry-storyboard.test.ts`'s `extract()` built a fresh machine, so criteria 17 and
     18 were green on a setup the desk never uses — the same shape as Phase 4's criterion-19 finding.
-    **Fixed on Tom's ruling** (the generator, not a loader Clear Storage card or a desk reset): the
+    **Fixed on Zarathustrum's ruling** (the generator, not a loader Clear Storage card or a desk reset): the
     generated program opens with a Clear Storage run over its indicator and card areas, which
     `src/rpg/layout.ts` now puts on a hundreds boundary
     (`CARD_AREA_IS_CLEARED_AT_ENTRY_AND_HUNDREDS_ALIGNED`). The storyboard now runs both jobs on one
     machine, and that case failed before the fix. No printed page or golden moved; the hand target
     `demos/sales-summary.asm` gained the CS card and an `ORG`, which §2.3's "do not edit" froze for
-    the build and Tom's ruling reopened, because the generated-equals-target check requires it.
+    the build and Zarathustrum's ruling reopened, because the generated-equals-target check requires it.
     The new constant lives in `src/rpg/layout.ts`, outside §16 item 3's fourteen swept domains, so
     it has no §1 row; it is recorded here and in `docs/DECISIONS.md` instead.
 17. **The bootstrap cannot be re-keyed on a used machine, and it does not need to be.** The word mark

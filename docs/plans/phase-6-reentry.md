@@ -104,7 +104,7 @@ not survive, and the page therefore says on its face what it is.
    published tolerance on `|VELOCITY − V A-E|` is **0.50 ft/s**, derived from S = 2 on V over 92 steps
    plus the antilog's 2.034e-6 before the simulator was run against it; the measured worst is
    **0.07 ft/s**. A published tolerance may not be widened, and the reference may not be edited to
-   match the program, without Tom's authorisation.
+   match the program, without Zarathustrum's authorisation.
 
 5. **The deck prints AND punches, the punch was proved end to end this session, and the RPG job
    tabulates the punched cards.** `P1 0,PAREA` through the real assembler, the real condensed loader,
@@ -124,7 +124,7 @@ not survive, and the page therefore says on its face what it is.
 6. **Zero new modules under `src/`, and DEFERRED-01 discharges in wave 0 as a rename.**
    `git diff --name-only --diff-filter=A <base>..HEAD -- src` is empty at every commit. The only
    `src/` edits in the phase are wave 0's core rename and its two citing comments, wave 5's
-   punch-ruling retirement, wave 6's two sheet views, and — if Tom takes decision 6 — the pacing item:
+   punch-ruling retirement, wave 6's two sheet views, and — if Zarathustrum takes decision 6 — the pacing item:
    **~110 lines across nine existing files, ~90 across eight without the pacing item, and no file created.**
    `HALT_TYPES_NO_PRINTOUT` is deleted and `PROGRAM_STOP_TYPES_S = true` declared, `[verified]`
    against S223-2648 p.6 *"a program stop, an error stop, the stop key, or any cycle step, will
@@ -212,7 +212,7 @@ is this list turned into assertions. Each step names the criteria that check it.
    column-heading lines and then a row every quarter-second of flight. At `START_BUDGET = 2000` the
    run is 21 animation frames and about a third of a second of wall clock, which is not something a
    person can watch — so this plan carries a real-time pacing item at §10 as its own wave item,
-   buildable or droppable on Tom's word, that computes the frame's budget from the simulated-µs delta
+   buildable or droppable on Zarathustrum's word, that computes the frame's budget from the simulated-µs delta
    so the desk runs at 1411 speed and the whole job takes the **15.93 s** it took the machine. → criterion 19.
 
 8. **The run ends on a programmed halt, and the 1415 says so.** The last line of the Selectric roll
@@ -339,7 +339,7 @@ That ninth step is the whole phase. It is also `test/tier4-reentry-target.test.t
 
 | Cut | Why, with its citation | What it would cost to restore |
 |---|---|---|
-| **Gravity, Earth curvature, a varying flight-path angle** — the planar four-state set (V, γ, h, s) | It removes columns 4 and 5. eq.13 is the closed-form solution **only** for the non-rotating, flat-Earth, constant-γ, drag-only problem Allen and Eggers set up (`avco-and-reentry.md` §8's caveat, `[verified]` — NACA 1381 pp.5-6), so with gravity in the loop the `V A-E` column stops being a check and becomes a second, different answer. It also needs sin γ and cos γ as tabulated functions, ~2,000 more positions, and ~13 multiplies per derivative evaluation against this design's 9. | One constant term −g₀ sin γ_E in `DERIV` and one add — the cheap half — plus two tables and two more states for the honest half. Priced in §4 as the third band option; it is Tom's decision 2. |
+| **Gravity, Earth curvature, a varying flight-path angle** — the planar four-state set (V, γ, h, s) | It removes columns 4 and 5. eq.13 is the closed-form solution **only** for the non-rotating, flat-Earth, constant-γ, drag-only problem Allen and Eggers set up (`avco-and-reentry.md` §8's caveat, `[verified]` — NACA 1381 pp.5-6), so with gravity in the loop the `V A-E` column stops being a check and becomes a second, different answer. It also needs sin γ and cos γ as tabulated functions, ~2,000 more positions, and ~13 multiplies per derivative evaluation against this design's 9. | One constant term −g₀ sin γ_E in `DERIV` and one add — the cheap half — plus two tables and two more states for the honest half. Priced in §4 as the third band option; it is Zarathustrum's decision 2. |
 | **MACH** | `avco-and-reentry.md` §9 calls it *"an extra tabulated function"* needing a speed-of-sound table over a non-exponential temperature profile — the one column in that section's twelve that is not free, for a quantity that is near-meaningless above 200 kft. All three architects cut it for this reason and the panel ratified the refusal. | A temperature model, a speed-of-sound table (~1,100 positions) and one divide per row. |
 | **RHO printed as a density** | Seven decades of dynamic range on a machine with no floating format (`avco-and-reentry.md` §3, `[verified]`: the string "floating" appears in A22-0526-3 only as "floating dollar sign"). A mantissa-plus-decade pair costs two columns; a fixed scale prints zeros for thirty rows. `LOG10 RHO-R` is the antilog's own argument, four digits of range, and free. | One column and a decade field that already exists internally (§5). |
 | **A `DS`-reserved antilog table built at run time** | It saves ~19 object cards and costs the word-mark discipline: a `DS` area emits nothing, arrives blank and **unmarked**, and the emitted deck contains **no Clear Storage card at all** (measured by the panel; C20-1602-8's clear is to blanks, `software.md:260`). Every entry's field would have to be defined before an arithmetic result landed in it, in a loop, with no oracle until the whole table is built. | `ANTA` becomes `DS 1000` plus a build loop of ~20 instructions and a word-mark pass. Measured this session: the 100 contiguous ten-character `DCW` cards emit **1,000 payload positions in 19 object records**, so the `DS` option saves 19 object cards — and the 100 source cards are the honest cost of a table that arrives correct. |
@@ -348,8 +348,8 @@ That ninth step is the whole phase. It is also `test/tier4-reentry-target.test.t
 | **A software-float path — `FRA`/`FST`/`FA`/`FS`/`FM`/`FD`** | They are interpreted by the FORTRAN arithmetic routines (C28-0309-1 appendix, `[verified]`), FORTRAN is out of scope (`architecture.md` §12), the object-time package `1410-FO-138` does not survive, and whether the pseudo-ops work without linking it is undocumented (`avco-and-reentry.md` §10). | A package that does not exist. Stays out. |
 | **A third listing golden** | `renderListing` is already byte-gated twice, at 2,251 and 6,982 bytes, both re-measured this session. A third proves nothing new and churns on every source edit and every comment change in a ≈820-card deck. | `test/golden/reentry.lst` and a re-cut on every wave that touches the source. |
 | **A new module under `src/`** | `architecture.md:855` — *"an Autocoder program, no new machinery"* — and STATEMENT.md's *"it adds no station"*. Asserted mechanically at every commit (§13 criterion 7). | The refused `punchBoxView.ts`, ~130 lines inside a ~765-line wave, in a phase whose deliverable is a page. |
-| **Changing `START_BUDGET`** | A core constant (`src/core/machine.ts:45`) that no phase should move on its own authority. The pacing item of §10 computes the **budget passed to** `machine.start()` from the simulated-µs delta and leaves the constant alone. | ~20 lines in `src/ui/main.ts`'s frame, UI-only, and it is Tom's decision 6. |
-| **A per-deck plain-white default** | PHASE-4-NOTES §4(c)'s requirement is met by the existing toggle. `PeriodViewState` is currently a sink — written and never read — so a per-deck default is four view edits and one mount, not a four-line change. | Four view edits, one mount, and a state that means something. Tom's decision 7. |
+| **Changing `START_BUDGET`** | A core constant (`src/core/machine.ts:45`) that no phase should move on its own authority. The pacing item of §10 computes the **budget passed to** `machine.start()` from the simulated-µs delta and leaves the constant alone. | ~20 lines in `src/ui/main.ts`'s frame, UI-only, and it is Zarathustrum's decision 6. |
+| **A per-deck plain-white default** | PHASE-4-NOTES §4(c)'s requirement is met by the existing toggle. `PeriodViewState` is currently a sink — written and never read — so a per-deck default is four view edits and one mount, not a four-line change. | Four view edits, one mount, and a state that means something. Zarathustrum's decision 7. |
 | **Tape, disk, channel 2, Priority, storage protection, 1401 mode, FORTRAN** | `architecture.md` §12, settled. | — |
 | **Any edit to `src/asm/**`, `src/rpg/**` or `src/formats/**`** | Phase 6 is a **consumer** of the assembler, the generator and the loader, and all three are this phase's oracles. A defect that could be hidden by an assembler edit is the one failure mode the phase cannot detect. | An escalation — a dated `open-questions.md` row and a note to the orchestrator — never a quiet edit. |
 
@@ -391,20 +391,20 @@ Named here so no wave re-litigates them and no reviewer has to go looking.
   never spins. The idiom is still written, because a period program wrote it.
 - **`demos/hello-dad.asm` is not touched**, and neither are its two goldens at 348 and 2251 bytes.
 - **Model policy.** Every worker is Opus or lower; Sonnet only for mechanical work. Commit format per
-  global `CLAUDE.md` with the footer `(anthropic claude-code opus-5 / voltron)`; no `Co-Authored-By`.
+  global `CLAUDE.md` with the footer `(anthropic claude-code opus-5 / host-b)`; no `Co-Authored-By`.
   `docs/research/*` is never edited in a build wave — a research correction is an escalation with its
-  own commit. `main` is never pushed without Tom's per-instance authorisation.
+  own commit. `main` is never pushed without Zarathustrum's per-instance authorisation.
 
-### 2.4 Tom's ten decisions, on one page
+### 2.4 Zarathustrum's ten decisions, on one page
 
 RULINGS' preamble binds the plan to carry *"the default AND the alternative, priced, so his answer is
-one word"* for every item marked **TOM**. There are ten of them and they are scattered through the
+one word"* for every item marked **ZARATHUSTRUM**. There are ten of them and they are scattered through the
 sections that own their arithmetic, so they are gathered here once. **Every default is the
 orchestrator's recommendation**; nothing below is built until he answers.
 
 | # | The decision | Default (recommended) | The alternative, and its price | Owned by |
 |---|---|---|---|---|
-| **1** | **The register gate at the plan commit.** | **Ordering A** — the arrival commit is red for exactly one commit on the feature branch, `main` untouched, reported as such | Ordering B: a `src/core` change lands **before Tom has gated the plan**, against `CLAUDE.md`'s phase gate, and the dossier and this plan must be held outside `docs/plans/` on disk for two commits. Never red, at the cost of bookkeeping in service of a green light | §9.9, §12.2 |
+| **1** | **The register gate at the plan commit.** | **Ordering A** — the arrival commit is red for exactly one commit on the feature branch, `main` untouched, reported as such | Ordering B: a `src/core` change lands **before Zarathustrum has gated the plan**, against `CLAUDE.md`'s phase gate, and the dossier and this plan must be held outside `docs/plans/` on disk for two commits. Never red, at the cost of bookkeeping in service of a green light | §9.9, §12.2 |
 | **2** | **The altitude band, and gravity.** | **150,000 ft, drag-only** — 92 rows, eq.13 an identity to the last printed digit, column 5 measuring the **machine's** error | 400,000 ft with a gravity note (26 informationless coast rows return), or add `−g₀ sin γ_E` (one constant, one add, 0.33 % of the budget) and run from 400,000: physically more honest above the pulse, but the DIFF column prints up to 420 ft/s of **physics** in a field designed for 0.07 ft/s of **arithmetic**, §4.5's 0.50 ft/s tolerance is withdrawn, §13 loses two criteria, ≈ one wave of rework | §4.1, §15 rows 9-10 |
 | **3** | **The job shape.** | **Print AND punch, and the RPG job tabulates the punched cards** — no new `src/` module, the committed `demos/reentry-summary.data.cards` **is** the punch pocket, and the station is retired in ~26 lines across four files | **Print-only**: two fewer wave items (§8.1-§8.3 and §8.8 both go), but `STATUS.md:221`'s RPG requirement then lands on a **hand-typed** data deck — a trajectory number typed into a file, which is exactly what §8.3's deep-equal assertion exists to forbid — and the drawn line *"this 1402 reads and does not punch"* stays true only because the machine was not asked to. **Paper-first's full station** is refused outright: a new module under `src/` (§2.2, §14 R15). Criteria 16 and 17 leave the plan under print-only | §8, RULINGS §C 12 |
 | **4** | **Twelve columns, or eleven live ones.** | **Twelve**, with `GAMMA` a constant column printing `-30.00` on every row — the loudest available disclosure of the model's central assumption (§4.1 property 4) | **Eleven live columns**: drop `GAMMA`. Widths fall 73 → 67 and the gutter count 11 → 10, so either the gutters or the two margins absorb six positions and §7.2's map re-flows end to end. It changes the **column map only** — no arithmetic, no scaling row, no reference layer — but it re-cuts `test/golden/reentry.page.txt` and every parse position in `test/reentry-page-parse.test.ts`, and the constant-γ assumption then lives only in the framing line | §7.2, RULINGS §B 9 |
@@ -413,7 +413,7 @@ orchestrator's recommendation**; nothing below is built until he answers.
 | **7** | **The plain-white form.** | **No default change** — the existing toggle meets PHASE-4-NOTES §4(c), and the walkthrough tells the operator to flip it | A per-deck default: `PeriodViewState` is currently a sink (written, never read), so it is four view edits and one mount, not four lines | §2.2, §15 row 23 |
 | **8** | **What the desk says about `demos/hello-dad.asm`.** | **Nothing new** — no caption, no ordering change, no relabelling; the buttons grow from two to three and the walkthrough does the framing | A drawn caption beside the sample buttons: drawn text with no oracle — the class `phase-4-period-ui.md` §12's refusal grep, that plan's criterion 18a, is the standing check on — and a new `test/period-refusal-grep.test.ts` surface | §10.5 |
 | **9** | **The walkthrough's form.** | **`docs/reentry-walkthrough.md`**, Markdown beside the other docs | A published artifact: changes where it lives and nothing about what it says, and takes it out of `git log --follow` at close-out | §16 item 10 |
-| **10** | **The build process.** | **RULINGS §F 30 as written**: branch `feature/phase-6-reentry`, worktree per the Phase 2/3/5 precedent, the build orchestrator an **Opus** subagent (Fable seats substituted by Opus this session, Tom's instruction), every worker Opus or lower, **per-wave Opus adversarial review before each commit**, §12.2's gate at every commit, one browser screenshot per UI-visible wave, `main` never pushed without his per-instance word | Relax any term. The one with a price worth naming is the review cadence: a single whole-branch review instead of eight per-wave ones saves seven passes and gives up the property §11 is built on — that a wave's defects are found while its own oracle is the only thing in the diff. The Phase 4 and Phase 5 records are that per-wave review caught findings the whole-branch pass did not. Dropping the worktree costs the ability to run `main`'s gate side by side; dropping the screenshots costs §11.6's two questions, which are the only check on §14 R16 | §11, §11.6, RULINGS §F 30 |
+| **10** | **The build process.** | **RULINGS §F 30 as written**: branch `feature/phase-6-reentry`, worktree per the Phase 2/3/5 precedent, the build orchestrator an **Opus** subagent (Fable seats substituted by Opus this session, Zarathustrum's instruction), every worker Opus or lower, **per-wave Opus adversarial review before each commit**, §12.2's gate at every commit, one browser screenshot per UI-visible wave, `main` never pushed without his per-instance word | Relax any term. The one with a price worth naming is the review cadence: a single whole-branch review instead of eight per-wave ones saves seven passes and gives up the property §11 is built on — that a wave's defects are found while its own oracle is the only thing in the diff. The Phase 4 and Phase 5 records are that per-wave review caught findings the whole-branch pass did not. Dropping the worktree costs the ability to run `main`'s gate side by side; dropping the screenshots costs §11.6's two questions, which are the only check on §14 R16 | §11, §11.6, RULINGS §F 30 |
 
 ---
 
@@ -548,7 +548,7 @@ test/tier4-reentry-storyboard.test.ts OWNED, NEW   ~320
 test/golden/reentry-console.txt       OWNED, NEW   ~390 bytes (the whole Selectric roll,
                   eight lines; the size is DERIVED from measured line widths in 10.4, not
                   estimated — an earlier ~1,400 guess was high by about three and a half)
-test/period-pacing.test.ts            OWNED, NEW   ~60   OPTIONAL, Tom's decision 6 —
+test/period-pacing.test.ts            OWNED, NEW   ~60   OPTIONAL, Zarathustrum's decision 6 —
                   dropped as a unit with the pacing item (10.6)
 ```
 
@@ -558,7 +558,7 @@ test/period-pacing.test.ts            OWNED, NEW   ~60   OPTIONAL, Tom's decisio
 | `src/ui/period/specs/sheetView.ts` | **two** `?raw` imports and a second sample button. `:32-33` imports `demos/sales-summary.rpg?raw` **and** `demos/sales-summary.data.cards?raw` **by name** — the `.data.cards` sibling inference is `tools/rpg.ts:225`'s and is CLI-side, so the UI needs both new files named | ~10 |
 | `tools/run-deck.ts` | `:101` `m.run(max)` → a `m.start(START_BUDGET)` loop, so the CLI's console log carries the stop print-out | ~12 |
 | `tools/rpg.ts` | `:133` the same | ~10 |
-| `src/ui/main.ts` | **OPTIONAL, Tom's decision 6** — the frame's budget computed from the simulated-µs delta, with a control to turn it off. `START_BUDGET` itself is not touched | ~20 |
+| `src/ui/main.ts` | **OPTIONAL, Zarathustrum's decision 6** — the frame's budget computed from the simulated-µs delta, with a control to turn it off. `START_BUDGET` itself is not touched | ~20 |
 
 ### 3.8 Wave 7 — the record.
 
@@ -601,9 +601,9 @@ sample buttons and a walkthrough. The only `src/` edits in the whole phase are:
   `console/session.ts` (~12) and `console/rotaryView.ts` (~2);
 - wave 5's three-file punch retirement (~16 lines under `src/`: `hopperView.ts` ~10,
   `stackerView.ts` ~4, `keysView.ts` ~2; the fourth file in that edit set is a test);
-- wave 6's two sheet views (~10 + ~10) and, if Tom takes it, the pacing item in `src/ui/main.ts` (~20).
+- wave 6's two sheet views (~10 + ~10) and, if Zarathustrum takes it, the pacing item in `src/ui/main.ts` (~20).
 
-**Total `src/` change for the phase: ~110 lines across nine existing files — ~90 across eight if Tom
+**Total `src/` change for the phase: ~110 lines across nine existing files — ~90 across eight if Zarathustrum
 declines the pacing item — and no file created.**
 `architecture.md:855` says *"an Autocoder program, no new machinery"* and this is what that costs.
 
@@ -712,7 +712,7 @@ needs at dt = 0.25. Fallback if the instruction budget is ever threatened: Heun 
 costs half the derivative evaluations and gives up four orders of method accuracy — enough to move
 the printed VELOCITY column, so it is a fallback of last resort.
 
-**Tom's decision 2, priced — the third band option the panel did not cost.** RULINGS §B 7 asks this
+**Zarathustrum's decision 2, priced — the third band option the panel did not cost.** RULINGS §B 7 asks this
 plan to price adding the constant term `−g₀ sin γ_E` to `dV/dt` and running from 400,000 ft.
 Measured this session (the same integrator, gravity switched on):
 
@@ -730,7 +730,7 @@ budget, plus 368 instructions. The cost that matters is not machine time: it is 
 420 ft/s of **physics** in a field designed to print 0.07 ft/s of **arithmetic**, and the phase's
 strongest exit criterion (§13 criterion 13, the page parsed back to one unit in the last printed
 digit) would have nothing independent to be parsed against. The orchestrator recommends the default.
-If Tom takes gravity, §7's column 5 changes width and edit word, §4.5's 0.50 ft/s tolerance is
+If Zarathustrum takes gravity, §7's column 5 changes width and edit word, §4.5's 0.50 ft/s tolerance is
 withdrawn, and this plan's §13 loses two criteria — that is one word from him and roughly one wave
 of rework.
 
@@ -758,7 +758,7 @@ BTU/ft²-s at r_n = 1 ft; 7,924.8 m/s = 26,000 ft/s). Fallback: print the heatin
 SI form converted at print time — same numbers, one more multiply, and a less period-plausible
 program.
 
-**Case-card values** (RULINGS §B 11, **Tom's decision 5**): V_E 23,000 ft/s · γ_E −30.00° with
+**Case-card values** (RULINGS §B 11, **Zarathustrum's decision 5**): V_E 23,000 ft/s · γ_E −30.00° with
 sin γ_E = −0.5 exactly · W/(C_D A) 1,000.0 lb/ft² ⇒ β_B 31.080997 slug/ft² · R_N 1.00 ft ·
 h_E 400,000 ft · band top 150,000 ft · dt 0.25 s. Defensible, arbitrary within a factor of two, and
 **generic**: `// OPEN: BALLISTIC_COEFFICIENT_IS_GENERIC`, `[unverified]` as a vehicle number.
@@ -980,7 +980,7 @@ inside a bound written down from S and the step count before the simulator was r
 
 **The rule, verbatim, and it is not negotiable inside the build:** *a tolerance published in
 `docs/BUILD-LOG-6.md` before the golden may not be widened, and the reference may not be edited to
-match the program, without Tom's authorisation; any such change is its own commit with its own
+match the program, without Zarathustrum's authorisation; any such change is its own commit with its own
 reason.* §11.4 carries the same rule as a freeze, and §14 R3 is the risk it closes.
 
 ### 4.6 The checkpoints and the two guards
@@ -1105,7 +1105,7 @@ between *named* quantities can cost **zero instructions**:
 - `β_B = 31.080997` at S = 6 and `1/g₀ = 0.031080997` at S = 9 are the **same eight digits**
   `31080997`, because W/(C_D A) is 1,000.0 exactly on this card. One `DCW`, two `EQU`s, two implied
   points — and the deck's comment block says so, because a reader who does not see it will think it
-  is a typo. (If Tom changes W/(C_D A) — decision 5 — the coincidence goes and the deck carries two
+  is a typo. (If Zarathustrum changes W/(C_D A) — decision 5 — the coincidence goes and the deck carries two
   constants. Nothing else moves.)
 
 ### 5.2 The scaling table — every variable
@@ -1528,7 +1528,7 @@ not just the budget. `// OPEN: EXACTLY_ONE_DIVIDE_AND_IT_FORMS_K` — a ruling; 
 card beside the sine, the cotangent and the two logarithms — same species, same desk table, and the
 deck already proves the punched values by antilogging them back (§6.3). That removes the divide and
 5,436 µs, and costs eight card columns the layout does not have: §6.12's card is full at 79 of 80,
-so taking it means re-cutting the card, which is Tom's decision 5 territory rather than a wave's.
+so taking it means re-cutting the card, which is Zarathustrum's decision 5 territory rather than a wave's.
 
 ### 5.10 Instructions and emulated time
 
@@ -1645,7 +1645,7 @@ The 25 non-detail printed lines are §7.1's pagination — 11 + 5 + 2 + 7 — an
 
 - **Frames at `START_BUDGET = 2000`** (`src/core/machine.ts:45`; the four-term gate at
   `src/ui/main.ts:97-98` and the `machine.start(START_BUDGET)` call at `:99`, both read this
-  session): **21 frames**, ≈ 0.35 s of wall clock without pacing. That is **Tom's decision 6**.
+  session): **21 frames**, ≈ 0.35 s of wall clock without pacing. That is **Zarathustrum's decision 6**.
 - **1403 Model 2 at 600 lpm** (A22-0526-3 p.67): **117 printed lines = 11.7 s**.
 - **The honest period figure: ~15.9 s of unaccelerated 1411 time against ~11.7 s of 1403 time — this
   job is COMPUTE-bound by about a third, not printer-bound.** The dossier carried
@@ -2580,7 +2580,7 @@ gutters of 3 sum **33**; 13 + 73 + 33 + 13 = **132**, and the 132 is `[verified]
 | 11 | HEAT LOAD | BTU/FT2 | 106-**111** | 6 | `PLINE+110` | `@  , 0 @` | `QTOT-2`, 6 digits S=0 | 1 = 5.1e-5 relative |
 | 12 | RANGE | N MI | 115-**119** | 5 | `PLINE+118` | `@ 0 . @` | `RNG-1`, 7 digits S=1 | exact: (h₀ − h)·cot γ/6076.1 |
 
-**Tom's decision 4, priced — twelve columns or eleven live ones.** RULINGS §B 9 rules twelve, with
+**Zarathustrum's decision 4, priced — twelve columns or eleven live ones.** RULINGS §B 9 rules twelve, with
 `GAMMA` kept as a **constant** column and MACH refused, and offers *"eleven live columns instead —
 changes the column map only"*. The default here is the twelve above. The alternative drops column 6:
 `GAMMA` is the only cell on the page that is neither computed nor a heading, and an analyst who knows
@@ -2592,7 +2592,7 @@ somewhere — either three-position gutters become four across the wider half, o
 `test/golden/reentry.page.txt`, and every parse position in `test/reentry-page-parse.test.ts`: one
 wave-4 commit. The reason the orchestrator recommends keeping it is §4.1 property 4 — a constant
 `-30.00` on every row is the loudest available disclosure of the model's central assumption, and
-without it that assumption lives only in the framing line. It is Tom's word either way, and it must
+without it that assumption lives only in the framing line. It is Zarathustrum's word either way, and it must
 be his **before** wave 4 cuts the map (§11.4).
 
 `// OPEN: COLUMN_LAYOUT_IS_PERIOD_PLAUSIBLE_NOT_DOCUMENTED` — `[unverified]`, §15 row 1: the column
@@ -2976,7 +2976,7 @@ carries three things nothing else does: the punch proved end to end, the card co
 directions, and `demos/reentry-summary.rpg` **written as real specification cards and run through the
 shipped generator, assembler, condensed loader, 1402 and 1411 this session**.
 
-**Tom's decision 3, priced, because it decides whether this section exists.** RULINGS §C 12 rules
+**Zarathustrum's decision 3, priced, because it decides whether this section exists.** RULINGS §C 12 rules
 that the deck prints **and** punches and that the RPG job tabulates the punched cards, against two
 named alternatives. The default is the ruling.
 
@@ -2986,7 +2986,7 @@ named alternatives. The default is the ruling.
 | **print-only** | the trajectory page and nothing else | **two fewer wave items** — but `STATUS.md:221`'s no-control-break RPG demonstration then has to run on a **hand-typed** data deck, which is a trajectory number typed into a file: exactly what §8.3's `expect(punched).toEqual(committed)` exists to make impossible, and the opposite of this phase's thesis. §13 loses criteria **16 and 17**, §10.3's steps 10-12 go, and the drawn 1402 line stays true only because the machine was never asked to punch |
 | **paper-first's full punch station** | a drawn punch box with its own view module | **refused outright**, not deferred: it is a new module under `src/`, which §2.2 cuts by name and §13 criterion 7 asserts against at every commit (`architecture.md:855`, STATEMENT.md) |
 
-Everything below assumes the default. If Tom takes print-only, §8.1-§8.5, §8.7 and §8.8 are deleted
+Everything below assumes the default. If Zarathustrum takes print-only, §8.1-§8.5, §8.7 and §8.8 are deleted
 as a unit, wave 5 shrinks to nothing and wave 6 absorbs the RPG job against a hand-typed deck — one
 word from him, before wave 3 lands the deck that would punch.
 
@@ -3698,7 +3698,7 @@ plan commit changes no gate output at all. It documents what is true; it does no
 
 Red window: exactly **one** commit, on `feature/phase-6-reentry`, `main` untouched, reported as such
 in `docs/BUILD-LOG-6.md`'s Arrival section. **Nothing is falsified** — the entry says the work is not
-done, because it is not: `CLAUDE.md`'s phase gate forbids implementation before Tom's go, and the
+done, because it is not: `CLAUDE.md`'s phase gate forbids implementation before Zarathustrum's go, and the
 discharge is a `src/core` change.
 
 **Ordering B — the escalation and wave 0 land before the plan commit. Never red.**
@@ -3709,9 +3709,9 @@ discharge is a `src/core` change.
 | B2 | wave 0's core discharge, tests, notes, register → **RESOLVED** | `0 ok · 0 tripped · 0 manual · 0 no-trigger · 1 resolved` — exit 0 |
 | B3 | the dossier + this plan restored and committed | unchanged, exit 0 |
 
-The price is stated plainly: a `src/core` change lands **before Tom has gated the plan**, and the
+The price is stated plainly: a `src/core` change lands **before Zarathustrum has gated the plan**, and the
 dossier has to be parked outside `docs/plans/` for two commits to keep the gate green, which is
-bookkeeping in service of a green light rather than of a fact. **That is the whole of Tom's decision
+bookkeeping in service of a green light rather than of a fact. **That is the whole of Zarathustrum's decision
 1**, and the orchestrator recommends ordering A: one honest red commit that says the work is not
 done, on a branch, for the length of one commit.
 
@@ -3887,7 +3887,7 @@ followed by those five),
 headed `BALLISTIC REENTRY TRAJECTORY - RECONSTRUCTED SAMPLE - NOT FLIGHT DATA` — and it is byte-locked
 by a 348-byte page golden and a 2,251-byte listing golden. It is not touched.
 
-**The desk says nothing new about it** (Tom's decision 8, default): no caption, no ordering change,
+**The desk says nothing new about it** (Zarathustrum's decision 8, default): no caption, no ordering change,
 no relabelling. The buttons simply grow from two to three, which is what a second program on a
 coding sheet looks like.
 
@@ -3904,7 +3904,7 @@ sketch beside the real thing:
 - hello-dad reads its five printed lines off cards; `demos/reentry.asm` computes ninety-two rows
   from one case card. Same title, same page shape, same disclaimer, and one of them is a program.
 
-### 10.6 The real-time pacing item — Tom's decision 6, its own wave item
+### 10.6 The real-time pacing item — Zarathustrum's decision 6, its own wave item
 
 **The problem, in this plan's own numbers.** The run is 41,543 instructions (§5.10). At
 `START_BUDGET = 2000` (`src/core/machine.ts:45`) that is **21 frames**, about **0.35 s** of wall
@@ -3977,7 +3977,7 @@ it), in the shape `test/period-no-second-frame-loop.test.ts` already uses — it
    `test/period-no-second-frame-loop.test.ts` owns, re-asserted here so the pacing item cannot
    introduce a second loop; that file itself is **not edited** (§3.9).
 
-**If Tom declines** (decision 6, the alternative): the item, the test file and the checkbox are all
+**If Zarathustrum declines** (decision 6, the alternative): the item, the test file and the checkbox are all
 dropped as a unit, `src/ui/main.ts` is not touched at all, the phase's `src/` change falls to ~90
 lines across eight files, `npm test` lands one file and ~4 cases lower than §12.2's figure, and
 `docs/reentry-walkthrough.md` carries the period note instead — **15.93 s of unaccelerated 1411 time
@@ -4022,26 +4022,26 @@ have to supply.
 | **3 — the derivative, the RK4 driver, the guards** | `demos/reentry.asm` (≈596 source cards: comment block, `CTL 1`, `ORG 00500`, the case-card read and its two consistency checks, constants, `ANTA` and the work block's ~40 `DCW` cards (§5.5), `ANTLOG`, `DERIV`, the RK4 driver, loop control, the `h ≤ 0` and `y1 > 0` guards, and a bare four-column dump **printed at §7.2's column-1-to-4 positions**), `demos/reentry.case.cards`, `demos/reentry.cards`, `test/golden/reentry-dump.page.txt` (**transient — see §11.1**), `test/tier3-reentry-integration.test.ts` | wave 1's layers 1, 2 and 3; wave 2's `ANTLOG`, copied forward; the shipped toolchain | Numeric, not photographic. (a) the emulated (V, h) at **every one of the 92 steps** equals layer 3 **exactly** — the regression pin, with §11.2's tie-break stated. (b) max \|V − V A-E\| over the 92 rows ≤ **0.50 ft/s**. (c) the four NACA checkpoints against the **emulated** run at §4.5's tolerances. (d) the `y1 > 0` guard fires at W/(C_D A) = **5,000 lb/ft²** and the deck refuses eqs.16-17 rather than printing them; the `h ≤ 0` guard refuses step 93 at h = −62.2 ft. (e) `assemble()` `ok` / no flags / **no warnings**, and `demos/reentry.cards` deep-equal to `assemble(demos/reentry.asm).deck` — Phase 3's closed loop. (f) **the deck's own rescale offsets parsed out of `demos/reentry.asm`** — every `MLC SRC-n,DEST` and `A +5,WORK-n+1` in the arithmetic chains — and asserted against §5.3's table, which is the step that makes wave 1's data assertion mean something about the program rather than about the fixture | the 92-row diff table; **the FIRST measured numbers** — instruction count, emulated µs, code length, **object-card count**, high-water — and **the memory map republished** in `docs/BUILD-LOG-6.md` against the measured code length **and the work block's measured sum against §5.11's 391-in-478**, before wave 4 commits a single print position |
 | **4 — the page** | `demos/reentry.asm` **grown by ≈202 cards** (heading block, twelve columns, overflow heading, summary block, the printed literals), `demos/reentry.cards` regenerated; `test/golden/reentry.page.txt`; `test/tier4-reentry-target.test.ts`; `test/reentry-page-parse.test.ts`; **and the declared deletion of `test/golden/reentry-dump.page.txt` with wave 3's one golden case** (§11.1) | waves 1 and 3 | **§7.2's column map — end positions, MCE control words, digits per column and the bound that sets them — committed to `docs/BUILD-LOG-6.md` in this commit and BEFORE the golden is cut**, the Phase 5 §10.5 discipline under Phase 5 criterion 6's correction (the map and the page land in the same commit; the ordering that matters is authorial and is reviewed, not timestamped). Then: (a) `renderGreenBar(paper, {chain:'A', formLines:66})` equal to the golden **byte for byte over three `\f`-separated forms**, one break by the **channel-12 overflow latch** and one by a **programmed `CC1 1`**; (b) **the page parsed back into numbers** — every computed column, every row, within **one unit in its last printed digit** of layer 2, with §12.1's parse preconditions asserted first; (c) the heading block's edited values **decoded off the page** and equal to the case card's; (d) every form carries `RECONSTRUCTION`; (e) the **mutation pass M1-M5** all go red (§4.7, §11.3); (f) **no character outside the chain-A arrangement in any printed literal** (§7.8) | the golden; the column map; `docs/screenshots/phase-6/wave-4-1403.png` — the 1403 station **on the plain-white side**, which is the question PHASE-4-NOTES §4(c) actually asks and no test can answer |
 | **5 — the punch and the RPG job** | `demos/reentry.asm` **grown by ≈20 cards** (`PAREA`, `PAGM`, `SW PAGM`, the card builder, `P1 0,PAREA`, `BA1`), `demos/reentry.cards` regenerated — **the last wave that moves either**; `demos/reentry-summary.data.cards`; `demos/reentry-summary.rpg`; `test/golden/reentry-summary.page.txt`; `test/reentry-punch-card.test.ts`; `test/rpg-no-control-break.test.ts`; the punch-station retirement at `hopperView.ts:59-70`, `:71`, `:74-77`, `:137`, `:145`, `stackerView.ts:98-101`, `keysView.ts:179-180`, `test/period-reader.test.ts:55, 212-220` — **every site read this session** (§8.8) | waves 3 and 4; `demos/sales-summary.rpg` (read, never written); the shipped RPG generator | (a) §8.2's card contract in **both** directions, and the committed deck **deep-equals `machine.punch.pockets['0']`** after the trajectory run — 92 cards in `punch.stackers['0']`, which is what makes *"no trajectory number is ever hand-typed into a file"* enforceable. (b) §8.6's **four-clause symbol predicate** over `assemble(generate(...).source).symbols` and `generate(...).cards`, asserted positively over the trajectory job **and inverted over `demos/sales-summary.rpg`**, so it cannot rot into a tautology. (c) the RPG extract page byte for byte through the real generator → assembler → loader → 1402 → 1411, **with the reconstruction line asserted on every form of it too**. (d) `test/period-refusal-grep.test.ts` still passes over the replacement drawn text — the retirement rewrites a drawn label, and that file is the standing gate on drawn labels, with its case-sensitive `REFUSED_TOKENS` (`:87-90`) and its per-file floors `AT_LEAST` (`:71-76`, `stackerView.ts` ≥ 5 labels and `keysView.ts` ≥ 12) both binding the replacement prose (§8.8) | both goldens; the punched deck; `docs/screenshots/phase-6/wave-5-punch.png` — the punch feed with 92 cards in pocket 0 and the drawn line that no longer says this 1402 does not punch |
-| **6 — the desk and the tools** | `test/tier4-reentry-storyboard.test.ts`; `test/golden/reentry-console.txt`; **`test/period-pacing.test.ts` if Tom takes decision 6**; and the edits §3.7 enumerates — `coding/sheetView.ts` (+2 `?raw` imports, a third sample button), `specs/sheetView.ts` (+2 imports, a second button), `tools/run-deck.ts:101` and `tools/rpg.ts:133` onto a `start(START_BUDGET)` loop, and **the optional pacing item in `src/ui/main.ts`, Tom's decision 6** | waves 3, 4 and 5 in full | The **whole two-job walk headless in node through the period session**: sample → ASSEMBLE → PUNCH INTO HOPPER → key `AL%1000012$R` → RUN → the page **and** 92 punched cards → the RPG sheet → GENERATE → SEND TO AUTOCODER → assemble → run → the extract page. Within it, three assertions this phase exists for: **the last `ConsoleLine` has `id === 'S'` and its Op group is `.`** — the programmed halt, not the STOP key, not a mode change; the **1415 log golden, the whole roll** through `renderSelectric` at `matrix: 'flush'` (§10.4); and both goldens reached through `machine.start()` rather than `machine.run()`, since `printStop` lives only inside `start()`. Plus the two new `--golden` CLI lines of §12.2 passing, and — if the pacing item is built — `test/period-pacing.test.ts`'s four text assertions (§10.6) | `docs/screenshots/phase-6/wave-6-desk.png` — the whole desk in both tabs; the console golden; the measured wall-clock figure with and without pacing |
+| **6 — the desk and the tools** | `test/tier4-reentry-storyboard.test.ts`; `test/golden/reentry-console.txt`; **`test/period-pacing.test.ts` if Zarathustrum takes decision 6**; and the edits §3.7 enumerates — `coding/sheetView.ts` (+2 `?raw` imports, a third sample button), `specs/sheetView.ts` (+2 imports, a second button), `tools/run-deck.ts:101` and `tools/rpg.ts:133` onto a `start(START_BUDGET)` loop, and **the optional pacing item in `src/ui/main.ts`, Zarathustrum's decision 6** | waves 3, 4 and 5 in full | The **whole two-job walk headless in node through the period session**: sample → ASSEMBLE → PUNCH INTO HOPPER → key `AL%1000012$R` → RUN → the page **and** 92 punched cards → the RPG sheet → GENERATE → SEND TO AUTOCODER → assemble → run → the extract page. Within it, three assertions this phase exists for: **the last `ConsoleLine` has `id === 'S'` and its Op group is `.`** — the programmed halt, not the STOP key, not a mode change; the **1415 log golden, the whole roll** through `renderSelectric` at `matrix: 'flush'` (§10.4); and both goldens reached through `machine.start()` rather than `machine.run()`, since `printStop` lives only inside `start()`. Plus the two new `--golden` CLI lines of §12.2 passing, and — if the pacing item is built — `test/period-pacing.test.ts`'s four text assertions (§10.6) | `docs/screenshots/phase-6/wave-6-desk.png` — the whole desk in both tabs; the console golden; the measured wall-clock figure with and without pacing |
 | **7 — the record** | `docs/reentry-walkthrough.md`; `PHASE-6-NOTES.md`; `test/reentry-open-constants.test.ts`; `docs/BUILD-LOG-6.md` closeout; the dated `## Phase 6` section of `docs/research/open-questions.md` | every earlier wave | (a) the `// OPEN:` **set difference in both directions**, mechanically, between the constants grepped out of §16 item 3's four source domains and `PHASE-6-NOTES.md` §1 — `test/reentry-open-constants.test.ts`, the sweep Phase 4's §16 item 3 claimed and never wrote. (b) every §15 row reconciled to what the build actually did. (c) the walkthrough states the three caveats no artifact can carry — the column layout is period-plausible and undocumented, RK4 as Avco practice is unverified, and DKR is itself ±10-20 %. (d) **criterion 21's human walk, run and recorded by name and date** | the walkthrough; the notes; the closeout gate lines |
 
 Commit per wave; **Opus adversarial review per wave with fixes applied before the commit**; a
 whole-branch Opus review before merge; §12.2's gate at every commit with its numbers **in the commit
 message**, never changed silently. Branch `feature/phase-6-reentry`, worktree per the Phase 2/3/5
-precedent, every worker Opus or lower, `main` never pushed without Tom's per-instance word.
+precedent, every worker Opus or lower, `main` never pushed without Zarathustrum's per-instance word.
 
-**That paragraph is Tom's decision 10, and it is priced rather than assumed.** RULINGS §F 30 marks
+**That paragraph is Zarathustrum's decision 10, and it is priced rather than assumed.** RULINGS §F 30 marks
 the whole process shape as his at the gate. The default is the paragraph above, verbatim; the four
 terms and what relaxing each costs:
 
 | term | default | the alternative, priced |
 |---|---|---|
 | **branch and worktree** | `feature/phase-6-reentry`, a worktree per the Phase 2/3/5 precedent | build on the branch in place: saves one `git worktree add`, and costs the ability to run `main`'s gate side by side while a wave is red — which §12.2's "identity everywhere" wave-0 oracle is easiest to check by doing exactly that |
-| **the orchestrator's seat** | the build orchestrator is an **Opus** subagent (Fable seats substituted by Opus this session, Tom's instruction, `CLAUDE.md` model policy); every worker Opus or lower, Sonnet only for mechanical work | a Fable build orchestrator, if Tom restores the Fable seat — no plan change, one line in the launch |
+| **the orchestrator's seat** | the build orchestrator is an **Opus** subagent (Fable seats substituted by Opus this session, Zarathustrum's instruction, `CLAUDE.md` model policy); every worker Opus or lower, Sonnet only for mechanical work | a Fable build orchestrator, if Zarathustrum restores the Fable seat — no plan change, one line in the launch |
 | **review cadence** | **per-wave Opus adversarial review, fixes applied before the commit**, plus a whole-branch review before merge | one whole-branch review instead of eight: saves seven passes and gives up the property §11 is built on — that a wave's defects are found while its own oracle is the only thing in the diff. Phase 4's and Phase 5's records both carry per-wave findings the whole-branch pass did not reach |
 | **screenshots** | one browser shot per UI-visible wave (0, 4, 5, 6) under `docs/screenshots/phase-6/`, §11.6 | drop them: saves four `claude-in-chrome` runs and four PNGs, and leaves **§14 R16 with nothing in its mechanical column and nothing in its human column either** until criterion 21 at the very end. §11.6 exists because every gate in this plan goes green on a page nobody has looked at |
 
-`main` is never pushed without Tom's per-instance authorisation under any of the alternatives; that
+`main` is never pushed without Zarathustrum's per-instance authorisation under any of the alternatives; that
 term is not a decision.
 
 ### 11.1 The one declared cross-wave deletion — wave 3's golden, and why it is not an ownership breach
@@ -4079,7 +4079,7 @@ when the two disagree, which is precisely what the testability judge found missi
 | both red | the deck | `demos/reentry.asm` |
 | criterion 8 green, criterion 13 red, and the simulator "would pass if…" | the shared-implementation failure the demotion exists to catch | the deck; and `PHASE-6-NOTES.md` §2 records that the pin agreed with a wrong answer |
 
-Editing **layer 1 or layer 2** to make anything pass needs Tom's authorisation and is its own commit
+Editing **layer 1 or layer 2** to make anything pass needs Zarathustrum's authorisation and is its own commit
 with its own reason (§4.5's published rule, verbatim). Widening a published tolerance is the same
 class of act. Layer 3 may be corrected freely against layers 1-2 and never against layer 4.
 
@@ -4109,7 +4109,7 @@ different rule. Stated together so no wave has to reason it out.
 
 | artifact | frozen at | may it be re-cut? |
 |---|---|---|
-| the **published tolerances** (§4.5) | wave 1, in `docs/BUILD-LOG-6.md`, before any golden | **Not widened without Tom's authorisation**, and then in its own commit with its own reason. Tightening is free. Checked at close-out by `git log --follow docs/BUILD-LOG-6.md` against wave 1's section |
+| the **published tolerances** (§4.5) | wave 1, in `docs/BUILD-LOG-6.md`, before any golden | **Not widened without Zarathustrum's authorisation**, and then in its own commit with its own reason. Tightening is free. Checked at close-out by `git log --follow docs/BUILD-LOG-6.md` against wave 1's section |
 | the **column map** (§7.2) | wave 4, in `docs/BUILD-LOG-6.md`, in the golden's own commit and authorially before it | A re-cut lands in the **same commit** as the change that needed it, with its reason in the build log. A re-cut that moves the map **after** the golden is a defect, not a re-cut |
 | the **memory map** (§5.11) | published in the plan at the estimated density and the estimated 486 instructions; **republished by wave 3 with the measured code length AND the measured work-block sum** | The wave-3 republication is expected and is not a deviation — it is the whole reason wave 3 lands before wave 4. It republishes **four** numbers, not one: the code block against 4,910, the **work block against 391 itemised in 478**, the constants block against 440 and the **literal block against 1,150** — the last two being allocations the plan never itemised (§7.9 says so of the literals and names F1 as the recovery if the segment rule puts them ~100 over), and the work block having been twelve positions over before `ARG` and `ARGF1` were put back into it (§5.11). Any later movement is a fallback being taken (§5.11's F1/F2) and is logged as one |
 | `demos/reentry.cards` | regenerated by waves 4 and 5 whenever `demos/reentry.asm` grows | **Mechanical, never authored.** It must always deep-equal `assemble(demos/reentry.asm).deck`, asserted in test, so a hand edit is a red gate rather than a review finding |
@@ -4168,7 +4168,7 @@ incomplete wave, and the phase gate checks for the line, not for a verdict.
 ### 12.1 Tiers
 
 **Eleven new test files, counted off the table below rather than estimated, plus one shared fixture —
-twelve if Tom takes the pacing item.** `test/` already spells manual worked examples `tier1-*` and its
+twelve if Zarathustrum takes the pacing item.** `test/` already spells manual worked examples `tier1-*` and its
 oracle tiers `tier2-` / `tier3-` / `tier4-`; this phase adds two files at the `tier3-` prefix and two
 at `tier4-`, and gives everything else the `reentry-` module prefix the way `asm-source.test.ts` and
 `rpg-cycle.test.ts` are named. The **one** prefix `package.json` keys on is `tier4-`:
@@ -4185,7 +4185,7 @@ it is the twelfth new file under `test/` and §3.11 counts it separately.
 | **T3 — the machine against the reference** (2) | `tier3-reentry-antilog` (wave 2's probe deck through the real assembler, loader, 1402 and 1411, digit for digit against layer 3's antilog at 100 arguments) · `tier3-reentry-integration` (wave 3's 92-step equality against layer 3; the four NACA checkpoints against the **emulated** run; both guards) | yes |
 | **T2 — artifact properties** (4) | `reentry-page-parse` (**the phase's sharpest test**: the golden page parsed back into numbers, every computed column on every row within one unit in its last printed digit of layer 2; the heading's edited values decoded; the mutation pass M1-M5; the chain-A literal sweep; and the two parse preconditions below) · `reentry-punch-card` (§8.2's contract both ways; the committed deck deep-equal to the punch pocket) · `rpg-no-control-break` (§8.6's four-clause symbol predicate, positive over the trajectory job and **inverted** over `demos/sales-summary.rpg`) · `reentry-open-constants` (wave 7 — the `// OPEN:` set difference in both directions over §16 item 3's four source domains against `PHASE-6-NOTES.md` §1) | yes |
 | **T4 — the storyboard, and it GATES** (2) | `tier4-reentry-target.test.ts` (wave 4 — the page through the whole machine) · `tier4-reentry-storyboard.test.ts` (wave 6 — §1's walk headless, the `S` assertion, the 1415 roll) | **no — they join `npm run smoke`** |
-| **optional, Tom's decision 6** (1) | `period-pacing` (wave 6 — §10.6's four assertions over `src/ui/main.ts` as text). Dropped as a unit with the pacing item | yes, if built |
+| **optional, Zarathustrum's decision 6** (1) | `period-pacing` (wave 6 — §10.6's four assertions over `src/ui/main.ts` as text). Dropped as a unit with the pacing item | yes, if built |
 
 **The two parse preconditions, stated here because they are what give T2's first file teeth.** Before
 any value comparison runs, `reentry-page-parse` asserts that the parse yields **exactly 92 detail
@@ -4312,9 +4312,9 @@ retires the kickoff's *"the gate trips at the plan commit by construction"*.
 | wave 0 (the discharge, register → RESOLVED) | `0 ok · 0 tripped · 0 manual · 0 no-trigger · 1 resolved`, exit 0 | ditto |
 | the arrival commit, after wave 0 | — | unchanged, exit 0 |
 | every commit from there | exit 0 | exit 0 |
-| what it costs | **one red commit on the feature branch**, reported as such in `docs/BUILD-LOG-6.md`. Nothing is falsified: the entry says the work is not done, because it is not | a `src/core` change lands **before Tom has gated the plan**, against `CLAUDE.md`'s phase gate, and the dossier and the plan must be held **outside the working tree** for two commits (§9.9) |
+| what it costs | **one red commit on the feature branch**, reported as such in `docs/BUILD-LOG-6.md`. Nothing is falsified: the entry says the work is not done, because it is not | a `src/core` change lands **before Zarathustrum has gated the plan**, against `CLAUDE.md`'s phase gate, and the dossier and the plan must be held **outside the working tree** for two commits (§9.9) |
 
-**This is Tom's decision 1**, and the plan carries both. The orchestrator's ruling is A. Either way,
+**This is Zarathustrum's decision 1**, and the plan carries both. The orchestrator's ruling is A. Either way,
 **the gate discipline applies from wave 0 on**: the arrival commit is a document commit, and no build
 commit in this phase is green-by-exception.
 
@@ -4403,7 +4403,7 @@ no oracle in that plan saw.
    with the measured number in `docs/BUILD-LOG-6.md` by wave 3 before wave 4 cuts the page.
 7. **Zero new modules under `src/`.** `git diff --name-only --diff-filter=A <base>..HEAD -- src` is
    **empty at every commit of the branch**, and the whole-phase `src/` diff touches only the nine files
-   §3.10 names (eight if Tom declines the pacing item). `architecture.md:855`, STATEMENT.md.
+   §3.10 names (eight if Zarathustrum declines the pacing item). `architecture.md:855`, STATEMENT.md.
 8. **Emulated (V, h) at every one of the 92 steps equals layer 3 exactly** — the regression pin, under
    §11.2's tie-break, and **never the gate**. `test/tier3-reentry-integration.test.ts`.
 9. **`max |VELOCITY − V A-E| ≤ 0.50 ft/s`** over the 92 printed rows — the tolerance §4.5 derives from
@@ -4482,7 +4482,7 @@ no oracle in that plan saw.
     period-plausible and undocumented; RK4 as Avco practice is unverified; DKR is itself ±10-20 %).
     Whether each row says the **right** thing is the whole-branch review's judgement and is listed there
     rather than pretended to be a gate.
-21. **The human walk, recorded by name and date in `docs/BUILD-LOG-6.md`.** Tom runs `npm run dev` and
+21. **The human walk, recorded by name and date in `docs/BUILD-LOG-6.md`.** Zarathustrum runs `npm run dev` and
     walks §1 end to end **in one sitting**, writing down what he saw:
 
     - the **third sample button** filling the coding sheet, and the case card readable as one card;
@@ -4509,7 +4509,7 @@ no oracle in that plan saw.
 **The phase gate.** All twenty-one green; the four per-wave screenshots present in
 `docs/BUILD-LOG-6.md` with their two questions answered (§11.6); criterion 21 run and recorded by name
 and date; `PHASE-6-NOTES.md` §1 a set-equal match for the `// OPEN:` constants grepped out of the tree;
-then **the ≤7 bullets to Tom** (`CLAUDE.md` § Engineering rules). `docs/STATUS.md` and
+then **the ≤7 bullets to Zarathustrum** (`CLAUDE.md` § Engineering rules). `docs/STATUS.md` and
 `docs/DECISIONS.md` are updated by the orchestrator at merge, never by a wave.
 
 ---
@@ -4525,7 +4525,7 @@ argument and one violation collapses it).
 |---|---|---|
 | R1 | **Size — a ≈820-card hand-written Autocoder deck.** `demos/sales-summary.asm` is 270 cards and is the largest thing anyone has hand-written in this project; `demos/reentry.asm` is close to three times it, carrying an antilog, a derivative, RK4, two guards, nineteen MCE control words and three print routines, in fixed-point decimal with no shift instruction. | **The deck is never written in one piece and never judged by one signal.** Wave 2 lands the antilog alone against a function; wave 3 lands the integrator against 92 rows of numbers with no golden in the judgement; wave 4 adds the page; wave 5 adds the punch. Each has an oracle no later wave writes (§11), and layer 3 exists **before a line of Autocoder** so a scaling bug is a digit-for-digit comparison rather than a hunt across 820 cards. Caught by: §11's per-wave oracles, in that order. |
 | R2 | **The goldens are ours, so one could be "fixed" to match a bug.** Phase 3 gated on a golden it did not own; this phase cannot, and no Avco listing exists to gate against (`avco-and-reentry.md` §9-10). | Four independent legs, not one. The tolerances are published in wave 1 **before any golden exists**; §7.2's column map is committed before the page; **the page is parsed back into numbers against layer 2**, not against the golden, so the golden's bytes are not the value check; and the mutation pass proves those value assertions are live. Caught by: criteria 9, 12, 13, 14. |
-| R3 | **A tolerance gets widened, or the reference edited, to get past a red gate.** Every bound was set by the same team that will supervise the build, and widening is the cheapest way past red. | The rule is written verbatim in §4.5 and repeated in §11.4: **a tolerance published in `docs/BUILD-LOG-6.md` before the golden may not be widened, and layers 1-2 may not be edited to match the program, without Tom's authorisation — and any such change is its own commit with its own reason.** Caught by: `git log --follow` over `docs/BUILD-LOG-6.md`'s wave-1 section and `test/fixtures/reentry-reference.ts` at close-out, and by the whole-branch review reading those two histories side by side. |
+| R3 | **A tolerance gets widened, or the reference edited, to get past a red gate.** Every bound was set by the same team that will supervise the build, and widening is the cheapest way past red. | The rule is written verbatim in §4.5 and repeated in §11.4: **a tolerance published in `docs/BUILD-LOG-6.md` before the golden may not be widened, and layers 1-2 may not be edited to match the program, without Zarathustrum's authorisation — and any such change is its own commit with its own reason.** Caught by: `git log --follow` over `docs/BUILD-LOG-6.md`'s wave-1 section and `test/fixtures/reentry-reference.ts` at close-out, and by the whole-branch review reading those two histories side by side. |
 | R4 | **Layer 3 becomes the gate through the back door.** Criterion 8 asserts exact equality against a simulator written from the same scaling table by the same team; a build under pressure fixes whichever side is cheaper. | §11.2's tie-break, **stated before the build rather than negotiated during it**: criterion 8 red with 13 green means the simulator is wrong; criterion 13 red means the deck is wrong whatever 8 says, because layer 3 is not in criterion 13's path. The two criteria live in two files owned by two waves. Caught by: criteria 8 and 13 as a pair, and by `PHASE-6-NOTES.md` §2 when they disagree. |
 | R5 | **The deck does not fit, or the high-water blows the ceiling.** §5.11's map is built on an **estimated** 486 instructions at a **pessimistic** 10.1 positions each — above RULINGS §E 21's 9.6-9.9 band, a declared departure — and the program is not written yet. The work block is the tighter of the two: 391 itemised positions in 478, and it was **twelve positions over** an earlier draft's range until `ARG` and `ARGF1` were added to the itemisation (§5.11). | Measured rather than assumed: density is **9.32** whole-program and **9.87** over the `{6,7,11,12}` subset off `demos/sales-summary.asm`, and the map spends 10.1. The map sums to 10,000 with **1,267 positions unused** and a ceiling of **≤ 09,000** against a design high-water of **08,732**. Two fallbacks are named and priced (F1, F2, ~450 positions between them) and F3 is refused with its reason. **Wave 3 republishes the map with the measured code length AND the measured work-block sum before wave 4 spends a single print position.** Caught by: criterion 6, at every commit from wave 3. |
 | R6 | **NEW — the antilog is the only non-elementary operation, and six calls per row sit under every column but two.** A truncation bound that is wrong by an order takes `DYN PRESS` (1.456e-5 of its maximum) and `HEAT RATE` (4.5e-5) with it, and a table fetch that is off by one entry is a plausible-looking page. | Wave 2 exists for exactly this: a probe deck that runs **the routine that ships**, through the real machine, digit for digit against layer 3 at **100 arguments spanning −10 … +6**, with the bias, the field slice and the indexed fetch each named — before anything calls it. The named fallback is `ANTB` (+1,000 positions, truncation 2.65e-8), which under §5.1 rule 3's truncation is measured to change **no printed digit on the page at all** — the 68,682-against-68,681 pair an earlier draft cited was taken under rounding and is withdrawn (§5.6), and wave 2 re-takes the sweep. Caught by: `test/tier3-reentry-antilog.test.ts` and `test/reentry-tables.test.ts`. |
@@ -4533,7 +4533,7 @@ argument and one violation collapses it).
 | R8 | **The punch silently produces nothing.** A `P1` with no group-mark-with-word-mark in the punch area transfers past the end of it, and the channel returns `wrongLengthRecord: true` with **no card punched and no error the operator sees**. | Found by measurement this session rather than by review: the probe reproduced it, and the three requirements — `PAREA` with its own `PAGM`, `SW PAGM` at run time, and the group mark's source glyph `⧧` rather than `‡` — are written into §6.11 and §8.1 as build instructions. Caught by: criterion 16, which counts the cards rather than trusting the absence of an error. |
 | R9 | **Wave 0's rename breaks something the migration list missed.** A rename is a wide, shallow edit and greps for the old name go green while a sentence naming it goes stale. | §9.4's list was walked site by site this session, and §9.5 carries a **deliberately-not-edited list with a reason for each** — which is what makes an edit list auditable rather than merely long. The standing gate at that commit is identity: cc01 byte-identical, seven goldens unmoved, and every test file except the three §12.1 names passing **unedited**. Caught by: criteria 2 and 4, at wave 0's own commit. |
 | R10 | **The `S` line still never reaches the CLI, and criterion 18 is satisfied by one harness only.** `tools/run-deck.ts:101` calls `m.run(max)`; `machine.ts:466` is `run(n) { return cpu.run(n); }`; `printStop` lives only inside `start()` (`:355-374`), called at `:363` and `:370`. All three verified this session. | Named as a wave-6 edit with its line numbers (`run-deck.ts:101`, `rpg.ts:133`) rather than discovered; the page goldens are proved not to move because `--golden` compares the page only (`run-deck.ts:153-166`); and criterion 18 names the harness that asserts it — `test/tier4-reentry-storyboard.test.ts`, through `machine.start()` and the period session. Caught by: criterion 18, plus the 1415 log golden which would show a missing line as a missing row. |
-| R11 | **The register gate is red for one commit**, and a red gate in the history is a precedent. | Priced both ways in §12.2 as Tom's decision 1, with the measured detail that WATCHING and TRIPPED produce **identical gate output**, so nothing is bought by the status change except honesty. Whichever ordering he takes, the gate line at that commit is recorded verbatim in `docs/BUILD-LOG-6.md`. Caught by: criterion 3, from wave 0 on. |
+| R11 | **The register gate is red for one commit**, and a red gate in the history is a precedent. | Priced both ways in §12.2 as Zarathustrum's decision 1, with the measured detail that WATCHING and TRIPPED produce **identical gate output**, so nothing is bought by the status change except honesty. Whichever ordering he takes, the gate line at that commit is recorded verbatim in `docs/BUILD-LOG-6.md`. Caught by: criterion 3, from wave 0 on. |
 | R12 | **NEW — the `?raw` sample imports grow `dist/` toward Phase 4's 400 kB budget.** The bundle is **303.45 kB** today (3.03 HTML + 5.53 CSS + 294.89 JS, measured this session); the new sample buttons embed `demos/reentry.asm` (≈820 cards at the **43.2** bytes/card `demos/sales-summary.asm` averages — 11,670 bytes over 270 cards, measured — ≈ **35.4 kB**), `demos/reentry-summary.data.cards` (**7,452 bytes**, 92 full 80-column punched cards), `demos/reentry-summary.rpg` (54 cards at the 81 bytes/card a padded spec deck averages ≈ **4.4 kB**) and the case card (81 bytes). | 303.45 + 47.4 = ≈**351 kB**, about **49 kB** of margin — stated rather than discovered, and **measured by wave 6 with `du -sk dist` recorded in the build log**. `demos/reentry.cards` is deliberately **not** `?raw`-imported anywhere (§10.1; the deck box loads what ASSEMBLE produced), which is where another ~12 kB would have come from. If the number ever crosses 400 kB the fallback is trimming the deck's comment block, and **raising the budget is a decision recorded in `PHASE-6-NOTES.md` §2 with the measurement**, never a silent drift. Caught by: `npm run build` in the standing gate, and wave 6's recorded number. |
 | R13 | **NEW — a wave closes on a file a later wave writes**, and the whole de-risking argument collapses into one big commit wearing eight labels. | The rule is stated as an inequality a reviewer can check — *at the commit that closes wave N, every input its oracle reads was written by a wave ≤ N* — **each row names its inputs**, and the one cross-wave act in the phase (wave 4 deleting wave 3's golden and its single golden case) is declared in §11.1, in both wave rows and in §3.5. Caught by: the per-wave Opus review against §11's input column, and the whole-branch review's `git diff` of the one named path. |
 | R14 | **The RPG predicate is false on a correct build, or rots into a tautology.** Both halves of the kickoff's suggested check are **measurably false**: `01330CTLBRK B DTLCAL` is emitted on a job with zero control fields, and `01250 BEF1 LASTCD` defeats a text grep for `F1`. | Four clauses over assembler **symbols** and over `generate(...).cards` — never over source text, and never over a re-driven section map, since `driver(model, layout)` called without `generate()`'s private `emittersFor(model)` returns `totalCalc` and `totalOutput` **empty**. Asserted positively over the trajectory job **and inverted over `demos/sales-summary.rpg`**, so a generator change cannot quietly make it vacuous. Caught by: criterion 17, both directions. |
@@ -4555,7 +4555,7 @@ reassurance. §13's numbering is §13's; this is the mapping in one place.
 | R8 the punch | criterion 16 | criterion 21 — cards in the pocket |
 | R9 the rename | criteria 2, 4 | §9.5's deliberately-not-edited list, re-read at close-out |
 | R10 the `S` line | criterion 18 | criterion 21 — the last line of the roll |
-| R11 the red commit | criterion 3 | Tom's decision 1 |
+| R11 the red commit | criterion 3 | Zarathustrum's decision 1 |
 | R12 bundle size | `npm run build`; wave 6's `du -sk dist` | — |
 | R13 wave ordering | the per-wave review against §11's input column | the whole-branch review |
 | R14 the RPG predicate | criterion 17, inverted half included | — |
@@ -4606,14 +4606,14 @@ phase deliberately does **not** depend on.
 |---|---|---|---|---|
 | 1 | `COLUMN_LAYOUT_IS_PERIOD_PLAUSIBLE_NOT_DOCUMENTED` | `[unverified]` | `avco-and-reentry.md` §9, verbatim: *"Column layout is **period-plausible, not documented** — no Avco listing surfaced."* Every quantity in the twelve is a state variable or a one-line function of one, so the **set** is constrained by the physics; the **layout** is ours. §7.2's map. | Fallback taken: `avco-and-reentry.md` §9's twelve, with MACH refused and GAMMA kept. To flip: re-cut `test/golden/reentry.page.txt` and the position table in `test/reentry-page-parse.test.ts` — one wave-4 commit, no arithmetic changes. Settled by: any period 1410 or 704/7090 trajectory listing. |
 | 2 | `NO_AVCO_1410_IS_DOCUMENTED` | `[verified]` **as a negative** for the sources searched | `avco-and-reentry.md` §1-2 and its §10 row 1: nothing in BRL 1961, BRL 1964, the Computers and Automation census or the web. The only 1400-series machine documented at Wilmington is the 1401 print satellite (1965); the heavy integrations ran on a 704 and later a 7090. | Fallback taken is the research's own: *"Present the scenario as period-plausible fiction, not history. Say so in the demo text."* Printed on **every form of both pages** and stated in the walkthrough. To flip: if a 1410 at Avco surfaces, the framing lines change and both page goldens re-cut. Settled by: Textron corporate archives, or a Datamation / C&A new-installations column. |
-| 3 | `BALLISTIC_COEFFICIENT_IS_GENERIC` | `[unverified]` **as a vehicle number** | `avco-and-reentry.md` §4: *"Representative Mark-4/Mark-11-class values are **not** documented in any source consulted here — do not invent them; drive the demo from a user-supplied beta_B."* | Fallback taken: W/(C_D A) read from the case card (cols 40-47) at 1,000.0 lb/ft², printed on the page with the word GENERIC beside it. To flip: a different number punched on one card; every golden re-cuts, no program line changes. This is Tom's decision 5. |
+| 3 | `BALLISTIC_COEFFICIENT_IS_GENERIC` | `[unverified]` **as a vehicle number** | `avco-and-reentry.md` §4: *"Representative Mark-4/Mark-11-class values are **not** documented in any source consulted here — do not invent them; drive the demo from a user-supplied beta_B."* | Fallback taken: W/(C_D A) read from the case card (cols 40-47) at 1,000.0 lb/ft², printed on the page with the word GENERIC beside it. To flip: a different number punched on one card; every golden re-cuts, no program line changes. This is Zarathustrum's decision 5. |
 | 4 | `RK4_IS_ASSERTED_ERA_PRACTICE` | `[unverified]` | `avco-and-reentry.md` §10: *"The RK4-vs-Adams claim for period trajectory programs has no Avco source … Say 'standard practice of the era' and cite it as such, or drop the claim."* | Fallback taken: **the claim is dropped and replaced by a measurement.** RK4 is chosen because of the measured worst \|V − V(eq.13)\| across integrators (§4.1), not because the era used it; the heading prints the method and the walkthrough says the provenance is unverified. To flip: nothing functional — one walkthrough sentence. |
 | 5 | `DKR_IN_PERIOD_UNITS` | `[likely]` | q̇ = 17,600 √(ρ/ρ_SL)(V/26,000)^3.15 / √R_N BTU/ft²-s. **`avco-and-reentry.md` §4 tags this `[verified]`** — arXiv 1910.06397 eq.19, with the conversion confirmed by arithmetic. **This ledger records it `[likely]`, and the divergence is deliberate**: arXiv 1910.06397 is a secondary restatement of Detra, Kemp and Riddell, *Jet Propulsion* 27(12) pp.1256-1257 (1957), which has not been read, and `CLAUDE.md` reserves `[verified]` for a primary source. Logged as an `[observed]` divergence in `PHASE-6-NOTES.md` §3. | Fallback: the columns stay and DKR's own **±10-20 %** prints beside them (`avco-and-reentry.md:160`, *"which sets the precision target for everything downstream"*). To flip: the prefactor is one source constant; HEAT RATE and HEAT LOAD re-cut and nothing else moves. |
 | 6 | `THE_SCALING_TABLE_IS_OURS` | `[verified by absence]` | `avco-and-reentry.md` §6, verbatim: *"There is **no published IBM 1410 fixed-point scaling standard** — IBM never issued a 1410 numeric-conventions manual, and A22-0526-3 deliberately has no fixed decimal point: the machine is variable-field-length and the programmer owns the point."* | No fallback: the statement **is** the disclosure. It is written in `demos/reentry.asm`'s comment block (§6.1) and in the walkthrough (RULINGS §E 29), which is the finding's first artifact — it reached none before this phase. |
 | 7 | `ANTILOG_IS_ANTA_100_BY_10_WITH_A_QUADRATIC_RESIDUAL` | `[likely]` (the sizing) | 100 entries × a 10-position stride plus a quadratic residual in r < 0.01; truncation **2.034e-6** relative. §5.6. The `[verified]` half is the cost arithmetic that rules out op T; the `[likely]` half is that 2.034e-6 is enough for every printed column. | Fallback, named and **measured**: add `ANTB` (100 × 10 of 10^(i/10000), +1,000 positions) for the two-level form, truncation 2.65e-8. Measured under §5.1 rule 3's **truncation**: it changes **no printed digit on the page**, including DYN PRESS's maximum — q̄ = 68,681.65 lb/ft², the fallback's bound is 0.0018 lb/ft² there, and `QB-1` prints 68,681 under both forms. The **68,682 against 68,681** an earlier draft carried here, in §5.6, in §7.6 and in §14 R6 was a **rounding-era** measurement and is withdrawn; wave 2 re-takes the sweep under truncation and records it in `docs/BUILD-LOG-6.md`. Cost to flip: 100 `DCW` cards, ≈19 more object cards, one more multiply per call, wave-3 and wave-4 goldens re-cut. |
 | 8 | `HEATING_USES_THE_CLOSED_FORM_LOG_OF_V` | `[likely]` | log₁₀ V in the DKR expression is taken from eq.13's closed form rather than from the integrated V. The **method** is `[verified]` — IBM's own rule, *"A**B is computed from EXP(B*ALOG(A))"*, C28-0328-3 p.10, named by `avco-and-reentry.md` §7 as the period-authentic route. The `[likely]` is that the substitution is inside HEAT RATE's last printed digit. §5.7. | The substitution's error is **printed in column 5**: at most 0.07 ft/s of 20,821, i.e. 3.1e-6 relative, i.e. 9.6e-6 in q̇, nearly five times inside HEAT RATE's 4.5e-5 bound — so the reader can check the claim on the paper. Fallback: invert the integrated V through a search over `ANTA`, which resolves log₁₀ to ±0.005 and is 1.16 % in q̇ — refused, and the refusal is why the case card carries `LOG10 V-E` punched. |
-| 9 | `GRAVITY_IS_NOT_IMPLEMENTED` | ruling | Not an uncertainty: `avco-and-reentry.md` §4 is `[verified]` that Allen and Eggers neglect gravity against drag through the pulse, and eq.13 is the closed form **only** for that configuration (`avco-and-reentry.md` §8's caveat). | The alternative is priced in §4.1 and is Tom's decision 2: one constant term −g₀ sin γ_E and one add per derivative evaluation. Cost: near-zero in the program; it demotes eq.13 from a per-row check to a checkpoint with a predicted deviation and costs the digit-level `V A-E` column. One printed line on every run states that gravity is not modelled. |
-| 10 | `THE_BAND_STARTS_AT_150000_FT` | ruling | RULINGS §B 7. Above ~150,000 ft drag is nil and the model is being run outside its own band: at 400,000 ft and dt = 0.5, 26 of 90 rows print VELOCITY 23,000. | Alternatives: 400,000 ft with a gravity note, or row 9's third option. h_E = 400,000 ft stays on the case card and is echoed; the heading prints `TABULATED FROM 150,000. FT`. To flip: rows, forms, dt and all four goldens — which is why it is Tom's decision 2 and is settled before the column map is committed. |
+| 9 | `GRAVITY_IS_NOT_IMPLEMENTED` | ruling | Not an uncertainty: `avco-and-reentry.md` §4 is `[verified]` that Allen and Eggers neglect gravity against drag through the pulse, and eq.13 is the closed form **only** for that configuration (`avco-and-reentry.md` §8's caveat). | The alternative is priced in §4.1 and is Zarathustrum's decision 2: one constant term −g₀ sin γ_E and one add per derivative evaluation. Cost: near-zero in the program; it demotes eq.13 from a per-row check to a checkpoint with a predicted deviation and costs the digit-level `V A-E` column. One printed line on every run states that gravity is not modelled. |
+| 10 | `THE_BAND_STARTS_AT_150000_FT` | ruling | RULINGS §B 7. Above ~150,000 ft drag is nil and the model is being run outside its own band: at 400,000 ft and dt = 0.5, 26 of 90 rows print VELOCITY 23,000. | Alternatives: 400,000 ft with a gravity note, or row 9's third option. h_E = 400,000 ft stays on the case card and is echoed; the heading prints `TABULATED FROM 150,000. FT`. To flip: rows, forms, dt and all four goldens — which is why it is Zarathustrum's decision 2 and is settled before the column map is committed. |
 | 11 | `PROGRAM_STOP_TYPES_S` | **`[verified]`** | S223-2648 (CE Instruction — 1415 Console Model 1, `docs/research/README.md:63`) p.6: *"a program stop, an error stop, the stop key, or any cycle step, will initiate a stop print-out."* Figure 5's first row, Normal Stop / `S` / matrix 35. A22-0526-3 p.23 is silent, not contrary. §9.1. | Fallback: the shipped behaviour, restored by setting the constant `false`. Cost to flip: ~40 lines in `src/core/machine.ts`, three test files, and **zero committed goldens** — measured, §9.6. |
 | 12 | `IE_CYCLE_HALT_TYPES_C_ALONE` | `[likely]` | S223-2648 p.6 lists four triggers for one print-out and does not say what a stop that is both a program stop and a cycle step types. One stop types once, and under I/E CYCLE the START that lands on the halt is the cycle step. §9.2. | Fallback: `C` then `S` — delete the `mode !== 'ieCycle'` term. Cost to flip: one term and one test case. Nothing else moves: `test/demo.test.ts:203` is a `C`-count and is indifferent under both (verified). Settled by: a worked I/E CYCLE example in S223-2648's 97 pages. |
 | 13 | `INTERLOCK_STOP_STAYS_SILENT` | `[unverified]` | `ioInterlockStop` is a system stop on the channel interlock (`io.md` §5). S223-2648 p.6 names a program stop, an error stop, the stop key and a cycle step; no sentence in hand puts an interlock stop among them. §9.3. | Fallback: type `S`. Cost to flip: one clause in `printStop`. No shipped test asserts a console line for an `ioInterlockStop`; wave 0 verifies that before it lands. |
@@ -4626,12 +4626,12 @@ phase deliberately does **not** depend on.
 | 20 | `MATRIX_POSITION_IS_A_FIVE_COLUMN_INDENT` | `[likely]`, **inherited** — cited, never redeclared | `src/ui/period/console/selectric.ts:59-84`. The positions 35 and 30 are `[verified]` (S223-2648 Fig.5 p.9; A22-0526-3 Fig.42 p.46); the **origin** is not, because neither figure gives a unit or a left margin. **New in this phase**: Phase 6 is the first phase to commit a console golden, so the constant's own promise — *"If the origin is ever settled, this one number changes and no golden moves"* — is at risk. | Fallback taken: **`test/golden/reentry-console.txt` is rendered at `matrix: 'flush'`** and the indent is exercised by a matrix-35 row-count assertion instead (§10.4). Cost of the alternative: a committed byte count behind an open Phase 4 question, for no gain. |
 | 21 | `DEFAULT_CARRIAGE_TAPE` | `[unverified]` as a punching, `[verified]` as a mechanism — **inherited**, cited never redeclared | `src/core/devices/printer1403.ts:212-218`: 66 form lines, channel 1 at line 1, 9 at 57, 12 at 60. Phase 6 depends on it for the channel-12 overflow that opens form 2 (§7.1). | Fallback: unchanged. PHASE-4-NOTES §4(b) hands this phase the tape **unparameterised** on purpose — *"Phase 4 must not parameterise away the two numbers the trajectory report depends on"* — and this phase does not parameterise it either. |
 | 22 | `CARRIAGE_NEVER_BUSY` | **inherited**, cited never redeclared | `OPEN:` block at `src/core/channel.ts:138`, declared at `:147`, carried on `src/core/types.ts:331` and cited at `printer1403.ts:412` and `channel.ts:218`: the I/O term is 0, so `BA1 *+1` after a `W1` never spins. | Unchanged. The idiom is still written in `demos/reentry.asm`, because a period program wrote it (§2.3). |
-| 23 | `GREEN_BAR_IS_THE_DEFAULT_WITH_A_WHITE_TOGGLE` | **inherited**, cited never redeclared | PHASE-4-NOTES §4(c) names the white side a **Phase 6 requirement** for a twelve-column table. RULINGS §E 25: the existing toggle meets it. | Fallback taken: **no default change.** `PeriodViewState` is written and never read and dispatch is a sink, so a per-deck default is four view edits and one mount, not four lines. The walkthrough tells the operator to flip it, and criterion 21's human walk records what it looked like. Tom's decision 7. |
+| 23 | `GREEN_BAR_IS_THE_DEFAULT_WITH_A_WHITE_TOGGLE` | **inherited**, cited never redeclared | PHASE-4-NOTES §4(c) names the white side a **Phase 6 requirement** for a twelve-column table. RULINGS §E 25: the existing toggle meets it. | Fallback taken: **no default change.** `PeriodViewState` is written and never read and dispatch is a sink, so a per-deck default is four view edits and one mount, not four lines. The walkthrough tells the operator to flip it, and criterion 21's human walk records what it looked like. Zarathustrum's decision 7. |
 | 24 | `CONSTANTS_CARRY_EIGHT_SIGNIFICANT_DIGITS_AT_WHATEVER_S_THAT_TAKES` | ruling | §5.1 rule 5. A constant written at a convenient S rather than at its own magnitude loses significant digits silently: `1/g₀` at S = 1 is `0.0`, and `ρ_SL/(2β_B)` at S = 7 is three significant digits, 1.3e-3 relative — ninety times outside DYN PRESS's last printed digit. This is the rule four of the panel's published rescale offsets broke (§5.3) — and the rule this plan's own `CRNG` broke until it was caught: `cot|γ_E|/6076.1` at S = 10 is `02850596`, seven significant digits, so it sits at **S = 11** with a rescale offset of 10 (§5.3 row 17). | Fallback: a nine-position field for any constant that needs one, with its offsets recomputed — one position each and nothing else. `KBIAS` and `ARGB` already take it (§5.2). Asserted as data by `test/reentry-scaling.test.ts` (wave 1), which is what makes the rule mechanical rather than editorial — and it is what would have caught `CRNG` on the test's first run. |
 | 25 | `U315_GOES_THROUGH_LOGS_NOT_A_TABLE` | ruling, with a derived bound | §5.7, and it is a **stated departure from RULINGS §E 21's named memory fallback**. Linear interpolation on a uniform grid in u has an absolute error bound, so its relative error is worst where u^3.15 is smallest: **1.180e-2 at u = 0.0846**, exhaustive over every subinterval this session, with the simulator's whole-table measurement at 1.09e-2 agreeing from the other direction. That breaks HEAT RATE's 4.5e-5 by 260×. | The replacement is IBM's own documented rule, `A**B` from `EXP(B*ALOG(A))` (C28-0328-3 p.10, `[verified]`), which removes 1,110 positions of table. To flip back: 111 entries at a 10-position stride and both heating columns down to four significant digits — which is why it is recorded here rather than left to look like an oversight. |
-| 26 | `EXACTLY_ONE_DIVIDE_AND_IT_FORMS_K` | ruling | §5.9. The step loop, the derived-quantity block and the print block execute **no divide**; the one divide forms Allen-Eggers's own `K` at initialisation, 5,436 µs, and every other reciprocal is a source constant or is formed by multiplication. | Alternative: punch `1/(2β_B)` on the case card beside the sine, the cotangent and the two logarithms, which removes the divide and 5,436 µs and costs eight card columns §6.12's layout does not have — so it is Tom's decision 5 territory, not a wave's. |
+| 26 | `EXACTLY_ONE_DIVIDE_AND_IT_FORMS_K` | ruling | §5.9. The step loop, the derived-quantity block and the print block execute **no divide**; the one divide forms Allen-Eggers's own `K` at initialisation, 5,436 µs, and every other reciprocal is a source constant or is formed by multiplication. | Alternative: punch `1/(2β_B)` on the case card beside the sine, the cotangent and the two logarithms, which removes the divide and 5,436 µs and costs eight card columns §6.12's layout does not have — so it is Zarathustrum's decision 5 territory, not a wave's. |
 | 27 | `MCE_LEADING_SIGN_COLUMN_TAKES_AN_EXACT_LENGTH_A_FIELD` | **`[verified]` by measurement** | §7.2 mechanism 3, run through the shipped executor: with an A field longer than the control word's body, `@- .   @` prints a **false minus sign** on a positive value, because the high-order sign position is blanked only once the A-field word mark has been sensed (`src/core/edit.ts:267-283`, `signControlLeft`). Column 9 therefore takes `PL10`, a separate four-digit print field, and **two** preparatory statements — `MLC L10R-3,PL10` for the digits (offset **3**, because `L10R` is S = 6 and `PL10` is S = 3) and `MLZS L10R,PL10` for the sign, since `src/core/edit.ts:246` reads the A sign from the units position only and neither sub-field contains it. Both are booked inside §5.10's derived-quantity block. | No fallback in this design: the alternative is to depend on `MCE_EARLY_A_WM_ENDS_AT_SCAN_1` (row 29) for a printed column, which this plan refuses. Cost if the rule is ever wrong: one field and two moves deleted, and column 9 fed `L10R-3` directly — which would then print an unsigned number on 91 of the 92 rows, so the rule being wrong is cheaper to carry than to exploit. |
-| 28 | `REAL_TIME_PACING_IS_ONE_EMULATED_MICROSECOND_PER_REAL_MICROSECOND` | ruling, ours, UI only — **conditional on Tom's decision 6** | §10.6. The frame's budget is computed from the simulated-µs delta so the desk runs at 1411 speed; `START_BUDGET` (`src/core/machine.ts:45`) is the **ceiling** and is never exceeded, so unpaced behaviour is exactly today's. | Fallback: delete it and pass `START_BUDGET`, which is what the checkbox's off-position does. If Tom declines, the row, the item, `test/period-pacing.test.ts` and the checkbox are dropped as a unit and `src/ui/main.ts` is not touched at all. |
+| 28 | `REAL_TIME_PACING_IS_ONE_EMULATED_MICROSECOND_PER_REAL_MICROSECOND` | ruling, ours, UI only — **conditional on Zarathustrum's decision 6** | §10.6. The frame's budget is computed from the simulated-µs delta so the desk runs at 1411 speed; `START_BUDGET` (`src/core/machine.ts:45`) is the **ceiling** and is never exceeded, so unpaced behaviour is exactly today's. | Fallback: delete it and pass `START_BUDGET`, which is what the checkbox's off-position does. If Zarathustrum declines, the row, the item, `test/period-pacing.test.ts` and the checkbox are dropped as a unit and `src/ui/main.ts` is not touched at all. |
 | 29 | `MCE_EARLY_A_WM_ENDS_AT_SCAN_1` | `[unverified]`, **inherited** — cited, and deliberately **not** depended on | `src/core/edit.ts:92-119`. It is why the panel's `@-0.   @` happens to print correctly today: the A word mark is sensed on the code's own A-cycle, so the suppress latch never arms. The alternative reading is live. | Fallback taken: §7.2's `@- .   @` has **no `0` anywhere** and is a single-scan edit under either reading, so no printed column of this phase depends on the constant. Cost of the alternative: a page golden that moves if a Phase-4 open question is ever settled the other way. |
 
 **Two shapes deliberately absent from this ledger, so their absence is a decision:**
@@ -4751,9 +4751,9 @@ not discovered — and the build log records it with its reason; and **no third 
   plan's opening rather than a numbered section, so a later reader does not
   re-derive them;
 - the review rounds, with what each caught and how it closed;
-- **the gate baseline measured on `voltron` at `53b46d4` before a line of the plan was written** —
+- **the gate baseline measured on `host-b` at `53b46d4` before a line of the plan was written** —
   §12.2's numbers, which are the authoritative copy and are not restated here;
-- **the register's state at the plan commit**, explicitly: which of §9.9's two orderings Tom chose,
+- **the register's state at the plan commit**, explicitly: which of §9.9's two orderings Zarathustrum chose,
   the gate line each commit produced, and — under ordering A — the one red commit named as such,
   with the sentence that it says the work is not done because it is not.
 
@@ -4794,9 +4794,9 @@ directory with a `README.md`**, because git tracks no empty directory —
   monolith closed by one binary signal. Plus: how many re-cuts §11.4's protocol actually took and why;
   whether §5.11's estimated 486 instructions, 391-in-478 work block and 08,732 high-water held once wave 3 measured them (the
   plan names them as estimates, so a difference is a fact to record, not a defect); which of §5.11's
-  fallbacks were taken; whether wave 5 was split; whether the pacing item was built (§10.6, Tom's
+  fallbacks were taken; whether wave 5 was split; whether the pacing item was built (§10.6, Zarathustrum's
   decision 6); the `dist` size if it moved against §14 R12; and **any tolerance that had to be
-  re-derived, with Tom's authorisation recorded and its own commit** (§4.5's rule).
+  re-derived, with Zarathustrum's authorisation recorded and its own commit** (§4.5's rule).
 - `## 3. Research corrections and [observed] observations` — §15 row 19's Move-timing inconsistency;
   the u^3.15 measurement against `avco-and-reentry.md` §7's recommendation; the DKR tag divergence
   (§15 row 5); what wave 0's discharge settled and what it corrected in the register; and the punch
@@ -4827,7 +4827,7 @@ are the only exception in the phase.
 
 **10. `docs/reentry-walkthrough.md`** — the walkthrough the brief's §Phases names, and the phase's
 fifth document. **Default: Markdown beside the other docs**; the alternative is a published artifact
-(Tom's decision 9), which changes where it lives and nothing about what it says. Its conventions:
+(Zarathustrum's decision 9), which changes where it lives and nothing about what it says. Its conventions:
 
 - it walks §1 end to end **at the desk and at the CLI**, both, because the two are different
   operators and this project has both;
@@ -4849,4 +4849,4 @@ fifth document. **Default: Markdown beside the other docs**; the alternative is 
   cards, three of them rows and two of them the title and the column heading
   (`demos/hello-dad.data.cards` is five cards; `demos/hello-dad.cards` is six lines, the object card
   and those five), under the title `HELLO DAD - REENTRY TABLE` — beside the ninety-two the machine
-  computes (§10.5, Tom's decision 8).
+  computes (§10.5, Zarathustrum's decision 8).

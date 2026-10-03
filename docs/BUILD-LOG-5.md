@@ -1,6 +1,6 @@
 # BUILD-LOG-5 — Phase 5, RPG
 
-**STATUS:** BUILD COMPLETE — Tom approved the seven plan defaults; waves 0 through 6 and the
+**STATUS:** BUILD COMPLETE — Zarathustrum approved the seven plan defaults; waves 0 through 6 and the
 whole-branch review are complete on `feature/phase-5-rpg`; the branch is awaiting merge.
 
 ## Arrival — c80c668 (the plan, on feature/phase-5-rpg)
@@ -1262,7 +1262,7 @@ Two isolated lower-tier reviewers audited the entire branch against current `mai
 plan/documentation contract and one against the generator/runtime path. The plan reviewer verified
 the 24-test-file inventory, exact 36-name OPEN reconciliation, golden histories and all nine gates,
 then found the stale top status and the round-3 review-input JSON that its own landing commit said to
-delete at Tom's gate. This closeout updates the status and removes that recoverable review input;
+delete at Zarathustrum's gate. This closeout updates the status and removes that recoverable review input;
 the 270-card target draft remains because the cycle oracle and re-cut proof still consume it.
 
 The runtime reviewer found four valid decks that Wave 4 accepted but Wave 5 could miscompile:

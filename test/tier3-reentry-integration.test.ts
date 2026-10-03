@@ -7,7 +7,7 @@
 // reference layers and §4.5's tolerances before this deck existed. Nothing in this file may be
 // widened and no row may be dropped to make a case pass: under §4.5's rule, verbatim, "a tolerance
 // published in docs/BUILD-LOG-6.md before the golden may not be widened, and the reference may not
-// be edited to match the program, without Tom's authorisation." A disagreement is a defect in
+// be edited to match the program, without Zarathustrum's authorisation." A disagreement is a defect in
 // `demos/reentry.asm` and a finding for `docs/BUILD-LOG-6.md`, and §11.2 states which of the two
 // moves when they disagree: layer 3 is a REGRESSION PIN, never the gate.
 //
@@ -506,7 +506,7 @@ describe('Tier 3 — ORACLE (d): the two guards', () => {
     // land on the same eight digits and the case below asserts exact equality; here, at
     // W/(C_D A) = 5,000, they differ by one unit in the last place — 0.9626460 against 0.9626461 —
     // which is a defect in neither and is recorded in docs/BUILD-LOG-6.md, because it says that
-    // layer 3 and the deck agree on THIS card rather than on every card (Tom's decision 5).
+    // layer 3 and the deck agree on THIS card rather than on every card (Zarathustrum's decision 5).
     expect(Math.abs(digitsAt(7)(ktwo) - digitsAt(7)(halfAdjust(2 * derive(guardedCase).k, 7))),
       `the deck formed 2K = ${ktwo.toFixed(7)} and the reference gives `
       + `${halfAdjust(2 * derive(guardedCase).k, 7).toFixed(7)}`).toBeLessThanOrEqual(1);

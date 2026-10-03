@@ -132,7 +132,7 @@ export function createPanel(hooks: { base(addr: number): void }): Panel {
         log.scrollTop = log.scrollHeight;
       }
 
-      // NEVER a clock. Tom's settled decision is instruction-accurate with a cycle counter and no
+      // NEVER a clock. Zarathustrum's settled decision is instruction-accurate with a cycle counter and no
       // cycle-accurate timing claims; `microsecondsSimulated` is a cycle count at 4.5 µs, not a
       // wall time (docs/plans/architecture.md §6; plan §9 risk row).
       counters.textContent =

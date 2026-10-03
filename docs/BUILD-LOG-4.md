@@ -1,7 +1,7 @@
 # BUILD-LOG-4 — Phase 4, the period UI
 
-**STATUS:** BUILD COMPLETE — Tom's "go" on 2026-09-02; waves 0 through 6 committed on
-`feature/phase-4-period-ui` (wave 5 split into 5a and 5b by Tom's ruling); the branch awaits the
+**STATUS:** BUILD COMPLETE — Zarathustrum's "go" on 2026-09-02; waves 0 through 6 committed on
+`feature/phase-4-period-ui` (wave 5 split into 5a and 5b by Zarathustrum's ruling); the branch awaits the
 main session's whole-branch Opus review, criterion 19's human walk, and the `--no-ff` merge, at which
 `docs/DECISIONS.md` and `docs/STATUS.md` are updated by the main session and never by a wave. A Fable build orchestrator with every worker on Opus (`CLAUDE.md` § Model policy).
 From wave 1 each wave's section lands in the wave's own single commit, so wave headings carry no SHA
@@ -11,11 +11,11 @@ making.
 ## Arrival — 5f98c23 (the plan, on feature/phase-4-period-ui)
 
 The plan is `docs/plans/phase-4-period-ui.md` (3,367 lines; sixteen sections mirroring
-`phase-3-autocoder.md` and `phase-5-rpg.md`). It arrived through a design panel on `gaiking` and
-three review rounds on `voltron`, all Opus workers under the model policy, the main session
+`phase-3-autocoder.md` and `phase-5-rpg.md`). It arrived through a design panel on `host-a` and
+three review rounds on `host-b`, all Opus workers under the model policy, the main session
 (Fable) integrating and ruling.
 
-**Design panel** (`wf_b43127ed-583`, 2026-09-01, gaiking; 7 Opus agents, 1.73M tokens, ~54 min,
+**Design panel** (`wf_b43127ed-583`, 2026-09-01, host-a; 7 Opus agents, 1.73M tokens, ~54 min,
 0 errors) — three architects proposed independently from distinct angles (operator-first,
 paper-first, reuse-first); three judges scored them on period fidelity, buildability and
 testability. **paper-first won 480 / 451 / 440** — the only proposal with no last place, because
@@ -31,7 +31,7 @@ oracle for the Exhibit II log, its both-directions light-panel diff, its two dri
 twenty factual corrections, thirty ledger rows, nine completeness-critic items — rendered to
 `docs/plans/phase-4-panel-dossier.md` at `eed111f` so the work could move machines.
 
-**Plan drafting** (voltron, 2026-09-01) — the main session wrote §0-§3 as the spine and a rulings
+**Plan drafting** (host-b, 2026-09-01) — the main session wrote §0-§3 as the spine and a rulings
 note; four Opus drafters wrote §4-§6, §7-§10, §11-§13 and §14-§16 in parallel against it; the
 main session integrated (`d4bcfdc`). Two corrections to the dossier's own bullet 7 were made in
 the plan and itemised there (the line totals; the golden count), plus one ruling against the
@@ -39,7 +39,7 @@ dossier's internal contradiction on the frame loop (one loop, not two).
 
 **Review — round 1, two Opus skeptics.** The research skeptic: needs-revision, **3 blockers / 8
 majors / 9 minors**, applied in `3361368`. The engineering skeptic (its first run was stopped before
-it wrote; Tom chose a fresh re-run over folding the lens into round 2): needs-revision, **5 blockers
+it wrote; Zarathustrum chose a fresh re-run over folding the lens into round 2): needs-revision, **5 blockers
 / 12 majors / 15 minors**, applied in `cfbcd0e`. **Round 2, three Opus verifiers** on `cfbcd0e`:
 every round-1 item closed — 32 of 32 engineering, 20 of 20 research, zero regressed — and new
 findings of **1 blocker / 4 majors / 13 minors** (engineering: the DOM-free import rule forgot that
@@ -65,7 +65,7 @@ the `S` line but never stopped the CPU, because the two UI-only detents leave `m
 reads the session's detent); a backspace key on the 1415 keyboard that S223-2648 p.78 says cannot be
 commanded (withdrawn — INQ CAN is the correction); `?`-on-H upgraded from `[likely]` to `[verified]`
 where the restrike's exactness rests on it; the Fig.60 strip miscounted at fifteen entries when it
-is seventeen; the spec-sheet columns mis-tagged `[unverified]` in the argument put to Tom's gate,
+is seventeen; the spec-sheet columns mis-tagged `[unverified]` in the argument put to Zarathustrum's gate,
 when only the artwork is undocumented; the interpretation band attributed to the 1415's typeball
 with no source (now a ledger row); and the phase oracle byte-gated on `PRINTED_BLANK`, whose own
 declaration says nothing downstream may key on it (now the inherited-constant row the oracle
@@ -93,14 +93,14 @@ sixteen renames applied: it prints nothing, detects every rename at 91-98% simil
 injected body line.
 
 **Mechanism note.** The Phase 5 panel and reviews ran as Claude Code Workflows (`wf_…` run ids
-with a `journal.jsonl`). On voltron the Workflow tool was not present in the session's toolset, so
+with a `journal.jsonl`). On host-b the Workflow tool was not present in the session's toolset, so
 the drafting and the review rounds ran as parallel Opus Agent-tool calls in the same shape — four
 drafters, two skeptics, three verifiers, one re-verifier, two revisers — with `model: 'opus'` on
 every seat. The findings and their resolutions are recorded here, as `docs/BUILD-LOG-5.md` records
 Phase 5's; the raw reports stayed in the session's scratchpad, as Phase 5's stayed in its workflow
 journals.
 
-**Baseline gates on voltron at `b7c60b3`, before a line of the plan was written (2026-09-01
+**Baseline gates on host-b at `b7c60b3`, before a line of the plan was written (2026-09-01
 21:58 PDT), and re-run at `0466fe3` with identical numbers:**
 
 ```
@@ -118,8 +118,8 @@ npm run build                                                clean (dist/index.h
                                                              assets/index-IerEAi40.js 258.20 kB)
 ```
 
-Identical to `main` at `2be10b4` on gaiking. Environment differs from gaiking and did not matter:
-node `v26.0.0` / npm `12.0.2` (gaiking `v20.19.5` / `10.8.2`); `npm ci` warned that `fsevents`'s
+Identical to `main` at `2be10b4` on host-a. Environment differs from host-a and did not matter:
+node `v26.0.0` / npm `12.0.2` (host-a `v20.19.5` / `10.8.2`); `npm ci` warned that `fsevents`'s
 install script was blocked by `allowScripts`, which is harmless here.
 
 **Measured for §12.2's oracle-count rule:** with `oracles/` absent and `ALLOW_MISSING_ORACLES=1`,
@@ -127,7 +127,7 @@ install script was blocked by `allowScripts`, which is harmless here.
 fails outright), 1649 passed / 93 skipped tests; smoke 4 passed / 2 skipped files, 44 / 5. Without
 the flag, `test/oracles-present.test.ts` fails red. A wave gate is never run under the flag.
 
-**Two things the plan flags as Tom's, not the plan writer's** (§14 R12, §14 R2′): the spec sheets
+**Two things the plan flags as Zarathustrum's, not the plan writer's** (§14 R12, §14 R2′): the spec sheets
 and coding sheet stay `<textarea>`s in a drawn frame — the columns are `[verified]`, the artwork is
 not digitised, and the refusal stands on the artwork alone; and the Selectric keyboard shares a page
 with three `<textarea>`s, which is designed against (the console region owns `keydown`, a grep
@@ -203,7 +203,7 @@ two documents covering four targets. Two observations for an escalation commit, 
 "left-to-right" implies one row, and Fig.3 stacks POWER over SYSTEMS CONTROLS beside a full-height
 SYSTEM CHECK (order right, row implication wrong — wave 4's `lightsView` draws the stack); and the
 CE panel is silkscreened "SYSTEMS CONTROLS" where A22-0526-3 Fig.55 prints "SYSTEM CONTROLS", which
-§5 follows. **[Closed 2026-09-03 — Tom ruled "go with the photograph". §5 now reads SYSTEMS
+§5 follows. **[Closed 2026-09-03 — Zarathustrum ruled "go with the photograph". §5 now reads SYSTEMS
 CONTROLS, applied as an escalation commit that moved the research file, `console/lamps.ts`,
 `console/lightsView.ts` and two test files together, because the panel test slices §5 live in both
 directions. The row-implication observation needed no action — wave 4 had already drawn the
@@ -420,7 +420,7 @@ carriage LANDS on a punch between them would report that punch as crossed when i
 no shipped deck does, and Phase 6's trajectory report is to be checked against it when it lands.
 `lastPrintedOn`, `lastInkedForm` and `CARRIAGE_CHANNELS` landing in wave 1's `paper/carriage.ts`
 during wave 2 is a plan-phasing miss, accepted on the condition — met — that all six wave-1 tests
-pass unedited. None of this edits the plan (Tom's standing ruling): it is recorded here and goes
+pass unedited. None of this edits the plan (Zarathustrum's standing ruling): it is recorded here and goes
 to `PHASE-4-NOTES.md` §2 at wave 6 as the second and larger entry there — the one substantive
 thing the review rounds missed, and Phase 6's trajectory report will paginate across forms the
 same way.
@@ -849,7 +849,7 @@ shasum -a 256 src/ui/internals/controls.ts                   a6d90f54…f318f, u
 
 ## Wave 5a — the desk and the stylesheet
 
-**The split.** Tom ruled before this wave that wave 5 takes §11's pre-declared cut: **5a** — `period/desk.ts`,
+**The split.** Zarathustrum ruled before this wave that wave 5 takes §11's pre-declared cut: **5a** — `period/desk.ts`,
 `period/mount.ts`, `period/session.ts`, `src/ui/styles/period.css` and the four wave-5 tests — and
 **5b** — the two authoring stations' `git mv` and restyle. Two commits, two reviews, two gates, five
 screenshots in the phase, recorded in `PHASE-4-NOTES.md` §2 with §14 R13's reason (2,135 lines,
@@ -1059,7 +1059,7 @@ shasum -a 256 src/ui/internals/controls.ts                   a6d90f54…f318f, u
 
 ## Wave 5b — the two authoring stations
 
-**What landed.** The second half of Tom's wave-5 split: seven `git mv`s and a restyle that re-implements
+**What landed.** The second half of Zarathustrum's wave-5 split: seven `git mv`s and a restyle that re-implements
 nothing. `period/autocoder/{sourceBox,listingView,objectDeckView,mount}.ts` → `period/coding/{sheetView,listingView,objectDeckView,mount}.ts`
 and `period/rpg/{specBox,resultView,mount}.ts` → `period/specs/{sheetView,resultView,mount}.ts`, the
 three session files staying where wave 0 put them so the four external test import lines never move
@@ -1202,7 +1202,7 @@ HIGH 02833 · CTL 1`, 254 Autocoder source cards, 0 flagged lines, 39 condensed 
 **And the gate item made visible**: the spec station's masthead states the declared fidelity gap
 to the operator in its own words — "X24-1336 · X24-1337 · X24-1338 · X24-1339 — column layout
 from J24-0215-2. The ruler is the form: the columns are verified, the artwork of the four sheets is
-not digitised, and none of it is drawn" — §14 R12, one of the two items the plan flagged as Tom's,
+not digitised, and none of it is drawn" — §14 R12, one of the two items the plan flagged as Zarathustrum's,
 said on the page and not only in a document, the difference between a limitation and an
 undisclosed one. Framed: the listing's foot, the OBJECT DECK band and two faces at the third scale
 with their captions; the heading strip, the two rulers and the ruler switch are above the fold and
@@ -1379,7 +1379,7 @@ the render**: `dist/index.html` references both assets relatively (`src="./asset
 bundle is `http://www.w3.org/2000/svg`, the `createElementNS` namespace, never fetched — so the page
 makes no network request by construction. **Nobody has opened it over `file://`**: every browser
 check in this phase (waves 2, 3, 4, 5a, 5b) ran against `npm run dev` on `localhost:5173`, and the
-main session's browser tooling refuses `file://` URLs. **RULED BY TOM 2026-09-02: accepted and
+main session's browser tooling refuses `file://` URLs. **RULED BY ZARATHUSTRUM 2026-09-02: accepted and
 recorded, not fixed.** The built page emits `<script type="module" crossorigin
 src="./assets/index-….js">`, and a module script is blocked by CORS over a `file://` origin in
 Chrome, Firefox and Safari alike — so this clause is **unmeetable as built**, and the relative asset
@@ -1395,7 +1395,7 @@ criterion 19's walk below.
 against the plan's one — a deviation recorded in `PHASE-4-NOTES.md` §2 — the colour tokens in both
 cases. 18b. `test/period-keydown-ownership.test.ts`
 — `keydown` in `console/keyboardView.ts` alone, no `document`/`window` listener, `.press(` only
-under `console/`. **19. The human walk — WALKED BY TOM, 2026-09-03**, and it found a defect no
+under `console/`. **19. The human walk — WALKED BY ZARATHUSTRUM, 2026-09-03**, and it found a defect no
 oracle in this phase could see. He took §1 from the authoring end — coding sheet, ASSEMBLE, PUNCH
 INTO HOPPER — and stopped dead at the load: *"i got to the point where i have punched cards.
 however, no matter what ive tried they wont load. i suspect bug."* He was right. `key the bootstrap`
@@ -1421,7 +1421,7 @@ in ALTER with nothing displayed fell off the end of `startKey` under a drawn cap
 unlocks the keyboard; a stray INQUIRY RELEASE queued a phantom entry a later program read would
 consume as Figure 45's Condition; and M2 stalled silently in both directions. All six are fixed in
 `e6b2d08`, `afbcaf3` and `1c81ac5` — each verified in the browser, not merely in test — and M2 was
-reopened on Tom's call, taking §4's candidate 1: the gate is explained, not opened. `d37cb52` adds
+reopened on Zarathustrum's call, taking §4's candidate 1: the gate is explained, not opened. `d37cb52` adds
 `test/period-a-refusal-is-visible.test.ts`, which sweeps every click handler under `src/ui/period/**`
 for a `.textContent` write with no branch, and every `: void` early return for a cited reason; it
 failed red on a seventh site, `coding/mount.ts`'s punch handler, before that was fixed too.
@@ -1450,7 +1450,7 @@ holds for the waves.
 / 1 and 6 / 49 → 7 / 50, every step stated in its commit; the four goldens and the cc01 transcript
 never moved; 43 `OPEN:` matches under `src/ui/period/**`, four of them references to blocks (`cardGeometry.ts:13`,
 `:26`, `carriageView.ts:256`, `keysView.ts:80`), 39 blocks for §15's thirty-nine rows; every worker on Opus or Sonnet under a Fable build orchestrator — from
-wave 4 by Tom's decision under an Opus main seat.
+wave 4 by Zarathustrum's decision under an Opus main seat.
 
 **Gates (final wave-6 tree, `oracles/` present, all green):**
 

@@ -1,7 +1,7 @@
 // src/ui/period/specs/sheetView.ts — the SPECIFICATION SHEET station: one 80-column text area
 // under a parser-backed per-sheet ruler, in a period header band.
 // Source: Phase-4 plan §9.2 (this file's spec), §1 step 2 (the storyboard), §2.2 and §14 R12 (the
-// refusal below, at Tom's gate rather than at criterion 19), §10.3 (inline style attributes;
+// refusal below, at Zarathustrum's gate rather than at criterion 19), §10.3 (inline style attributes;
 // `src/ui/styles/period.css` owns the class rules), §11 wave 5b. `git mv` from Phase 5's
 // `period/rpg/specBox.ts`; the ruler, `sheetOf`, `activeLine` and the five listeners are its.
 //

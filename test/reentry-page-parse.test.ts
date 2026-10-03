@@ -24,7 +24,7 @@
 //
 // LAYER 2 AND THE PUBLISHED BOUNDS ARE THE AUTHORITY. §4.5's rule, verbatim and not negotiable
 // inside the build: "a tolerance published in docs/BUILD-LOG-6.md before the golden may not be
-// widened, and the reference may not be edited to match the program, without Tom's authorisation."
+// widened, and the reference may not be edited to match the program, without Zarathustrum's authorisation."
 // A disagreement here is a defect in the PAGE — reported with the row, the column and both values,
 // and the deck is what moves (§11.2).
 

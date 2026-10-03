@@ -1,22 +1,22 @@
 # BUILD-LOG-6 — Phase 6, the reentry showcase
 
-**STATUS:** AT TOM'S GATE — the plan arrived at `bb7cd7e` on `feature/phase-6-reentry`; no build
-has started. The ≤7-bullet gate summary and the ten decisions the plan marks as his were put to Tom
+**STATUS:** AT ZARATHUSTRUM'S GATE — the plan arrived at `bb7cd7e` on `feature/phase-6-reentry`; no build
+has started. The ≤7-bullet gate summary and the ten decisions the plan marks as his were put to Zarathustrum
 in-session on 2026-09-04. Wave 0 (the DEFERRED-01 discharge) is the first build commit after his go.
 
 ## Arrival — bb7cd7e (the plan, on feature/phase-6-reentry)
 
 The plan is `docs/plans/phase-6-reentry.md` (4,852 lines; sixteen sections mirroring
 `phase-4-period-ui.md` and `phase-5-rpg.md`, headed by "The seven bullets" and, new in this phase,
-§2.4 — Tom's ten decisions on one page, each with its default and its priced alternative). It arrived
+§2.4 — Zarathustrum's ten decisions on one page, each with its default and its priced alternative). It arrived
 through a design panel and four review rounds, all Opus workers under the model policy, the main
 session integrating and ruling.
 
 **Seats and provenance, stated plainly.** The main session ran on Fable 5.1 (the `/model` line at
-session start). Tom's instruction for this session substitutes Opus for every Fable seat named in
+session start). Zarathustrum's instruction for this session substitutes Opus for every Fable seat named in
 `CLAUDE.md` — the build orchestrator will be an Opus subagent — and every panel, drafting and review
 seat below was Opus by construction (`model: 'opus'` on every `agent()` call). The commit footers
-carry the form Tom instructed, `(anthropic claude-code opus-5 / voltron)`.
+carry the form Zarathustrum instructed, `(anthropic claude-code opus-5 / host-b)`.
 
 **Before the panel, the main session did two things the kickoff brief carries.** It wrote
 `STATEMENT.md` — what the showcase must print and why that output is faithful — and it measured the
@@ -26,7 +26,7 @@ W 133, S 131, ⌑ 115, V 75, C 47, B 36, G 33, ? 24, / 10, A 7, N 5, R 4, ! 3, M
 "eleven `S` lines in the cc01 transcript" is a static count of halt sites in the image, reachable
 only on a failed check. The rename moves no byte of that transcript; plan §9.6 carries the command.
 
-**Design panel** (`wf_cf69d70d-d3a`, 2026-09-03, voltron; 7 Opus agents, 1.61M tokens, ~53 min,
+**Design panel** (`wf_cf69d70d-d3a`, 2026-09-03, host-b; 7 Opus agents, 1.61M tokens, ~53 min,
 0 errors) — three architects proposed independently from distinct angles (exact-solution-first,
 paper-first, reuse-first); three judges scored them on period fidelity, buildability and testability.
 **paper-first won 448 / 431 / 422** — the only proposal with no last place (fidelity 152 · buildability
@@ -45,7 +45,7 @@ to `docs/plans/phase-6-panel-dossier.md` in this commit.
 **Two kickoff claims the panel measured false, and one it confirmed.** (1) The gate does not trip
 "by construction": `scripts/check-deferred.sh:69` is `RESOLVED) rc=$((rc+1)); continue ;;` and skips a
 resolved entry before its trigger is evaluated, so a discharge that lands before the plan commit is
-never red — but that discharge is a `src/core` change and the phase gate forbids it before Tom's go,
+never red — but that discharge is a `src/core` change and the phase gate forbids it before Zarathustrum's go,
 which is why the ordering is his decision 1. (2) The suggested RPG check — "the generated program
 contains no `CTLBRK`/`F1` ladder" — is false in both halves: `node build/tools/rpg.js
 demos/card-list.rpg --source` emits `01330CTLBRK    B    DTLCAL` on a job with zero control fields,
@@ -57,16 +57,16 @@ discriminates nothing on the I/E CYCLE ruling, and `src/ui/period/raw-import.d.t
 
 **Orchestrator rulings on the dossier** (`RULINGS.md`, before a line of the plan was written):
 integrate, never tabulate; the 150,000 ft band by default with the gravity-term option priced as
-Tom's; the report over at least two forms; twelve columns with a constant GAMMA; chain-A-clean
+Zarathustrum's; the report over at least two forms; twelve columns with a constant GAMMA; chain-A-clean
 literals with a test; the deck prints and punches and the RPG job tabulates the punched cards, the
 station retired and not rebuilt, no new module; DEFERRED-01 as a rename (`PROGRAM_STOP_TYPES_S`),
 I/E CYCLE typing `C` alone, the other stops silent as a category ruling; every 1415 transcript
 through `machine.start()`; four reference layers with the fixed-point simulator demoted to a
-regression pin; tolerances published before the golden and never widened without Tom; the page
+regression pin; tolerances published before the golden and never widened without Zarathustrum; the page
 parsed back into numbers with a mutation pass; no third listing golden; the real-time pacing item
-as Tom's decision with a recommendation to take it.
+as Zarathustrum's decision with a recommendation to take it.
 
-**Plan writing** (`wf_cf337e1c-998`, 2026-09-03/04, voltron; 16 Opus agents, 5.67M tokens, ~4.3 h,
+**Plan writing** (`wf_cf337e1c-998`, 2026-09-03/04, host-b; 16 Opus agents, 5.67M tokens, ~4.3 h,
 0 errors) — an Opus spine writer fixed the numbers sheet (`NUMBERS.md`: case card, band, dt, rows,
 forms, the column map, the scaling table, the antilog, per-step op counts and µs from
 `src/core/cycles.ts`, the memory map, card counts, tolerances, the migration list, the wave skeleton)
@@ -83,7 +83,7 @@ claimed, `DECEL`'s scale, the extract's precision claim, the product-fit proof, 
 range, the `u^3.15` interpolation bound at the bottom of the trajectory, the punch block's count.
 Engineering: needs-revision, **1 blocker / 4 majors / 11 minors** — the 54-card RPG spec deck's
 claimed run and page, the emitted-position and card-count figures disagreeing across sections
-(7,440 / 143 / 147), the work-block overrun, and Tom's decisions scattered without a default and a
+(7,440 / 143 / 147), the work-block overrun, and Zarathustrum's decisions scattered without a default and a
 priced alternative (which is where §2.4 came from). **32 applied, 0 declined** by the Opus reviser
 (4,524 lines).
 
@@ -122,11 +122,11 @@ arrival commit (§16 item 7), and wave 0 appends.
 every page, invisible to a golden it would have authored); the `DS`-versus-`DCW` word-mark rule (a
 deck that would have run every arithmetic statement past its own field); the truncation rule (a mock
 that promised digits the deck cannot print); the case card's literal; the work-block overrun; the
-emitted-position arithmetic; the nineteen control words; Tom's decisions gathered. None of it moved
+emitted-position arithmetic; the nineteen control words; Zarathustrum's decisions gathered. None of it moved
 the spine — the winner's page, the integration, the punch, the rename — and every number the review
 moved is now stated in exactly one section and cited from the others.
 
-**The gate baseline measured on `voltron` at `53b46d4` (`main`) before a line of the plan was
+**The gate baseline measured on `host-b` at `53b46d4` (`main`) before a line of the plan was
 written:** typecheck clean · `npm test` **111 files / 1968 passed / 1 skipped** · `npm run smoke`
 **7 / 50** · `npm run cc01` PASS, instruction check at **00322**, **1241 instructions**, 82,543.5 µs ·
 goldens **348 / 2251 / 3688 / 6982** by their CLI lines and **120 / 2522 / 33450** by `npm test` ·
@@ -146,10 +146,10 @@ gate output — `scripts/check-deferred.sh:73` puts WATCHING and TRIPPED in the 
 documentation of what is true. This is plan §9.9's **ordering A**: one red `check:deferred` commit on
 the feature branch, `main` untouched, the entry saying the work is not done because it is not. The
 alternative, ordering B (the escalation and wave 0 before the plan commit, never red), lands a
-`src/core` change before Tom has gated the plan and is his decision 1. **Nothing is falsified in
+`src/core` change before Zarathustrum has gated the plan and is his decision 1. **Nothing is falsified in
 either ordering.**
 
-**Open for Tom at this gate** — plan §2.4, the ten decisions on one page, each with the
+**Open for Zarathustrum at this gate** — plan §2.4, the ten decisions on one page, each with the
 orchestrator's recommended default and the priced alternative: (1) the register ordering; (2) the
 band and gravity, with rows / forms / dt; (3) the job shape and the punch; (4) twelve columns or
 eleven; (5) the case-card numbers; (6) real-time pacing at the desk; (7) the plain-white form; (8)
@@ -381,7 +381,7 @@ wave's reviewer, integrating independently with no fixture import.
 ### The rule, verbatim, published with the table
 
 *A tolerance published in `docs/BUILD-LOG-6.md` before the golden may not be widened, and the
-reference may not be edited to match the program, without Tom's authorisation; any such change is
+reference may not be edited to match the program, without Zarathustrum's authorisation; any such change is
 its own commit with its own reason.* Tightening is free. Checked at close-out by
 `git log --follow docs/BUILD-LOG-6.md` against this section (§4.5, §11.4, §14 R3).
 
@@ -907,7 +907,7 @@ defect.
 **This is the wave's largest deviation and it is the orchestrator's, not a worker's.** §2.3 lists
 *"The machine is 10K"* first among the things the plan *"restates and does not re-open"*, and §11.4's
 re-cut protocol does not name the machine among the artifacts a wave may move. It was taken without
-Tom's word, flagged to him three times, and it should be read as provisional until he rules.
+Zarathustrum's word, flagged to him three times, and it should be read as provisional until he rules.
 
 **Why.** The page reached **09,991 of 10,000** and wave 5's punch needs ~291 positions against 12
 free. The alternatives were to cut the page or to drop the punch — and dropping the punch loses
@@ -950,7 +950,7 @@ caught and which cost the page three things:
 
 - **`GENERIC` disappeared entirely.** `avco-and-reentry.md:154` is emphatic — representative ballistic
   coefficients *"are **not** documented in any source consulted here — do not invent them"* — and
-  Tom's decision 5 says the case-card numbers are printed `GENERIC`. The page was printing
+  Zarathustrum's decision 5 says the case-card numbers are printed `GENERIC`. The page was printing
   `W/CD A 1,000.0 LB/FT2` and `BETA SUB B 31.080 SLUG/FT2` as bare vehicle numbers with nothing
   marking them as invented. It is the one disclosure the research insists on.
 - **`TABULATED FROM 150,000. FT` became a bare `FROM 150,000. FT`**, reading as another entry
@@ -1123,7 +1123,7 @@ git diff --diff-filter=A 53b46d4..HEAD -- src  empty  (criterion 7)
 
 One Opus adversarial review: **three blockers, seven majors, thirteen minors**, verdict
 `NEEDS-REVISION`. All three blockers and six of the seven majors are closed above; the seventh is the
-20K decision itself, which is Tom's and is recorded as provisional. The review re-derived criterion
+20K decision itself, which is Zarathustrum's and is recorded as provisional. The review re-derived criterion
 13 independently with its own parse, checked the mutation arithmetic from first principles, ran all
 four CLI goldens at 20K, measured the `ORG 10100` trap by padding and re-assembling, and swept the
 whole tree for the retracted Avco claim — finding the drawn desk caption that two earlier passes had
@@ -1474,7 +1474,7 @@ crossed.
 
 ### §10.6's pacing item was NOT built, and the reason is procedural
 
-§2.4 marks it Tom's decision 6 with a recommended default of "build it". **It was never actually put
+§2.4 marks it Zarathustrum's decision 6 with a recommended default of "build it". **It was never actually put
 to him.** Building it on a default would be inventing his decision, so `src/ui/main.ts` is untouched
 and `test/period-pacing.test.ts` does not exist. The phase's `src/` change is therefore ~90 lines
 across eight files, §3.10's decline-path figure.
@@ -1482,7 +1482,7 @@ across eight files, §3.10's decline-path figure.
 For the record, since wave 7's walkthrough must carry the decline-path sentence: at 27 frames the
 desk run is over before a person's eye reaches the 1403. The honest period note is §5.10's — 19.14 s
 of 1411 time against 11.7 s of 1403 time, compute-bound by about a third. Both this worker and the
-orchestrator think the item is worth putting to Tom; its oracle is a text scan over `main.ts`, which
+orchestrator think the item is worth putting to Zarathustrum; its oracle is a text scan over `main.ts`, which
 is a weaker instrument than anything else in this wave, and that is worth saying when it is offered.
 
 ### Corrections owed to earlier sections — the log is append-only
@@ -1657,7 +1657,7 @@ removed an **inherited** row, and it is exactly the failure an allowlist would h
 ### Criterion 21 — NOT RUN, and it is the one thing this phase cannot close for itself
 
 §16 item 7's wave-7 row requires *"criterion 21's human walk, by name and date"* in this file.
-**It has not happened.** Criterion 21 is Tom running `npm run dev` and walking §1 end to end in one
+**It has not happened.** Criterion 21 is Zarathustrum running `npm run dev` and walking §1 end to end in one
 sitting, and no agent can run it or record it on his behalf. This section says so rather than
 leaving a reader to infer it from an absence — and the Phase 4 precedent is why it matters: that
 phase's criterion 19 found a defect no oracle in its plan saw.
@@ -1743,9 +1743,9 @@ said 120 / ≈2,093 without the pacing item, and the measured figure is 120 / 2,
 | 18 | the operator's evidence | **green** — 189 cards, the `S` with Op group `.`, the 1415 roll |
 | 19 | performance printed, never asserted | **green** — 52,406 / 19.14 s / 27 frames, unaccelerated, Accelerator not assumed |
 | 20 | the record closes | **green** — the dated section exists, the set difference is empty both ways under `test/reentry-open-constants.test.ts`, and `docs/reentry-walkthrough.md` states all three caveats the artifacts cannot carry |
-| 21 | **the human walk** | **OUTSTANDING — Tom's, and it is the phase gate's last item** |
+| 21 | **the human walk** | **OUTSTANDING — Zarathustrum's, and it is the phase gate's last item** |
 
-**What is left before merge**, and none of it is a wave's: criterion 21; Tom's ruling on the 20K
+**What is left before merge**, and none of it is a wave's: criterion 21; Zarathustrum's ruling on the 20K
 machine, which is recorded as provisional (`PHASE-6-NOTES.md` §2); his decision on the pacing item,
 which was never put to him; `docs/STATUS.md` and `docs/DECISIONS.md` at the merge; and the three
 register entries drafted in `PHASE-6-NOTES.md` §4 for `/tripwire add`. The whole-branch Opus review
@@ -1800,7 +1800,7 @@ asks for is below; the verdict it carries is a defect with a named deferral, whi
 | Q1 — does the twelve-column table read as a table? | **not answerable from this shot.** The 1403 is at `form 1, line 1 0 lines printed`. Wave 4's `wave-4-1403.png` is the answer on the record |
 | Q2 — does the page read as a reconstruction? | **not answerable from this shot**, same reason; wave 4 answered it |
 | defect | the run does not advance under browser automation, so the desk photographs **idle** |
-| deferral | **criterion 21**, Tom's human walk, where the desk is in front of a person and the shot is trivially obtainable |
+| deferral | **criterion 21**, Zarathustrum's human walk, where the desk is in front of a person and the shot is trivially obtainable |
 
 **The measurement, because "Chrome throttles background tabs" was until now an assertion.** In the
 automation harness the page reports `document.visibilityState === 'hidden'` and
@@ -1852,7 +1852,7 @@ goldens**, and the deck is 1,195 cards everywhere with no surviving 1,185.
 
 The criterion asks for high-water **≤ 09,000 on a 10,000-position machine**. The measured figure is
 **11,132 on a 20,000-position machine**. That is not the criterion passing; it is the criterion
-**superseded by the 20K move**, which is itself **provisional pending Tom's ruling** (`PHASE-6-NOTES.md`
+**superseded by the 20K move**, which is itself **provisional pending Zarathustrum's ruling** (`PHASE-6-NOTES.md`
 §2). The table row above says "green against the measured ceiling" and that phrasing does more work
 than it should. Recorded here plainly: **criterion 6 as written is not met, and cannot be met at 20K.**
 
@@ -1875,11 +1875,11 @@ Only documents and one test moved. No `src/`, no `demos/`, no golden.
 
 ## Close-out, 2026-10-02 — the two rulings, built; the record corrected
 
-Run by an Opus main session on Tom's instruction (Fable seats substituted by Opus, confirmed at the
+Run by an Opus main session on Zarathustrum's instruction (Fable seats substituted by Opus, confirmed at the
 start of the session), workers on Opus and Sonnet. The dead `main-gate` worktree under a deleted
 scratchpad was pruned first; it had held `main` checked out.
 
-**Tom's rulings, 2026-10-02.** (1) The 20K machine is **accepted**, and criterion 6 as written is
+**Zarathustrum's rulings, 2026-10-02.** (1) The 20K machine is **accepted**, and criterion 6 as written is
 superseded by the 20K figure. (2) The pacing item: **build it**. (3) DEFERRED-02's discharge, the
 sub-choice the 20K acceptance forced: **build the wrap**, rather than an accepted divergence.
 

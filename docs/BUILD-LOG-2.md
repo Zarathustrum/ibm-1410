@@ -1,5 +1,5 @@
 **STATUS:** PHASE 2 COMPLETE — five waves committed (last 205b2e9, close-out 5892da4); rebased
-onto `main` 21302e4 (Phase 1b merged) and re-verified; awaiting Tom's merge review.
+onto `main` 21302e4 (Phase 1b merged) and re-verified; awaiting Zarathustrum's merge review.
 
 # Phase 2 build log
 

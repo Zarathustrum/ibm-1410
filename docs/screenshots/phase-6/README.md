@@ -18,5 +18,5 @@ nothing in its mechanical column.
 This file exists because git tracks no empty directory.
 
 **Close-out, 2026-10-02:** `close-out-desk-paced.png` — the desk mid-run with `1411 SPEED` on, taken
-after Tom's pacing ruling and outside the wave numbering, recorded in `docs/BUILD-LOG-6.md`'s close-out
+after Zarathustrum's pacing ruling and outside the wave numbering, recorded in `docs/BUILD-LOG-6.md`'s close-out
 section.

@@ -388,7 +388,7 @@ describe('oracle/io-status.json — Figures 45 and 46, the 1415 (A22-0526-3 pp.4
 //
 // OPEN: `CONSOLE_INQUIRY_LATCH_IS_THE_BNQ_LATCH` (console1415.ts, plan §15). io.md §8 contradicts
 // itself; reading A — ONE latch, set by the key, tested by BNQ, cleared by Program Reset — is the
-// ruling (Tom, 2026-08-30). Every assertion below is that reading made mechanical.
+// ruling (Zarathustrum, 2026-08-30). Every assertion below is that reading made mechanical.
 //
 // The two CARRIAGE senses (`J (I) 9` BC9 and `J (I) @` BCV) are asserted in
 // test/exec-branch.test.ts, beside the rest of the `J` d-table and the 1403's carriage; they are

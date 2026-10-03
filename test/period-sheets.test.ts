@@ -3,7 +3,7 @@
 // (d), §13 criteria 6, 12 and 15, §15 `THE_RULER_IS_THE_FORM`.
 //
 // WHY THIS FILE EXISTS — a §3 file-list deviation the build records. §11 wave 5's clauses (c) and
-// (d) name no test file, and every test file wave 5 owns landed in wave 5a under Tom's split with
+// (d) name no test file, and every test file wave 5 owns landed in wave 5a under Zarathustrum's split with
 // no append to any of them sanctioned. So the two clauses have no carrier; this is it, and it is
 // new rather than an append for exactly that reason.
 //

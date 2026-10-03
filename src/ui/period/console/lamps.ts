@@ -107,7 +107,7 @@ const CITES: Readonly<Record<string, string>> = {
  * straight Box / Sub-group / Lights read of §5 instead of a re-shaping (§4.9).
  *
  * The title is `SYSTEMS CONTROLS` as the S223-2648 Fig.3 p.8 PHOTOGRAPH silkscreens it, NOT the
- * `SYSTEM CONTROLS` A22-0526-3 Fig.55 p.55 prints: Tom ruled for the photograph 2026-09-03 and §5
+ * `SYSTEM CONTROLS` A22-0526-3 Fig.55 p.55 prints: Zarathustrum ruled for the photograph 2026-09-03 and §5
  * was reversed to match IN THE SAME COMMIT — the panel test slices §5 live, so they cannot drift.
  */
 const PANEL: readonly (readonly [PanelBox, string, readonly (readonly [string | null, string])[]])[] = [

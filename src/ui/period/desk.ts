@@ -49,7 +49,7 @@ import { make } from './dom.js';
  * FALLBACK TAKEN: ONE look, read off the photographs, and **no colour chooser** — a light laminate
  * ground under the paper with charcoal station frames. It is TWO CSS custom properties,
  * `--desk-top` and `--desk-pedestal`, declared on `#machine-room` in `src/ui/styles/period.css`
- * (§10.3), because a red or blue site skin must stay a one-property change if Tom ever wants a
+ * (§10.3), because a red or blue site skin must stay a one-property change if Zarathustrum ever wants a
  * specific machine's colours.
  *
  * WHAT WOULD SETTLE IT: a colour photograph — the Postgirot Stockholm plate of 4 Jan 1965
@@ -87,7 +87,7 @@ export const NO_UNIT_DIMENSION_IS_DRAWN_OR_LABELLED = true;
  * FALLBACK TAKEN: none. The desk is silent, no audio dependency is added, and no station is
  * handed a sound hook to leave unwired.
  *
- * WHAT WOULD SETTLE IT: nothing external. If Tom wants it later it is one toggle and one recorded
+ * WHAT WOULD SETTLE IT: nothing external. If Zarathustrum wants it later it is one toggle and one recorded
  * sample, **labelled a reconstruction on the page** the way the demo decks already are.
  */
 export const SOUND_IS_OUT = true;

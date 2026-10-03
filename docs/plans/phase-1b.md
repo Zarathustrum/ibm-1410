@@ -31,13 +31,13 @@ worktree. 1b merges first; Phase 2 rebases onto it.** §2 is load-bearing, not b
    once in `open-questions.md` — **by Wave B, the wave that first cites it, which therefore owns
    that file too** (§2, §4). Written into the fixture, not glossed (§4, §9).
    `emulators.md` still claims the opposite twice, and Wave B corrects it in place (§2, §4).
-4. **MCE against the Figure 34 trace, honestly scoped — and that scoping is Tom's call.**
+4. **MCE against the Figure 34 trace, honestly scoped — and that scoping is Zarathustrum's call.**
    `opcodes.md` §7.3 reprints **14 of the 46 steps** of A22-0526-3 Figure 34, plus the eight-case
    BAR table and the skid rules. Wave D opens with the confirmation read of A22-0526-3 pp.31-35 /
    S223-2698 pp.47-56 (PHASE-1-NOTES §4); if it lands the fixture becomes all 46 steps, otherwise
    we ship on the 14, the end state (IAR 00012 / AAR 12155 / **BAR 04677**), the eight BAR cases
    and the skid word-mark rule. That fallback **narrows the gate phase-1-cpu-core.md §5 wrote**,
-   which its own §10 contradicts; §1 states the narrowing explicitly and Tom rules before Wave D.
+   which its own §10 contradicts; §1 states the narrowing explicitly and Zarathustrum rules before Wave D.
 5. **Machine-check `isa/table.ts` against `opcodes.md` §2 at test time** — the Phase 1 final
    review's queued item (`docs/STATUS.md`). §2's rows pair with `table.ts`'s `OpForm`s **by
    printed order** — the invariant `table.ts`'s own header already claims — and §5 compares op
@@ -78,7 +78,7 @@ The assembler, RPG, the reentry showcase. Tape, disk, channel 2, overlap, Priori
 **not** counted inside `B`/`Z`/`D` (§10). MCE address wrap — `MCE_WRAP_TRAPS = true` stands from
 plan §10. Any change to the cc01 PASS rule, the tier list, or `METHOD.md`'s tag set.
 
-**One gate narrowing, stated rather than slipped in — Tom rules before Wave D.**
+**One gate narrowing, stated rather than slipped in — Zarathustrum rules before Wave D.**
 `phase-1-cpu-core.md` §5 sets Phase 1b's gate as *"`insttest.cor` 00300-01100 decode plus the
 annotated ZA/ZS/multiply/divide blocks; for MCE, the 46-step Figure 34 trace asserted at every
 cycle, ending IAR 00012 / AAR 12155 / BAR 04677, plus the eight-case BAR table and the skid cycle
@@ -95,7 +95,7 @@ gate**"* — the two statements conflict, and this is the resolution:
    `test/tier2-ilentest.test.ts` walks that range, so 1b adds nothing at tier 2 rather than
    re-asserting the same bytes at tier 3.
 
-Neither is 1b's decision to take silently: **a phase gate is Tom's to relax.** The orchestrator
+Neither is 1b's decision to take silently: **a phase gate is Zarathustrum's to relax.** The orchestrator
 raises both before Wave D starts and ships the fallback only on his word (§9).
 
 ---
@@ -489,7 +489,7 @@ position, a control word with a body — assert the character **is** transferred
 
 Per wave: Opus workers with the wave's file list as a hard boundary → orchestrator runs
 `typecheck`, `test`, `smoke`, `cc01` → Opus adversarial reviewer → fixes → one commit,
-`[Scope]: description` with footer `(anthropic claude-code opus-5 / gaiking)`, pushed to
+`[Scope]: description` with footer `(anthropic claude-code opus-5 / host-a)`, pushed to
 `feature/phase-1b`. `main` is never touched.
 
 **Wave A — the reshape, and the machine check.** *Files:* `alu.ts`, `test/alu-pass.test.ts` (new),
@@ -616,7 +616,7 @@ PHASE-1B-NOTES §2 as a deviation from `phase-1-cpu-core.md` §5's *"asserted at
 
 *Oracle,* in order of preference: (1) **if the read lands**, all 46 steps mapped onto their
 B-cycle ordinals — AAR, BAR, the data-register character, the character put back and the B field
-at every cycle; (2) **fallback after two failed attempts** (and only with Tom's ruling on §1's
+at every cycle; (2) **fallback after two failed attempts** (and only with Zarathustrum's ruling on §1's
 gate narrowing), the 14 printed steps at their own B-cycle ordinals, the end state (**IAR 00012 /
 AAR 12155 / BAR 04677** — `12163 − 8` confirming `A − LA`, `04676 + 1` confirming
 suppression-code + 1), the final B field `$  2,574.26    **`, one vector per **eight-case BAR
@@ -879,8 +879,8 @@ Figure 34's first twelve steps go by in one press.
 
 | Risk | Mitigation |
 |---|---|
-| **MCE is the hard one: the PoO prints "Varies with result of edit" for BAR in every edition, and what we hold is a 14-of-46-step hand transcription in `opcodes.md` §7.3, not a fixture.** | Four handles, none dependent on the missing 32 steps. (a) The **confirmation read of A22-0526-3 pp.31-35 / S223-2698 pp.47-56** is Wave D's first task (PHASE-1-NOTES §4); if it lands, all 46 steps become the fixture — mapped onto B-cycle ordinals, since the manual's step numbers are not addressable through `stepCycle()` (§4 Wave D). If it does not, the fallback **narrows a gate the parent plan set**, so it is Tom's ruling and not the orchestrator's (§1). (b) The **eight-case BAR table** is `[verified]` on its own and each row gets its own vector, so BAR is tested case by case, not through one example. (c) S223-2698 pp.50-51 states the **mechanism** — −1 per B-cycle on scans 1 and 3, +1 on scan 2, terminating cycle included — confirmed independently by cube1us `scan_mod[]`; an implementation built from it reproduces the 14 known steps or fails visibly at the first. (d) The **end state** is arithmetic on two `[verified]` rules and is asserted regardless. Two failed attempts → stop and ask, ship the fallback, record it. |
-| Multiply and divide have a real fixture but **no expected results anywhere**, so ten green tests assert numbers we computed. | Say so per case, with the `opcodes.md` §4.5 / §4.6 citation and the arithmetic written out. Add tier-1 vectors from the manual's **own** worked example (Figure 17) so at least one divide answer is the manual's, not ours. Tag question to Tom. |
+| **MCE is the hard one: the PoO prints "Varies with result of edit" for BAR in every edition, and what we hold is a 14-of-46-step hand transcription in `opcodes.md` §7.3, not a fixture.** | Four handles, none dependent on the missing 32 steps. (a) The **confirmation read of A22-0526-3 pp.31-35 / S223-2698 pp.47-56** is Wave D's first task (PHASE-1-NOTES §4); if it lands, all 46 steps become the fixture — mapped onto B-cycle ordinals, since the manual's step numbers are not addressable through `stepCycle()` (§4 Wave D). If it does not, the fallback **narrows a gate the parent plan set**, so it is Zarathustrum's ruling and not the orchestrator's (§1). (b) The **eight-case BAR table** is `[verified]` on its own and each row gets its own vector, so BAR is tested case by case, not through one example. (c) S223-2698 pp.50-51 states the **mechanism** — −1 per B-cycle on scans 1 and 3, +1 on scan 2, terminating cycle included — confirmed independently by cube1us `scan_mod[]`; an implementation built from it reproduces the 14 known steps or fails visibly at the first. (d) The **end state** is arithmetic on two `[verified]` rules and is asserted regardless. Two failed attempts → stop and ask, ship the fallback, record it. |
+| Multiply and divide have a real fixture but **no expected results anywhere**, so ten green tests assert numbers we computed. | Say so per case, with the `opcodes.md` §4.5 / §4.6 citation and the arithmetic written out. Add tier-1 vectors from the manual's **own** worked example (Figure 17) so at least one divide answer is the manual's, not ours. Tag question to Zarathustrum. |
 | The reshape silently changes `A S ? !`. | Wave A ships **no new behaviour** — its gate is the unchanged suite and an unchanged `cc01` line; `addToStorage` keeps signature and yields, and the reviewer diffs one add's yield sequence before and after. |
 | `Z` is `[likely]` with a single SimH corroboration and no oracle of any kind. | Ship plan §10's fallback behind the named constant, record the hit, leave the `open-questions.md` row **open**. Copying SimH does not make it verified (`METHOD.md`: emulator code is a second oracle for behaviour, never a primary source for spec). |
 | Table Lookup's compare direction gets inverted — a symmetric table passes either way. | Deliberately **asymmetric** vectors, plus the OPEN constant naming the reading and the LEH cross-check. |

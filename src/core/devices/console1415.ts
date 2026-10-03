@@ -113,7 +113,7 @@ export const INQUIRY_ENTRY_IS_PRE_SUPPLIED = true;
  * `J iiiii Q`)" — which makes BNQ test a latch the console key never sets and Program Reset
  * never clears. Both cannot hold on a machine with one console and no remote stations.
  *
- * **We take A** (Tom, 2026-08-30 — ruled, no primary-source re-read), because it is the only one
+ * **We take A** (Zarathustrum, 2026-08-30 — ruled, no primary-source re-read), because it is the only one
  * that gives a demonstrable inquiry path on this configuration, and because io.md §5 Figure 35
  * lists inquiry request as a per-CHANNEL condition — and channel 1 is where the console is. If B
  * turns out to be right, this machine needs a second latch and `J (I) Q` answers false forever.

@@ -1138,7 +1138,7 @@ directory into `src/ui/period/` and styles it; nothing here is thrown away.
 
 Per wave: file ownership → `npm run typecheck` + `npm test` + `npm run smoke` → `git diff
 --name-only main` ∩ do-not-touch = ∅ → **the notes ritual** → Opus adversarial review → fix →
-**one commit** `[Scope]: description` with the footer `(anthropic claude-code <model> / gaiking)` →
+**one commit** `[Scope]: description` with the footer `(anthropic claude-code <model> / host-a)` →
 push `feature/phase-2`. Never main.
 
 **The notes ritual is per wave, not a wave.** Every wave appends its own rows to `PHASE-2-NOTES.md`

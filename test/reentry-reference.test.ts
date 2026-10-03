@@ -17,7 +17,7 @@
 // in the message so a reader sees the margin without the test being fitted to it. §4.5's rule is
 // verbatim and is not negotiable inside the build: *a tolerance published in docs/BUILD-LOG-6.md
 // before the golden may not be widened, and the reference may not be edited to match the program,
-// without Tom's authorisation.* A failure here is a finding, not a number to move.
+// without Zarathustrum's authorisation.* A failure here is a finding, not a number to move.
 //
 // WHAT THIS FILE DOES NOT CHECK: the emulated machine. Layers 1, 2 and 3 are all reference; the
 // gate is layer 4 against layers 1-2 and it is wave 3's and wave 4's (§4.4, §11).
